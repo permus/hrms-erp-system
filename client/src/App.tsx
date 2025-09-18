@@ -11,6 +11,7 @@ import Landing from "@/pages/landing";
 import Home from "@/pages/home";
 import SuperAdminDashboard from "@/pages/super-admin/dashboard";
 import CreateCompany from "@/pages/super-admin/create-company";
+import ManageCompany from "@/pages/super-admin/manage-company";
 import CompanyAdminDashboard from "@/pages/company-admin/dashboard";
 import EmployeeDashboard from "@/pages/employee/dashboard";
 import NotFound from "@/pages/not-found";
@@ -88,7 +89,7 @@ function Router() {
           {/* Super Admin Portal */}
           <Route path="/super-admin/dashboard" component={SuperAdminDashboard} />
           <Route path="/super-admin/create-company" component={CreateCompany} />
-          <Route path="/super-admin/*" component={SuperAdminDashboard} />
+          <Route path="/super-admin/companies/:companyId" component={ManageCompany} />
           
           {/* Company Admin Portal - slug-based */}
           <Route path="/:companySlug/dashboard" component={CompanyAdminDashboard} />

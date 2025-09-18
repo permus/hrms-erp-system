@@ -91,10 +91,7 @@ export default function CreateCompany() {
   // Create company mutation
   const createCompanyMutation = useMutation({
     mutationFn: async (data: CompanyFormData) => {
-      return apiRequest('/api/super-admin/create-company', {
-        method: 'POST',
-        body: data
-      });
+      return apiRequest('POST', '/api/super-admin/create-company', data);
     },
     onSuccess: (result) => {
       toast({

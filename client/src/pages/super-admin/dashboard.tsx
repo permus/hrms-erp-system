@@ -224,7 +224,7 @@ export default function SuperAdminDashboard() {
                               variant="outline" 
                               size="sm" 
                               data-testid={`button-manage-company-${company.id}`}
-                              onClick={() => window.location.href = `/${company.slug}/dashboard`}
+                              onClick={() => window.location.href = `/super-admin/companies/${company.id}`}
                             >
                               Manage
                             </Button>
