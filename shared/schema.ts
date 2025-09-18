@@ -1,0 +1,302 @@
+import { sql } from 'drizzle-orm';
+import {
+  index,
+  jsonb,
+  pgTable,
+  timestamp,
+  varchar,
+  text,
+  boolean,
+  integer,
+  date,
+  serial,
+} from "drizzle-orm/pg-core";
+import { createInsertSchema } from "drizzle-zod";
+import { z } from "zod";
+import { relations } from "drizzle-orm";
+
+// Session storage table (required for Replit Auth)
+export const sessions = pgTable(
+  "sessions",
+  {
+    sid: varchar("sid").primaryKey(),
+    sess: jsonb("sess").notNull(),
+    expire: timestamp("expire").notNull(),
+  },
+  (table) => [index("IDX_session_expire").on(table.expire)],
+);
+
+// User storage table (required for Replit Auth)
+export const users = pgTable("users", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  email: varchar("email").unique(),
+  firstName: varchar("first_name"),
+  lastName: varchar("last_name"),
+  profileImageUrl: varchar("profile_image_url"),
+  // ERP/HRMS specific fields
+  companyId: varchar("company_id"),
+  role: varchar("role").notNull().default("EMPLOYEE"), // SUPER_ADMIN, COMPANY_ADMIN, HR_MANAGER, DEPARTMENT_MANAGER, EMPLOYEE
+  isActive: boolean("is_active").default(true),
+  mustChangePassword: boolean("must_change_password").default(false),
+  invitedBy: varchar("invited_by"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Companies table (multi-tenant root)
+export const companies = pgTable("companies", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name", { length: 255 }).notNull(),
+  subdomain: varchar("subdomain", { length: 100 }).unique(),
+  settings: jsonb("settings").default(sql`'{}'::jsonb`),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Departments
+export const departments = pgTable("departments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  companyId: varchar("company_id").notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  parentId: varchar("parent_id"),
+  managerId: varchar("manager_id"),
+  description: text("description"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Positions
+export const positions = pgTable("positions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  companyId: varchar("company_id").notNull(),
+  title: varchar("title", { length: 255 }).notNull(),
+  departmentId: varchar("department_id").notNull(),
+  level: varchar("level", { length: 50 }),
+  jobDescription: text("job_description"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Employees (UAE compliance focus)
+export const employees = pgTable("employees", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  companyId: varchar("company_id").notNull(),
+  userId: varchar("user_id").unique(),
+  employeeCode: varchar("employee_code").notNull(),
+  
+  // Personal Information (UAE compliance)
+  personalInfo: jsonb("personal_info").notNull(),
+  // { name, fatherName, motherName, dob, nationality, religion, maritalStatus }
+  
+  // Contact Information
+  contactInfo: jsonb("contact_info").notNull(),
+  // { uaePhone, homeCountryPhone, email, uaeAddress, homeCountryAddress }
+  
+  // Employment Details
+  employmentDetails: jsonb("employment_details").notNull(),
+  // { position, department, reportingManagerId, startDate, employmentStatus, probationMonths }
+  
+  // Probation Information
+  probationInfo: jsonb("probation_info"),
+  // { startDate, endDate, status, evaluationScores, confirmationDate, extensionDetails }
+  
+  // Compensation
+  compensation: jsonb("compensation").notNull(),
+  // { basicSalary, housingAllowance, transportAllowance, otherAllowance, totalSalary }
+  
+  // UAE Specific Information
+  visaInfo: jsonb("visa_info"),
+  // { currentStatus, visaType, expiryDate, passportPlaceOfIssue }
+  
+  emiratesIdInfo: jsonb("emirates_id_info"),
+  // { status, idNumber, expiryDate }
+  
+  status: varchar("status", { length: 50 }).default("ACTIVE"), // ACTIVE, INACTIVE, TERMINATED
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+  deletedAt: timestamp("deleted_at"),
+});
+
+// Document Management
+export const employeeDocuments = pgTable("employee_documents", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  employeeId: varchar("employee_id").notNull(),
+  documentType: varchar("document_type", { length: 100 }).notNull(),
+  category: varchar("category", { length: 100 }).notNull(),
+  fileName: varchar("file_name", { length: 255 }).notNull(),
+  filePath: varchar("file_path", { length: 500 }).notNull(),
+  fileSize: integer("file_size"),
+  uploadDate: timestamp("upload_date").defaultNow(),
+  expiryDate: date("expiry_date"),
+  status: varchar("status", { length: 50 }).default("ACTIVE"),
+  version: integer("version").default(1),
+  uploadedBy: varchar("uploaded_by").notNull(),
+  approvalStatus: varchar("approval_status", { length: 50 }).default("PENDING"),
+  approvedBy: varchar("approved_by"),
+  approvedDate: timestamp("approved_date"),
+  comments: text("comments"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Probation Notifications
+export const probationNotifications = pgTable("probation_notifications", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  employeeId: varchar("employee_id").notNull(),
+  notificationType: varchar("notification_type", { length: 100 }).notNull(),
+  scheduledDate: date("scheduled_date").notNull(),
+  sentDate: timestamp("sent_date"),
+  status: varchar("status", { length: 50 }).default("SCHEDULED"),
+  recipients: jsonb("recipients").notNull(),
+  messageTemplate: text("message_template"),
+  customMessage: text("custom_message"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Leave Types
+export const leaveTypes = pgTable("leave_types", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  companyId: varchar("company_id").notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  daysAllowed: integer("days_allowed").notNull(),
+  rules: jsonb("rules").default(sql`'{}'::jsonb`),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Leave Requests
+export const leaveRequests = pgTable("leave_requests", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  employeeId: varchar("employee_id").notNull(),
+  leaveTypeId: varchar("leave_type_id").notNull(),
+  startDate: date("start_date").notNull(),
+  endDate: date("end_date").notNull(),
+  daysRequested: integer("days_requested").notNull(),
+  reason: text("reason"),
+  status: varchar("status", { length: 50 }).default("PENDING"),
+  approvals: jsonb("approvals").default(sql`'[]'::jsonb`),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Leave Balances
+export const leaveBalances = pgTable("leave_balances", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  employeeId: varchar("employee_id").notNull(),
+  leaveTypeId: varchar("leave_type_id").notNull(),
+  balance: integer("balance").notNull(),
+  used: integer("used").default(0),
+  carriedOver: integer("carried_over").default(0),
+  year: integer("year").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Attendance Records
+export const attendanceRecords = pgTable("attendance_records", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  employeeId: varchar("employee_id").notNull(),
+  date: date("date").notNull(),
+  checkIn: timestamp("check_in"),
+  checkOut: timestamp("check_out"),
+  breakTime: integer("break_time"), // in minutes
+  totalHours: integer("total_hours"), // in minutes
+  status: varchar("status", { length: 50 }).default("PRESENT"),
+  location: jsonb("location"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Relations
+export const usersRelations = relations(users, ({ one, many }) => ({
+  company: one(companies, {
+    fields: [users.companyId],
+    references: [companies.id],
+  }),
+  employee: one(employees, {
+    fields: [users.id],
+    references: [employees.userId],
+  }),
+}));
+
+export const companiesRelations = relations(companies, ({ many }) => ({
+  users: many(users),
+  employees: many(employees),
+  departments: many(departments),
+  positions: many(positions),
+  leaveTypes: many(leaveTypes),
+}));
+
+export const employeesRelations = relations(employees, ({ one, many }) => ({
+  user: one(users, {
+    fields: [employees.userId],
+    references: [users.id],
+  }),
+  company: one(companies, {
+    fields: [employees.companyId],
+    references: [companies.id],
+  }),
+  documents: many(employeeDocuments),
+  leaveRequests: many(leaveRequests),
+  leaveBalances: many(leaveBalances),
+  attendanceRecords: many(attendanceRecords),
+  probationNotifications: many(probationNotifications),
+}));
+
+export const departmentsRelations = relations(departments, ({ one, many }) => ({
+  company: one(companies, {
+    fields: [departments.companyId],
+    references: [companies.id],
+  }),
+  parent: one(departments, {
+    fields: [departments.parentId],
+    references: [departments.id],
+  }),
+  children: many(departments),
+  positions: many(positions),
+}));
+
+export const positionsRelations = relations(positions, ({ one }) => ({
+  company: one(companies, {
+    fields: [positions.companyId],
+    references: [companies.id],
+  }),
+  department: one(departments, {
+    fields: [positions.departmentId],
+    references: [departments.id],
+  }),
+}));
+
+// Insert Schemas
+export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertCompanySchema = createInsertSchema(companies).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertEmployeeSchema = createInsertSchema(employees).omit({ id: true, createdAt: true, updatedAt: true, deletedAt: true });
+export const insertDepartmentSchema = createInsertSchema(departments).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertPositionSchema = createInsertSchema(positions).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertEmployeeDocumentSchema = createInsertSchema(employeeDocuments).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertLeaveRequestSchema = createInsertSchema(leaveRequests).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertAttendanceRecordSchema = createInsertSchema(attendanceRecords).omit({ id: true, createdAt: true, updatedAt: true });
+
+// Types
+export type UpsertUser = typeof users.$inferInsert;
+export type User = typeof users.$inferSelect;
+export type InsertUser = z.infer<typeof insertUserSchema>;
+export type InsertCompany = z.infer<typeof insertCompanySchema>;
+export type InsertEmployee = z.infer<typeof insertEmployeeSchema>;
+export type InsertDepartment = z.infer<typeof insertDepartmentSchema>;
+export type InsertPosition = z.infer<typeof insertPositionSchema>;
+export type InsertEmployeeDocument = z.infer<typeof insertEmployeeDocumentSchema>;
+export type InsertLeaveRequest = z.infer<typeof insertLeaveRequestSchema>;
+export type InsertAttendanceRecord = z.infer<typeof insertAttendanceRecordSchema>;
+
+export type Company = typeof companies.$inferSelect;
+export type Employee = typeof employees.$inferSelect;
+export type Department = typeof departments.$inferSelect;
+export type Position = typeof positions.$inferSelect;
+export type EmployeeDocument = typeof employeeDocuments.$inferSelect;
+export type LeaveRequest = typeof leaveRequests.$inferSelect;
+export type LeaveBalance = typeof leaveBalances.$inferSelect;
+export type AttendanceRecord = typeof attendanceRecords.$inferSelect;
