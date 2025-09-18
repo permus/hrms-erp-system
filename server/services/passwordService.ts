@@ -26,15 +26,15 @@ export class PasswordService {
   }
 
   /**
-   * Generate a secure random password
+   * Generate a cryptographically secure random password
    */
   static generateSecurePassword(length: number = 12): string {
     const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*';
+    const randomBytes = require('crypto').randomBytes(length);
     let password = '';
     
     for (let i = 0; i < length; i++) {
-      const randomIndex = Math.floor(Math.random() * charset.length);
-      password += charset[randomIndex];
+      password += charset[randomBytes[i] % charset.length];
     }
     
     return password;

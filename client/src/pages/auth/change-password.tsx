@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
+import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -25,38 +26,50 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Eye, EyeOff, Lock, CheckCircle } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 
-const passwordSchema = z
-  .object({
-    currentPassword: z.string().min(1, "Current password is required"),
-    newPassword: z
-      .string()
-      .min(8, "Password must be at least 8 characters")
-      .regex(/[a-z]/, "Password must contain at least one lowercase letter")
-      .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
-      .regex(/\d/, "Password must contain at least one number")
-      .regex(
-        /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/,
-        "Password must contain at least one special character"
-      ),
-    confirmPassword: z.string().min(1, "Please confirm your password"),
-  })
-  .refine((data) => data.newPassword === data.confirmPassword, {
-    message: "Passwords don't match",
-    path: ["confirmPassword"],
-  });
+const createPasswordSchema = (requireEmail: boolean) =>
+  z
+    .object({
+      email: requireEmail ? z.string().email("Please enter a valid email address") : z.string().optional(),
+      currentPassword: z.string().min(1, "Current password is required"),
+      newPassword: z
+        .string()
+        .min(8, "Password must be at least 8 characters")
+        .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+        .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+        .regex(/\d/, "Password must contain at least one number")
+        .regex(
+          /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/,
+          "Password must contain at least one special character"
+        ),
+      confirmPassword: z.string().min(1, "Please confirm your password"),
+    })
+    .refine((data) => data.newPassword === data.confirmPassword, {
+      message: "Passwords don't match",
+      path: ["confirmPassword"],
+    });
 
-type PasswordFormData = z.infer<typeof passwordSchema>;
+type PasswordFormData = {
+  email?: string;
+  currentPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+};
 
 export default function ChangePasswordPage() {
   const [, setLocation] = useLocation();
+  const { user } = useAuth();
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
+  const requireEmail = !user; // Only require email if user is not authenticated
+  const passwordSchema = createPasswordSchema(requireEmail);
+
   const form = useForm<PasswordFormData>({
     resolver: zodResolver(passwordSchema),
     defaultValues: {
+      email: user?.email || "",
       currentPassword: "",
       newPassword: "",
       confirmPassword: "",
@@ -64,20 +77,30 @@ export default function ChangePasswordPage() {
   });
 
   const changePasswordMutation = useMutation({
-    mutationFn: (data: PasswordFormData) =>
-      apiRequest("/api/auth/password/change", {
-        method: "POST",
-        body: JSON.stringify({
-          currentPassword: data.currentPassword,
-          newPassword: data.newPassword,
-        }),
-      }),
+    mutationFn: async (data: PasswordFormData) => {
+      // For first-time password change (no active session)
+      const endpoint = user ? "/api/auth/password/change" : "/api/auth/password/first-change";
+      
+      const requestBody = user 
+        ? {
+            currentPassword: data.currentPassword,
+            newPassword: data.newPassword,
+          }
+        : {
+            email: data.email,
+            currentPassword: data.currentPassword,
+            newPassword: data.newPassword,
+          };
+      
+      const response = await apiRequest("POST", endpoint, requestBody);
+      return response.json();
+    },
     onSuccess: () => {
       // Redirect to appropriate dashboard based on user role
       window.location.href = "/";
     },
     onError: (error: any) => {
-      const message = error?.error || "Password change failed. Please try again.";
+      const message = error?.error || error?.details?.join(', ') || "Password change failed. Please try again.";
       setErrorMessage(message);
     },
   });
@@ -132,12 +155,34 @@ export default function ChangePasswordPage() {
 
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              {!user && (
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          type="email"
+                          placeholder="Enter your email"
+                          data-testid="input-email"
+                          disabled={changePasswordMutation.isPending}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+              
               <FormField
                 control={form.control}
                 name="currentPassword"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Current Password</FormLabel>
+                    <FormLabel>{user ? "Current Password" : "Temporary Password"}</FormLabel>
                     <FormControl>
                       <div className="relative">
                         <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />

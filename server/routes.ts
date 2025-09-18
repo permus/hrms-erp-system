@@ -207,6 +207,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Password change endpoint (for authenticated users)
   app.post("/api/auth/password/change", isAuthenticatedAny, loadUserData, async (req, res) => {
     try {
       const authReq = req as AuthenticatedRequest;
@@ -259,6 +260,113 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ success: true });
     } catch (error) {
       console.error('Password change error:', error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid input", details: error.errors });
+      }
+      res.status(500).json({ error: "Password change failed" });
+    }
+  });
+  
+  // First-time password change endpoint (for users with temporary passwords)
+  app.post("/api/auth/password/first-change", async (req, res) => {
+    try {
+      const { email, currentPassword, newPassword } = z.object({
+        email: z.string().email(),
+        currentPassword: z.string().min(1),
+        newPassword: z.string().min(8)
+      }).parse(req.body);
+      
+      // Get user by email
+      const user = await storage.getUserByEmail(email.toLowerCase());
+      
+      if (!user || !user.isActive || !user.passwordHash) {
+        return res.status(401).json({ error: "Invalid credentials" });
+      }
+      
+      // Check if account is locked
+      if (user.lockedUntil && new Date(user.lockedUntil) > new Date()) {
+        return res.status(423).json({ 
+          error: "Account temporarily locked due to failed login attempts" 
+        });
+      }
+      
+      // Verify current (temporary) password
+      const isValidCurrentPassword = await PasswordService.verifyPassword(
+        user.passwordHash,
+        currentPassword
+      );
+      
+      if (!isValidCurrentPassword) {
+        // Increment failed login count
+        const failedCount = (user.failedLoginCount || 0) + 1;
+        let lockedUntil = null;
+        
+        // Lock account after 5 failed attempts for 15 minutes
+        if (failedCount >= 5) {
+          lockedUntil = new Date(Date.now() + 15 * 60 * 1000);
+        }
+        
+        await storage.updateUserAuth(user.id, {
+          failedLoginCount: failedCount,
+          lockedUntil
+        });
+        
+        return res.status(401).json({ error: "Current password is incorrect" });
+      }
+      
+      // Validate new password strength
+      const passwordValidation = PasswordService.validatePasswordStrength(newPassword);
+      if (!passwordValidation.valid) {
+        return res.status(400).json({ 
+          error: "New password does not meet requirements", 
+          details: passwordValidation.errors 
+        });
+      }
+      
+      // Hash new password and update user
+      const passwordHash = await PasswordService.hashPassword(newPassword);
+      await storage.updateUserAuth(user.id, {
+        passwordHash,
+        passwordUpdatedAt: new Date(),
+        mustChangePassword: false,
+        failedLoginCount: 0,
+        lockedUntil: null
+      });
+      
+      // Create session for the user after successful password change
+      const sessionUser = {
+        authMethod: 'password',
+        claims: {
+          sub: user.id,
+          email: user.email || '',
+          first_name: user.firstName || '',
+          last_name: user.lastName || ''
+        },
+        role: user.role
+      };
+      
+      req.login(sessionUser, (err) => {
+        if (err) {
+          console.error('Session creation error after password change:', err);
+          return res.status(500).json({ error: "Failed to create session after password change" });
+        }
+        
+        res.json({ 
+          success: true,
+          user: {
+            id: user.id,
+            email: user.email,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            role: user.role,
+            companyId: user.companyId,
+            mustChangePassword: false
+          }
+        });
+      });
+      
+    } catch (error) {
+      console.error('First-time password change error:', error);
       if (error instanceof z.ZodError) {
         return res.status(400).json({ error: "Invalid input", details: error.errors });
       }

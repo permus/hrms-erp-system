@@ -41,6 +41,12 @@ function RoleBasedRedirect() {
   // Handle redirection based on role and available slugs using useEffect
   useEffect(() => {
     if (!isLoading && userSlugs && user) {
+      // Check if user must change password first
+      if ((user as any).mustChangePassword) {
+        setLocation('/auth/change-password');
+        return;
+      }
+      
       if ((user as any).role === 'SUPER_ADMIN') {
         setLocation('/super-admin/dashboard');
       } else if (['COMPANY_ADMIN', 'HR_MANAGER', 'DEPARTMENT_MANAGER'].includes((user as any).role || '')) {

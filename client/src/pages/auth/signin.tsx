@@ -59,11 +59,10 @@ export default function SigninPage() {
   });
 
   const signinMutation = useMutation({
-    mutationFn: (data: SigninFormData) => 
-      apiRequest("/api/auth/signin", {
-        method: "POST",
-        body: JSON.stringify(data),
-      }) as Promise<SigninResponse>,
+    mutationFn: async (data: SigninFormData) => {
+      const response = await apiRequest("POST", "/api/auth/signin", data);
+      return response.json() as Promise<SigninResponse>;
+    },
     onSuccess: (response) => {
       if (response.user.mustChangePassword) {
         setLocation("/auth/change-password");

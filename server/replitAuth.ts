@@ -39,7 +39,8 @@ export function getSession() {
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      secure: true,
+      secure: process.env.NODE_ENV === 'production', // Only secure in production
+      sameSite: 'lax', // CSRF protection
       maxAge: sessionTtl,
     },
   });
@@ -81,7 +82,8 @@ async function upsertUser(
     const existingUser = await storage.getUser(userData.id);
     
     // Extract role and company information from claims, but preserve existing data if claims don't specify
-    const role = claims["role"] || (existingUser?.role) || "EMPLOYEE";
+    // Only default to EMPLOYEE for genuinely new users (no existing user record)
+    const role = claims["role"] || existingUser?.role || "EMPLOYEE";
     const companySlugs = claims["companySlugs"] || claims["company_slugs"] || [];
     const companySlug = claims["company_slug"] || claims["companySlug"] || (companySlugs.length > 0 ? companySlugs[0] : null);
     
