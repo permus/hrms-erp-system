@@ -230,6 +230,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Validation endpoints for real-time form validation
+  app.post("/api/super-admin/validate/slug", requireRole('SUPER_ADMIN'), async (req, res) => {
+    try {
+      const { slug } = req.body;
+      if (!slug) {
+        return res.status(400).json({ error: "Slug is required" });
+      }
+      
+      const isAvailable = await storage.isSlugAvailable(slug);
+      res.json({ 
+        isValid: isAvailable,
+        message: isAvailable ? "Slug is available" : "This slug is already taken. Please choose a different one."
+      });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to validate slug" });
+    }
+  });
+
+  app.post("/api/super-admin/validate/email", requireRole('SUPER_ADMIN'), async (req, res) => {
+    try {
+      const { email } = req.body;
+      if (!email) {
+        return res.status(400).json({ error: "Email is required" });
+      }
+      
+      const existingUser = await storage.getUserByEmail(email);
+      const isAvailable = !existingUser;
+      res.json({ 
+        isValid: isAvailable,
+        message: isAvailable ? "Email is available" : "This email is already registered. Please use a different email address."
+      });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to validate email" });
+    }
+  });
+
+  app.post("/api/super-admin/validate/company-name", requireRole('SUPER_ADMIN'), async (req, res) => {
+    try {
+      const { name } = req.body;
+      if (!name) {
+        return res.status(400).json({ error: "Company name is required" });
+      }
+      
+      const existingCompany = await storage.getCompanyByName(name);
+      const isAvailable = !existingCompany;
+      res.json({ 
+        isValid: isAvailable,
+        message: isAvailable ? "Company name is available" : "A company with this name already exists. Please choose a different name."
+      });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to validate company name" });
+    }
+  });
+
   // Enhanced company creation with licensing and admin invitation
   app.post("/api/super-admin/create-company", requireRole('SUPER_ADMIN'), async (req, res) => {
     try {
@@ -244,6 +298,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const slugAvailable = await storage.isSlugAvailable(formData.slug);
       if (!slugAvailable) {
         return res.status(409).json({ error: "Company slug already exists. Please choose a different slug." });
+      }
+      
+      // Check for company name conflicts (case-insensitive, active companies only)
+      const existingCompanyByName = await storage.getCompanyByName(formData.companyName.trim());
+      if (existingCompanyByName) {
+        return res.status(409).json({ error: "A company with this name already exists. Please choose a different name." });
+      }
+      
+      // Check for admin email conflicts
+      const existingUser = await storage.getUserByEmail(formData.adminEmail.trim().toLowerCase());
+      if (existingUser) {
+        return res.status(409).json({ error: "A user with this email already exists. Please use a different email address." });
       }
       
       // Calculate monthly cost

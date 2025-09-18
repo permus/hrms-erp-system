@@ -18,7 +18,7 @@ import {
   type CompanyLicense,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, inArray } from "drizzle-orm";
+import { eq, and, inArray, sql } from "drizzle-orm";
 import { randomBytes } from "crypto";
 
 // Interface for storage operations
@@ -33,6 +33,7 @@ export interface IStorage {
   getCompanies(): Promise<Company[]>;
   getCompany(id: string): Promise<Company | undefined>;
   getCompanyBySlug(slug: string): Promise<Company | undefined>;
+  getCompanyByName(name: string): Promise<Company | undefined>;
   isSlugAvailable(slug: string): Promise<boolean>;
   listCompaniesForUser(userId: string): Promise<Company[]>;
   createCompany(company: Omit<Company, 'id' | 'createdAt' | 'updatedAt'>): Promise<Company>;
@@ -63,14 +64,18 @@ export interface IStorage {
 export class DatabaseStorage implements IStorage {
   // User operations (required for Replit Auth)
   async getUserByEmail(email: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.email, email));
+    const [user] = await db.select().from(users).where(eq(sql`LOWER(${users.email})`, email.toLowerCase()));
     return user;
   }
 
   async createUser(userData: Omit<User, 'createdAt' | 'updatedAt'>): Promise<User> {
+    const normalizedData = {
+      ...userData,
+      email: userData.email?.toLowerCase()
+    };
     const [user] = await db
       .insert(users)
-      .values(userData)
+      .values(normalizedData)
       .returning();
     return user;
   }
@@ -90,15 +95,20 @@ export class DatabaseStorage implements IStorage {
   }
 
   async upsertUser(userData: UpsertUser): Promise<User> {
+    const normalizedData = {
+      ...userData,
+      email: userData.email?.toLowerCase()
+    };
+    
     try {
       // First try to insert the user
       const [user] = await db
         .insert(users)
-        .values(userData)
+        .values(normalizedData)
         .onConflictDoUpdate({
           target: users.id,
           set: {
-            ...userData,
+            ...normalizedData,
             updatedAt: new Date(),
           },
         })
@@ -107,16 +117,16 @@ export class DatabaseStorage implements IStorage {
     } catch (error: any) {
       // If there's a unique constraint violation on email, update the existing user
       if (error.message?.includes('unique constraint') && error.message?.includes('email')) {
-        console.log('Email conflict detected, updating existing user with email:', userData.email);
+        console.log('Email conflict detected, updating existing user with email:', normalizedData.email);
         
         // Find existing user by email and update with new data
         const [existingUser] = await db
           .update(users)
           .set({
-            ...userData,
+            ...normalizedData,
             updatedAt: new Date(),
           })
-          .where(eq(users.email, userData.email!))
+          .where(eq(sql`LOWER(${users.email})`, normalizedData.email!))
           .returning();
         
         if (existingUser) {
@@ -144,6 +154,13 @@ export class DatabaseStorage implements IStorage {
   async getCompanyBySlug(slug: string): Promise<Company | undefined> {
     const [company] = await db.select().from(companies).where(
       and(eq(companies.slug, slug), eq(companies.isActive, true))
+    );
+    return company;
+  }
+
+  async getCompanyByName(name: string): Promise<Company | undefined> {
+    const [company] = await db.select().from(companies).where(
+      and(eq(sql`LOWER(${companies.name})`, name.toLowerCase()), eq(companies.isActive, true))
     );
     return company;
   }

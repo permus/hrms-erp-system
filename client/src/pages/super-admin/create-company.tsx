@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
@@ -44,6 +44,129 @@ export default function CreateCompany() {
     message: "",
     details: undefined,
   });
+  
+  // Real-time validation state
+  const [validationErrors, setValidationErrors] = useState<{
+    companyName?: string;
+    slug?: string;
+    adminEmail?: string;
+  }>({});
+  const [validating, setValidating] = useState<{
+    companyName?: boolean;
+    slug?: boolean;
+    adminEmail?: boolean;
+  }>({});
+  const validationTimeouts = useRef<{
+    companyName?: ReturnType<typeof setTimeout>;
+    slug?: ReturnType<typeof setTimeout>;
+    adminEmail?: ReturnType<typeof setTimeout>;
+  }>({});
+  const validationSequence = useRef<{
+    companyName: number;
+    slug: number;
+    adminEmail: number;
+  }>({ companyName: 0, slug: 0, adminEmail: 0 });
+
+  // Debounced validation functions
+  const validateField = useCallback(async (field: 'companyName' | 'slug' | 'adminEmail', value: string, sequenceId: number) => {
+    if (!value.trim()) {
+      setValidationErrors(prev => ({ ...prev, [field]: undefined }));
+      setValidating(prev => ({ ...prev, [field]: false }));
+      return;
+    }
+
+    // Basic client-side validation
+    if (field === 'adminEmail' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+      setValidationErrors(prev => ({ ...prev, [field]: 'Please enter a valid email address' }));
+      setValidating(prev => ({ ...prev, [field]: false }));
+      return;
+    }
+    
+    if (field === 'slug' && !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value)) {
+      setValidationErrors(prev => ({ ...prev, [field]: 'Slug can only contain lowercase letters, numbers, and hyphens' }));
+      setValidating(prev => ({ ...prev, [field]: false }));
+      return;
+    }
+
+    setValidating(prev => ({ ...prev, [field]: true }));
+    
+    try {
+      let endpoint = '';
+      let payload = {};
+      
+      switch (field) {
+        case 'companyName':
+          endpoint = '/api/super-admin/validate/company-name';
+          payload = { name: value };
+          break;
+        case 'slug':
+          endpoint = '/api/super-admin/validate/slug';
+          payload = { slug: value };
+          break;
+        case 'adminEmail':
+          endpoint = '/api/super-admin/validate/email';
+          payload = { email: value };
+          break;
+      }
+      
+      const response = await apiRequest(endpoint, {
+        method: 'POST',
+        body: JSON.stringify(payload),
+        headers: { 'Content-Type': 'application/json' }
+      });
+      
+      // Check if this response is still current (prevent race conditions)
+      if (validationSequence.current[field] !== sequenceId) {
+        return; // Ignore stale response
+      }
+      
+      if (!response.isValid) {
+        setValidationErrors(prev => ({ ...prev, [field]: response.message }));
+      } else {
+        setValidationErrors(prev => ({ ...prev, [field]: undefined }));
+      }
+    } catch (error) {
+      // Check if this response is still current
+      if (validationSequence.current[field] !== sequenceId) {
+        return; // Ignore stale response
+      }
+      
+      console.error(`Validation error for ${field}:`, error);
+      setValidationErrors(prev => ({ ...prev, [field]: 'Unable to validate. Please try again.' }));
+    } finally {
+      // Check if this response is still current
+      if (validationSequence.current[field] === sequenceId) {
+        setValidating(prev => ({ ...prev, [field]: false }));
+      }
+    }
+  }, []);
+
+  const debouncedValidate = useCallback((field: 'companyName' | 'slug' | 'adminEmail', value: string) => {
+    // Clear existing timeout
+    if (validationTimeouts.current[field]) {
+      clearTimeout(validationTimeouts.current[field]);
+    }
+    
+    // Increment sequence ID to track this validation request
+    validationSequence.current[field] = validationSequence.current[field] + 1;
+    const currentSequenceId = validationSequence.current[field];
+    
+    // Set new timeout
+    const timeoutId = setTimeout(() => {
+      validateField(field, value, currentSequenceId);
+    }, 500); // 500ms debounce
+    
+    validationTimeouts.current[field] = timeoutId;
+  }, [validateField]);
+
+  // Cleanup timeouts on unmount
+  useEffect(() => {
+    return () => {
+      Object.values(validationTimeouts.current).forEach(timeout => {
+        if (timeout) clearTimeout(timeout);
+      });
+    };
+  }, []);
 
   // Fetch available modules
   const { data: availableModules = [] } = useQuery<AvailableModule[]>({
@@ -131,6 +254,11 @@ export default function CreateCompany() {
   // Handle form input changes
   const handleInputChange = (field: keyof CompanyFormData, value: string | number) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+    
+    // Trigger validation for specific fields
+    if (typeof value === 'string' && (field === 'companyName' || field === 'slug' || field === 'adminEmail')) {
+      debouncedValidate(field, value);
+    }
   };
 
   // Handle module toggle
@@ -276,7 +404,16 @@ export default function CreateCompany() {
                         placeholder="e.g., Acme Corporation"
                         required
                         data-testid="input-company-name"
+                        className={validationErrors.companyName ? "border-red-500 focus:border-red-500" : ""}
                       />
+                      {validating.companyName && (
+                        <p className="text-xs text-gray-500 mt-1">Checking availability...</p>
+                      )}
+                      {validationErrors.companyName && (
+                        <p className="text-xs text-red-500 mt-1" data-testid="error-company-name">
+                          {validationErrors.companyName}
+                        </p>
+                      )}
                     </div>
                     <div>
                       <Label htmlFor="slug">URL Slug</Label>
@@ -286,10 +423,20 @@ export default function CreateCompany() {
                         onChange={(e) => handleInputChange('slug', e.target.value)}
                         placeholder="acme-corporation"
                         data-testid="input-company-slug"
+                        className={validationErrors.slug ? "border-red-500 focus:border-red-500" : ""}
                       />
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Company URL: /{formData.slug}/dashboard
-                      </p>
+                      {validating.slug && (
+                        <p className="text-xs text-gray-500 mt-1">Checking availability...</p>
+                      )}
+                      {validationErrors.slug ? (
+                        <p className="text-xs text-red-500 mt-1" data-testid="error-slug">
+                          {validationErrors.slug}
+                        </p>
+                      ) : (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Company URL: /{formData.slug}/dashboard
+                        </p>
+                      )}
                     </div>
                   </div>
 
@@ -404,10 +551,20 @@ export default function CreateCompany() {
                       placeholder="admin@company.com"
                       required
                       data-testid="input-admin-email"
+                      className={validationErrors.adminEmail ? "border-red-500 focus:border-red-500" : ""}
                     />
-                    <p className="text-xs text-muted-foreground mt-1">
-                      An invitation with temporary credentials will be sent to this email
-                    </p>
+                    {validating.adminEmail && (
+                      <p className="text-xs text-gray-500 mt-1">Checking availability...</p>
+                    )}
+                    {validationErrors.adminEmail ? (
+                      <p className="text-xs text-red-500 mt-1" data-testid="error-admin-email">
+                        {validationErrors.adminEmail}
+                      </p>
+                    ) : (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        An invitation with temporary credentials will be sent to this email
+                      </p>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -549,7 +706,15 @@ export default function CreateCompany() {
                 </Button>
                 <Button 
                   type="submit"
-                  disabled={isSubmitting}
+                  disabled={
+                    isSubmitting || 
+                    Object.values(validationErrors).some(error => !!error) ||
+                    Object.values(validating).some(isValidating => !!isValidating) ||
+                    !formData.companyName || 
+                    !formData.adminEmail || 
+                    !formData.adminFirstName || 
+                    !formData.adminLastName
+                  }
                   data-testid="button-create-company"
                 >
                   {isSubmitting ? 'Creating...' : 'Create Company & Send Invitation'}
