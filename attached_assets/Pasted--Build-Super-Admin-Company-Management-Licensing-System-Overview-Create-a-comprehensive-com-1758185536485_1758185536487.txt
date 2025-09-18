@@ -1,0 +1,444 @@
+# Build Super Admin Company Management & Licensing System
+
+## Overview
+Create a comprehensive company management system for the super admin portal that handles company creation, admin invitations, module licensing, and pricing management.
+
+## Required Features
+
+### **1. Company Management Dashboard**
+Location: `/super-admin/companies/page.tsx`
+
+**Company List View:**
+- Table/card view showing all companies
+- Search and filter companies
+- Company status indicators (Active, Suspended, Trial)
+- Quick actions (Edit, Suspend, View Details, Delete)
+- Company metrics (Users count, Modules enabled, Monthly revenue)
+
+### **2. Create Company Form**
+Location: `/super-admin/companies/create/page.tsx`
+
+**Company Information Section:**
+```tsx
+// Required fields for company creation
+const companyForm = {
+  // Basic Company Info
+  companyName: '', // e.g., "Acme Corporation"
+  slug: '', // Auto-generated from company name, e.g., "acme-corporation"
+  industry: '', // Dropdown: Technology, Healthcare, Finance, etc.
+  employeeCount: '', // Dropdown: 1-10, 11-50, 51-200, 201-500, 500+
+  country: 'UAE', // Default to UAE
+  city: '', // Dubai, Abu Dhabi, Sharjah, etc.
+  
+  // Company Admin Details
+  adminFirstName: '',
+  adminLastName: '',
+  adminEmail: '',
+  
+  // Licensing & Pricing
+  userLicenseCount: 1, // Number of user licenses
+  userLicensePrice: 25.00, // Price per user license per month (AED)
+  employeeLicenseCount: 0, // Number of employee licenses  
+  employeeLicensPrice: 15.00, // Price per employee license per month (AED)
+  
+  // Module Selection
+  enabledModules: [], // Array of enabled modules
+  
+  // Subscription Details
+  subscriptionType: 'monthly', // monthly, annual
+  trialDays: 30, // Free trial period
+  billingStartDate: '', // When billing starts
+}
+```
+
+**Slug Generation Logic:**
+```javascript
+// Auto-generate unique slug from company name
+function generateSlug(companyName) {
+  const baseSlug = companyName
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, '')
+    .replace(/\s+/g, '-')
+    .substring(0, 50)
+  
+  // Check if slug exists in database
+  // If exists, append number: company-name-2, company-name-3, etc.
+  return ensureUniqueSlug(baseSlug)
+}
+
+// Real-time slug generation as user types company name
+useEffect(() => {
+  if (formData.companyName) {
+    setFormData(prev => ({
+      ...prev,
+      slug: generateSlug(prev.companyName)
+    }))
+  }
+}, [formData.companyName])
+```
+
+### **3. Module Management Section**
+
+**Available Modules with Toggle Controls:**
+```tsx
+const availableModules = [
+  {
+    id: 'hr',
+    name: 'Human Resources',
+    description: 'Employee management, leave tracking, performance',
+    icon: 'Users',
+    color: 'blue',
+    basePrice: 10.00, // AED per month
+    isCore: true, // Always enabled
+  },
+  {
+    id: 'payroll',
+    name: 'Payroll',
+    description: 'Salary processing, payslips, tax management',
+    icon: 'DollarSign', 
+    color: 'green',
+    basePrice: 15.00,
+    isCore: false,
+  },
+  {
+    id: 'finance',
+    name: 'Finance',
+    description: 'Expense tracking, budgets, financial analytics',
+    icon: 'CreditCard',
+    color: 'purple', 
+    basePrice: 20.00,
+    isCore: false,
+  },
+  {
+    id: 'crm',
+    name: 'CRM',
+    description: 'Customer relationships, sales pipeline',
+    icon: 'Target',
+    color: 'orange',
+    basePrice: 25.00,
+    isCore: false,
+  },
+  {
+    id: 'projects',
+    name: 'Project Management',
+    description: 'Task boards, milestones, team collaboration',
+    icon: 'Briefcase',
+    color: 'cyan',
+    basePrice: 18.00,
+    isCore: false,
+  },
+  {
+    id: 'inventory',
+    name: 'Inventory',
+    description: 'Stock management, warehouse operations',
+    icon: 'Package',
+    color: 'yellow',
+    basePrice: 22.00,
+    isCore: false,
+  }
+]
+
+// Module selection interface
+{availableModules.map(module => (
+  <div key={module.id} className="border rounded-lg p-4">
+    <div className="flex items-center justify-between">
+      <div className="flex items-center space-x-3">
+        <div className={`w-10 h-10 bg-${module.color}-100 rounded-lg flex items-center justify-center`}>
+          <Icon name={module.icon} className={`w-5 h-5 text-${module.color}-600`} />
+        </div>
+        <div>
+          <h4 className="font-semibold">{module.name}</h4>
+          <p className="text-sm text-gray-600">{module.description}</p>
+          <p className="text-sm font-medium text-gray-900">AED {module.basePrice}/month</p>
+        </div>
+      </div>
+      <div className="flex items-center">
+        {module.isCore ? (
+          <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">Core Module</span>
+        ) : (
+          <input
+            type="checkbox"
+            checked={formData.enabledModules.includes(module.id)}
+            onChange={(e) => handleModuleToggle(module.id, e.target.checked)}
+            className="w-4 h-4 text-blue-600"
+          />
+        )}
+      </div>
+    </div>
+  </div>
+))}
+```
+
+### **4. Pricing Calculator**
+
+**Real-time Cost Calculation:**
+```tsx
+function calculateMonthlyCost(formData) {
+  const baseModuleCost = formData.enabledModules.reduce((total, moduleId) => {
+    const module = availableModules.find(m => m.id === moduleId)
+    return total + (module?.basePrice || 0)
+  }, 0)
+  
+  const userLicenseCost = formData.userLicenseCount * formData.userLicensePrice
+  const employeeLicenseCost = formData.employeeLicenseCount * formData.employeeLicensePrice
+  
+  return {
+    modulesCost: baseModuleCost,
+    userLicensesCost: userLicenseCost,
+    employeeLicensesCost: employeeLicenseCost,
+    subtotal: baseModuleCost + userLicenseCost + employeeLicenseCost,
+    vatAmount: (baseModuleCost + userLicenseCost + employeeLicenseCost) * 0.05, // 5% VAT
+    total: (baseModuleCost + userLicenseCost + employeeLicenseCost) * 1.05
+  }
+}
+
+// Pricing breakdown display
+<div className="bg-gray-50 rounded-lg p-4">
+  <h4 className="font-semibold mb-3">Monthly Pricing Breakdown</h4>
+  <div className="space-y-2 text-sm">
+    <div className="flex justify-between">
+      <span>Modules ({formData.enabledModules.length})</span>
+      <span>AED {pricing.modulesCost.toFixed(2)}</span>
+    </div>
+    <div className="flex justify-between">
+      <span>User Licenses ({formData.userLicenseCount})</span>
+      <span>AED {pricing.userLicensesCost.toFixed(2)}</span>
+    </div>
+    <div className="flex justify-between">
+      <span>Employee Licenses ({formData.employeeLicenseCount})</span>
+      <span>AED {pricing.employeeLicensesCost.toFixed(2)}</span>
+    </div>
+    <div className="flex justify-between">
+      <span>VAT (5%)</span>
+      <span>AED {pricing.vatAmount.toFixed(2)}</span>
+    </div>
+    <div className="flex justify-between font-semibold text-lg border-t pt-2">
+      <span>Total Monthly</span>
+      <span>AED {pricing.total.toFixed(2)}</span>
+    </div>
+  </div>
+</div>
+```
+
+### **5. Company Admin Invitation System**
+
+**Invitation Process:**
+```javascript
+// API endpoint: /api/super-admin/create-company
+async function createCompanyAndInviteAdmin(formData) {
+  try {
+    // 1. Create company record
+    const company = await createCompany({
+      name: formData.companyName,
+      slug: formData.slug,
+      industry: formData.industry,
+      employee_count: formData.employeeCount,
+      country: formData.country,
+      city: formData.city,
+      settings: {
+        enabledModules: formData.enabledModules,
+        licensing: {
+          userLicenseCount: formData.userLicenseCount,
+          userLicensePrice: formData.userLicensePrice,
+          employeeLicenseCount: formData.employeeLicenseCount,
+          employeeLicensePrice: formData.employeeLicensePrice,
+        },
+        subscription: {
+          type: formData.subscriptionType,
+          trialDays: formData.trialDays,
+          billingStartDate: formData.billingStartDate,
+        }
+      }
+    })
+    
+    // 2. Generate temporary password
+    const tempPassword = generateSecurePassword(12) // Random 12-char password
+    
+    // 3. Create company admin user
+    const adminUser = await createUser({
+      firstName: formData.adminFirstName,
+      lastName: formData.adminLastName,
+      email: formData.adminEmail,
+      password: await hashPassword(tempPassword),
+      role: 'COMPANY_ADMIN',
+      company_id: company.id,
+      must_change_password: true,
+      invited_by: 'super_admin'
+    })
+    
+    // 4. Send invitation email
+    await sendInvitationEmail({
+      to: formData.adminEmail,
+      adminName: `${formData.adminFirstName} ${formData.adminLastName}`,
+      companyName: formData.companyName,
+      tempPassword: tempPassword,
+      loginUrl: `${process.env.REPLIT_URL}/auth/signin`,
+      companySlug: formData.slug
+    })
+    
+    return { success: true, company, adminUser, tempPassword }
+    
+  } catch (error) {
+    throw new Error(`Failed to create company: ${error.message}`)
+  }
+}
+```
+
+### **6. Email Template for Company Admin Invitation**
+
+```html
+<!-- Email template for company admin invitation -->
+<div style="max-width: 600px; margin: 0 auto; font-family: Arial, sans-serif;">
+  <div style="background: linear-gradient(135deg, #3B82F6 0%, #1E40AF 100%); padding: 30px; text-align: center;">
+    <h1 style="color: white; margin: 0; font-size: 24px;">Welcome to NineTo5 HRMS</h1>
+    <p style="color: #DBEAFE; margin: 10px 0 0 0;">You've been invited as Company Administrator</p>
+  </div>
+  
+  <div style="padding: 30px; background: white;">
+    <h2 style="color: #374151; margin-bottom: 20px;">Hello {{adminName}}!</h2>
+    
+    <p style="color: #6B7280; line-height: 1.6;">
+      You have been invited to set up and manage <strong>{{companyName}}</strong> on the NineTo5 HRMS platform.
+    </p>
+    
+    <div style="background: #F3F4F6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+      <h3 style="margin-top: 0; color: #374151;">Your Login Credentials:</h3>
+      <p style="margin: 5px 0;"><strong>Email:</strong> {{adminEmail}}</p>
+      <p style="margin: 5px 0;"><strong>Temporary Password:</strong> <code style="background: #E5E7EB; padding: 4px 8px; border-radius: 4px;">{{tempPassword}}</code></p>
+      <p style="margin: 5px 0;"><strong>Company Portal:</strong> {{baseUrl}}/company-admin</p>
+    </div>
+    
+    <div style="background: #FEF3C7; padding: 15px; border-radius: 8px; margin: 20px 0;">
+      <p style="margin: 0; color: #92400E;">
+        <strong>⚠️ Important:</strong> Please change your password immediately after logging in for security.
+      </p>
+    </div>
+    
+    <div style="text-align: center; margin: 30px 0;">
+      <a href="{{loginUrl}}" 
+         style="background: #3B82F6; color: white; padding: 12px 30px; text-decoration: none; border-radius: 8px; display: inline-block;">
+        Access Your Company Portal
+      </a>
+    </div>
+    
+    <h3 style="color: #374151;">What's Next?</h3>
+    <ul style="color: #6B7280; line-height: 1.6;">
+      <li>Log in and change your temporary password</li>
+      <li>Complete your company profile setup</li>
+      <li>Invite your team members (HR managers, employees)</li>
+      <li>Configure company-specific settings</li>
+      <li>Start using your enabled modules</li>
+    </ul>
+  </div>
+  
+  <div style="background: #F9FAFB; padding: 20px; text-align: center; color: #6B7280; font-size: 12px;">
+    <p>This invitation was sent by the NineTo5 Platform Administrator.</p>
+    <p>If you have any questions, please contact support@nineto5hrms.com</p>
+  </div>
+</div>
+```
+
+### **7. Database Schema Updates**
+
+```sql
+-- Update companies table with licensing fields
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS slug VARCHAR(100) UNIQUE;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS industry VARCHAR(100);
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS employee_count VARCHAR(50);
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS country VARCHAR(100) DEFAULT 'UAE';
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS city VARCHAR(100);
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS subscription_type VARCHAR(20) DEFAULT 'monthly';
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS trial_days INTEGER DEFAULT 30;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS billing_start_date DATE;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS monthly_cost DECIMAL(10,2) DEFAULT 0.00;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'trial';
+
+-- Create company_licenses table
+CREATE TABLE IF NOT EXISTS company_licenses (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  company_id UUID REFERENCES companies(id),
+  license_type VARCHAR(50) NOT NULL, -- 'user' or 'employee'
+  license_count INTEGER NOT NULL DEFAULT 0,
+  price_per_license DECIMAL(8,2) NOT NULL DEFAULT 0.00,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Create company_modules table  
+CREATE TABLE IF NOT EXISTS company_modules (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  company_id UUID REFERENCES companies(id),
+  module_id VARCHAR(50) NOT NULL, -- 'hr', 'payroll', 'finance', etc.
+  module_name VARCHAR(100) NOT NULL,
+  is_enabled BOOLEAN DEFAULT false,
+  base_price DECIMAL(8,2) DEFAULT 0.00,
+  enabled_date TIMESTAMP DEFAULT NOW()
+);
+
+-- Update users table
+ALTER TABLE users ADD COLUMN IF NOT EXISTS first_name VARCHAR(100);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS last_name VARCHAR(100);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS invited_by VARCHAR(50);
+```
+
+### **8. Form Validation Rules**
+
+```javascript
+const validation = {
+  companyName: {
+    required: true,
+    minLength: 2,
+    maxLength: 100,
+    message: 'Company name is required (2-100 characters)'
+  },
+  slug: {
+    required: true,
+    pattern: /^[a-z0-9-]+$/,
+    unique: true,
+    message: 'Slug must be unique and contain only lowercase letters, numbers, and hyphens'
+  },
+  adminFirstName: {
+    required: true,
+    minLength: 2,
+    maxLength: 50,
+    message: 'First name is required (2-50 characters)'
+  },
+  adminLastName: {
+    required: true,
+    minLength: 2,
+    maxLength: 50, 
+    message: 'Last name is required (2-50 characters)'
+  },
+  adminEmail: {
+    required: true,
+    pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+    unique: true,
+    message: 'Valid email address is required'
+  },
+  userLicenseCount: {
+    required: true,
+    min: 1,
+    max: 10000,
+    message: 'At least 1 user license is required'
+  },
+  employeeLicenseCount: {
+    min: 0,
+    max: 50000,
+    message: 'Employee license count must be between 0-50,000'
+  }
+}
+```
+
+## Implementation Requirements
+
+1. **Create all forms with real-time validation**
+2. **Implement slug generation and uniqueness checking**
+3. **Build pricing calculator with live updates**
+4. **Create email invitation system with Resend**
+5. **Add module toggle functionality**
+6. **Implement company list with search/filter**
+7. **Add proper error handling and success messages**
+8. **Ensure responsive design matching current theme**
+9. **Test complete flow: Create company → Invite admin → Admin receives email → Admin logs in**
+
+This will give the super admin complete control over company creation, licensing, and module management!

@@ -51,6 +51,16 @@ export const companies = pgTable("companies", {
   slug: varchar("slug", { length: 100 }).unique().notNull(), // URL-friendly identifier
   settings: jsonb("settings").default(sql`'{}'::jsonb`),
   isActive: boolean("is_active").default(true),
+  // Enhanced licensing and business fields
+  industry: varchar("industry", { length: 100 }),
+  employeeCount: varchar("employee_count", { length: 50 }),
+  country: varchar("country", { length: 100 }).default("UAE"),
+  city: varchar("city", { length: 100 }),
+  subscriptionType: varchar("subscription_type", { length: 20 }).default("monthly"),
+  trialDays: integer("trial_days").default(30),
+  billingStartDate: date("billing_start_date"),
+  monthlyCost: text("monthly_cost").default("0.00"), // Using text for decimal precision
+  status: varchar("status", { length: 20 }).default("trial"), // trial, active, suspended, cancelled
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -306,3 +316,47 @@ export type EmployeeDocument = typeof employeeDocuments.$inferSelect;
 export type LeaveRequest = typeof leaveRequests.$inferSelect;
 export type LeaveBalance = typeof leaveBalances.$inferSelect;
 export type AttendanceRecord = typeof attendanceRecords.$inferSelect;
+
+// Company Licenses Table
+export const companyLicenses = pgTable("company_licenses", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  companyId: varchar("company_id").notNull(),
+  licenseType: varchar("license_type", { length: 50 }).notNull(), // 'user' or 'employee'
+  count: integer("count").notNull(),
+  pricePerUnit: text("price_per_unit").notNull(), // AED per month
+  totalPrice: text("total_price").notNull(), // count * pricePerUnit
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Available Modules (Master Data)
+export const availableModules = pgTable("available_modules", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  moduleKey: varchar("module_key", { length: 50 }).unique().notNull(), // 'hr', 'payroll', etc.
+  name: varchar("name", { length: 100 }).notNull(),
+  description: text("description"),
+  icon: varchar("icon", { length: 50 }),
+  color: varchar("color", { length: 20 }),
+  basePrice: text("base_price").notNull(), // AED per month
+  isCore: boolean("is_core").default(false), // Always enabled modules
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Company Modules (Which modules each company has enabled)
+export const companyModules = pgTable("company_modules", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  companyId: varchar("company_id").notNull(),
+  moduleId: varchar("module_id").notNull(), // References available_modules.id
+  isEnabled: boolean("is_enabled").default(true),
+  enabledAt: timestamp("enabled_at").defaultNow(),
+  disabledAt: timestamp("disabled_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Enhanced types for new tables
+export type CompanyLicense = typeof companyLicenses.$inferSelect;
+export type AvailableModule = typeof availableModules.$inferSelect;
+export type CompanyModule = typeof companyModules.$inferSelect;
