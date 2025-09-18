@@ -109,19 +109,31 @@ export default function CreateCompany() {
           break;
       }
       
-      const response = await apiRequest(endpoint, {
-        method: 'POST',
-        body: JSON.stringify(payload),
-        headers: { 'Content-Type': 'application/json' }
-      });
+      const response = await apiRequest('POST', endpoint, payload);
       
       // Check if this response is still current (prevent race conditions)
       if (validationSequence.current[field] !== sequenceId) {
         return; // Ignore stale response
       }
       
-      if (!response.isValid) {
-        setValidationErrors(prev => ({ ...prev, [field]: response.message }));
+      if (!response.ok) {
+        // Handle non-OK responses explicitly
+        const errorText = await response.text();
+        let errorMessage = 'Unable to validate. Please try again.';
+        try {
+          const errorData = JSON.parse(errorText);
+          errorMessage = errorData.error || errorMessage;
+        } catch {
+          // If JSON parse fails, use the default message
+        }
+        setValidationErrors(prev => ({ ...prev, [field]: errorMessage }));
+        return;
+      }
+      
+      const data = await response.json();
+      
+      if (!data.isValid) {
+        setValidationErrors(prev => ({ ...prev, [field]: data.message }));
       } else {
         setValidationErrors(prev => ({ ...prev, [field]: undefined }));
       }
@@ -181,9 +193,18 @@ export default function CreateCompany() {
     let details = "";
 
     // Extract error information from different possible error formats
-    const status = error.status || error.response?.status;
+    let status = error.status || error.response?.status;
     const errorData = error.error || error.response?.data?.error || error.response?.data;
-    const errorMessage = error.message || error.response?.data?.message;
+    let errorMessage = error.message || error.response?.data?.message;
+
+    // Parse status from apiRequest error message format "status: message"
+    if (!status && errorMessage && typeof errorMessage === 'string') {
+      const statusMatch = errorMessage.match(/^(\d+):\s*(.*)$/);
+      if (statusMatch) {
+        status = parseInt(statusMatch[1]);
+        errorMessage = statusMatch[2]; // Extract the actual error message
+      }
+    }
 
     if (status === 409) {
       title = "Conflict Error";
@@ -234,8 +255,12 @@ export default function CreateCompany() {
     if (formData.companyName) {
       const newSlug = generateCompanySlug(formData.companyName);
       setFormData(prev => ({ ...prev, slug: newSlug }));
+      // Trigger validation for the auto-generated slug
+      if (newSlug) {
+        debouncedValidate('slug', newSlug);
+      }
     }
-  }, [formData.companyName]);
+  }, [formData.companyName, debouncedValidate]);
 
   // Calculate pricing in real-time
   const selectedModules = moduleConfigs.filter(module => 
@@ -274,7 +299,8 @@ export default function CreateCompany() {
   // Create company mutation
   const createCompanyMutation = useMutation({
     mutationFn: async (data: CompanyFormData) => {
-      return apiRequest('POST', '/api/super-admin/create-company', data);
+      const response = await apiRequest('POST', '/api/super-admin/create-company', data);
+      return await response.json();
     },
     onSuccess: (result: any) => {
       // Show success with admin credentials
@@ -313,12 +339,37 @@ export default function CreateCompany() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.companyName || !formData.adminEmail || !formData.adminFirstName || !formData.adminLastName) {
+    // Check for required fields
+    if (!formData.companyName || !formData.slug || !formData.adminEmail || !formData.adminFirstName || !formData.adminLastName) {
       setErrorModal({
         isOpen: true,
         title: "Missing Required Fields",
         message: "Please fill in all required company and admin information",
-        details: "Company name, admin email, first name, and last name are required to create a company.",
+        details: "Company name, slug, admin email, first name, and last name are required to create a company.",
+      });
+      return;
+    }
+    
+    // Check for validation errors
+    const hasValidationErrors = Object.values(validationErrors).some(error => !!error);
+    if (hasValidationErrors) {
+      setErrorModal({
+        isOpen: true,
+        title: "Validation Errors",
+        message: "Please fix the validation errors before submitting",
+        details: "Some fields have validation errors that need to be resolved.",
+      });
+      return;
+    }
+    
+    // Check if validation is in progress
+    const isValidating = Object.values(validating).some(isValidating => !!isValidating);
+    if (isValidating) {
+      setErrorModal({
+        isOpen: true,
+        title: "Validation In Progress",
+        message: "Please wait for validation to complete before submitting",
+        details: "Some fields are still being validated. Please wait a moment and try again.",
       });
       return;
     }
@@ -711,6 +762,7 @@ export default function CreateCompany() {
                     Object.values(validationErrors).some(error => !!error) ||
                     Object.values(validating).some(isValidating => !!isValidating) ||
                     !formData.companyName || 
+                    !formData.slug ||
                     !formData.adminEmail || 
                     !formData.adminFirstName || 
                     !formData.adminLastName

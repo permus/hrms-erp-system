@@ -369,12 +369,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error('Company creation error:', error);
       
       // Handle specific database constraint violations
-      if (error.code === '23505' && error.constraint === 'companies_slug_unique') {
+      if ((error as any).code === '23505' && (error as any).constraint === 'companies_slug_unique') {
         return res.status(409).json({ error: "Company slug already exists. Please choose a different slug." });
       }
       
       // Handle duplicate email errors
-      if (error.code === '23505' && error.constraint?.includes('email')) {
+      if ((error as any).code === '23505' && (error as any).constraint?.includes('email')) {
         return res.status(409).json({ error: "A user with this email already exists. Please use a different email address." });
       }
       
