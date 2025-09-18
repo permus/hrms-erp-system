@@ -13,7 +13,6 @@ interface SidebarProps {
 
 // Base menu structure without hardcoded hrefs
 const getMenuItems = (userRole: string, companySlug?: string, employeeSlug?: string) => {
-  console.log('getMenuItems called with:', { userRole, companySlug, employeeSlug });
   const menuItems = {
     SUPER_ADMIN: [
       { icon: Shield, label: "Platform Overview", path: "dashboard", badge: null },
@@ -51,11 +50,9 @@ const getMenuItems = (userRole: string, companySlug?: string, employeeSlug?: str
     } else if (['COMPANY_ADMIN', 'HR_MANAGER', 'DEPARTMENT_MANAGER'].includes(userRole)) {
       if (companySlug) {
         href = `/${companySlug}/${item.path}`;
-        console.log(`Generated slug-based URL for ${item.label}: ${href}`);
       } else {
-        // Fallback to old URLs if no slug available
+        // Fallback to old URLs if no slug available  
         href = `/company-admin/${item.path}`;
-        console.log(`Fallback URL for ${item.label} (no companySlug): ${href}`);
       }
     } else if (userRole === 'EMPLOYEE') {
       if (companySlug && employeeSlug) {

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
+import { useParams } from "wouter";
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
 import Dashboard from "@/components/Dashboard";
@@ -17,6 +18,8 @@ import type { Employee, Department, Position } from "@shared/schema";
 
 export default function Home() {
   const { user } = useAuth();
+  const params = useParams<{ companySlug?: string }>();
+  const { companySlug } = params;
   const [activeView, setActiveView] = useState("dashboard");
   const [showEmployeeForm, setShowEmployeeForm] = useState(false);
 
@@ -160,7 +163,8 @@ export default function Home() {
     <div className="h-screen bg-background flex">
       <Sidebar 
         userRole={user.role || 'EMPLOYEE'} 
-        companyName="Acme Corporation"
+        companyName={companySlug ? `Company: ${companySlug}` : "Acme Corporation"}
+        companySlug={companySlug}
       />
       
       <div className="flex-1 flex flex-col">
