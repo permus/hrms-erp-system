@@ -207,6 +207,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  app.post("/api/auth/password/change", isAuthenticatedAny, loadUserData, async (req, res) => {
+    try {
+      const authReq = req as AuthenticatedRequest;
+      const user = authReq.user;
+      
+      if (!user?.claims?.sub) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
+      const { currentPassword, newPassword } = z.object({
+        currentPassword: z.string().min(1),
+        newPassword: z.string().min(8)
+      }).parse(req.body);
+      
+      // Get user from database
+      const dbUser = await storage.getUser(user.claims.sub);
+      if (!dbUser || !dbUser.passwordHash) {
+        return res.status(400).json({ error: "User not found or invalid account" });
+      }
+      
+      // Verify current password
+      const isValidCurrentPassword = await PasswordService.verifyPassword(
+        dbUser.passwordHash,
+        currentPassword
+      );
+      
+      if (!isValidCurrentPassword) {
+        return res.status(400).json({ error: "Current password is incorrect" });
+      }
+      
+      // Validate new password strength
+      const passwordValidation = PasswordService.validatePasswordStrength(newPassword);
+      if (!passwordValidation.valid) {
+        return res.status(400).json({ 
+          error: "New password does not meet requirements", 
+          details: passwordValidation.errors 
+        });
+      }
+      
+      // Hash new password and update user
+      const passwordHash = await PasswordService.hashPassword(newPassword);
+      await storage.updateUserAuth(dbUser.id, {
+        passwordHash,
+        passwordUpdatedAt: new Date(),
+        mustChangePassword: false,
+        failedLoginCount: 0,
+        lockedUntil: null
+      });
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Password change error:', error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid input", details: error.errors });
+      }
+      res.status(500).json({ error: "Password change failed" });
+    }
+  });
+  
   // Load user data middleware for all authenticated routes
   app.use('/api', isAuthenticatedAny, loadUserData);
   

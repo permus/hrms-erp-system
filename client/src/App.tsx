@@ -17,6 +17,8 @@ import SuperAdminEmployees from "@/pages/super-admin/employees";
 import SuperAdminBin from "@/pages/super-admin/bin";
 import CompanyAdminDashboard from "@/pages/company-admin/dashboard";
 import EmployeeDashboard from "@/pages/employee/dashboard";
+import SigninPage from "@/pages/auth/signin";
+import ChangePasswordPage from "@/pages/auth/change-password";
 import NotFound from "@/pages/not-found";
 
 // Type for the /api/resolve/me response
@@ -82,6 +84,10 @@ function Router() {
 
   return (
     <Switch>
+      {/* Public auth routes */}
+      <Route path="/auth/signin" component={SigninPage} />
+      <Route path="/auth/change-password" component={ChangePasswordPage} />
+      
       {isLoading || !isAuthenticated ? (
         <Route path="/" component={Landing} />
       ) : (
