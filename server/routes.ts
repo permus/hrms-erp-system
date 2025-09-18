@@ -296,7 +296,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const existingUser = await storage.getUserByEmail(email);
-      const isAvailable = !existingUser;
+      // Email is available if no user exists OR if the user exists but is inactive
+      const isAvailable = !existingUser || !existingUser.isActive;
       res.json({ 
         isValid: isAvailable,
         message: isAvailable ? "Email is available" : "This email is already registered. Please use a different email address."
