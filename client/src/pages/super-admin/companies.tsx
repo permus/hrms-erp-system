@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Building2, Plus, Calendar, Users, DollarSign } from "lucide-react";
+import { Building2, Plus, Calendar, Users, DollarSign, Edit, Trash2 } from "lucide-react";
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
 import type { Company } from "@shared/schema";
@@ -15,6 +15,16 @@ export default function SuperAdminCompanies() {
     queryKey: ["/api/companies"],
     enabled: !!user && (user as any).role === 'SUPER_ADMIN'
   });
+
+  const handleEditCompany = (company: Company) => {
+    // TODO: Open edit modal
+    console.log('Edit company:', company);
+  };
+
+  const handleDeleteCompany = (company: Company) => {
+    // TODO: Open delete confirmation dialog
+    console.log('Delete company:', company);
+  };
 
   const stats = {
     totalCompanies: companies.length,
@@ -201,10 +211,20 @@ export default function SuperAdminCompanies() {
                               <Button 
                                 variant="outline" 
                                 size="sm" 
-                                data-testid={`button-manage-company-${company.id}`}
-                                onClick={() => window.location.href = `/super-admin/companies/${company.id}`}
+                                data-testid={`button-edit-company-${company.id}`}
+                                onClick={() => handleEditCompany(company)}
                               >
-                                Manage
+                                <Edit className="w-4 h-4 mr-1" />
+                                Edit
+                              </Button>
+                              <Button 
+                                variant="destructive" 
+                                size="sm" 
+                                data-testid={`button-delete-company-${company.id}`}
+                                onClick={() => handleDeleteCompany(company)}
+                              >
+                                <Trash2 className="w-4 h-4 mr-1" />
+                                Delete
                               </Button>
                               <Button 
                                 variant="outline" 
