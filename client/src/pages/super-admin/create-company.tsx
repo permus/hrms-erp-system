@@ -36,7 +36,7 @@ export default function CreateCompany() {
   // Fetch available modules
   const { data: availableModules = [] } = useQuery<AvailableModule[]>({
     queryKey: ["/api/modules"],
-    enabled: !!user && user.role === 'SUPER_ADMIN'
+    enabled: !!user && (user as any).role === 'SUPER_ADMIN'
   });
 
   // Transform to ModuleConfig format for pricing calculations
@@ -93,17 +93,33 @@ export default function CreateCompany() {
     mutationFn: async (data: CompanyFormData) => {
       return apiRequest('POST', '/api/super-admin/create-company', data);
     },
-    onSuccess: (result) => {
+    onSuccess: (result: any) => {
+      // Show success with admin credentials
+      const tempPassword = result.adminUser?.tempPassword;
+      const adminEmail = formData.adminEmail;
+      
       toast({
         title: "Company Created Successfully!",
-        description: `${formData.companyName} has been created and admin invitation sent to ${formData.adminEmail}`,
+        description: (
+          <div className="space-y-2">
+            <p>{formData.companyName} has been created.</p>
+            <div className="bg-muted p-3 rounded-md text-sm">
+              <p><strong>Admin Login:</strong> {adminEmail}</p>
+              <p><strong>Temporary Password:</strong> <code className="bg-background px-2 py-1 rounded">{tempPassword}</code></p>
+              <p className="text-xs text-muted-foreground mt-1">Please share these credentials with the company admin</p>
+            </div>
+          </div>
+        ),
+        duration: 10000, // Show for 10 seconds so user can copy the password
       });
       
       // Invalidate companies list to refresh data
       queryClient.invalidateQueries({ queryKey: ['/api/companies'] });
       
-      // Navigate back to super admin dashboard
-      window.location.href = '/super-admin/dashboard';
+      // Navigate back to super admin dashboard after delay
+      setTimeout(() => {
+        window.location.href = '/super-admin/dashboard';
+      }, 12000);
     },
     onError: (error: any) => {
       toast({
@@ -139,7 +155,7 @@ export default function CreateCompany() {
     window.location.href = "/api/logout";
   };
 
-  if (!user || user.role !== 'SUPER_ADMIN') {
+  if (!user || (user as any).role !== 'SUPER_ADMIN') {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -153,16 +169,16 @@ export default function CreateCompany() {
   return (
     <div className="h-screen bg-background flex">
       <Sidebar 
-        userRole={user.role || 'SUPER_ADMIN'} 
+        userRole={(user as any).role || 'SUPER_ADMIN'} 
         companyName="ERP Platform"
       />
       
       <div className="flex-1 flex flex-col">
         <Header 
           user={{
-            name: (user.firstName || '') + ' ' + (user.lastName || ''),
-            email: user.email || '',
-            role: user.role || 'SUPER_ADMIN',
+            name: ((user as any).firstName || '') + ' ' + ((user as any).lastName || ''),
+            email: (user as any).email || '',
+            role: (user as any).role || 'SUPER_ADMIN',
             companyName: 'ERP Platform'
           }}
           onLogout={handleLogout}

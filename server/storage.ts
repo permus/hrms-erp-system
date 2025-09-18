@@ -310,7 +310,7 @@ export class DatabaseStorage implements IStorage {
     return password;
   }
 
-  async createCompanyAdminUser(data: any): Promise<User> {
+  async createCompanyAdminUser(data: any): Promise<User & { tempPassword: string }> {
     // Create a placeholder user record for invitation
     // Note: This creates an invited user record without auth credentials
     // The user will complete registration through Replit Auth when they accept the invitation
@@ -328,7 +328,8 @@ export class DatabaseStorage implements IStorage {
       })
       .returning();
     
-    return user;
+    // Return user with the temp password for the response
+    return { ...user, tempPassword: data.tempPassword };
   }
 }
 

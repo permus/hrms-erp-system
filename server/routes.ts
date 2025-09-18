@@ -245,33 +245,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         tempPassword
       });
       
-      // Send invitation email using SendGrid
-      try {
-        const { sendEmail, createInvitationEmail } = await import('./services/email');
-        const emailParams = createInvitationEmail(
-          company.name,
-          `${formData.adminFirstName} ${formData.adminLastName}`,
-          formData.adminEmail,
-          tempPassword,
-          formData.slug
-        );
-        
-        const emailSent = await sendEmail(emailParams);
-        if (!emailSent) {
-          console.error('Failed to send invitation email to:', formData.adminEmail);
-        }
-      } catch (emailError) {
-        console.error('Email service error:', emailError);
-      }
+      // Skip email sending - provide password in response for manual sharing
       
       res.status(201).json({ 
         success: true, 
         company, 
         adminUser: { 
           ...adminUser, 
-          tempPassword: undefined // Don't return password in response 
+          tempPassword // Include password for manual sharing
         }, 
-        message: `Company created successfully. Invitation sent to ${formData.adminEmail}` 
+        message: `Company created successfully. Admin credentials generated.`
       });
     } catch (error) {
       console.error('Company creation error:', error);
