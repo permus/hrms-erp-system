@@ -3,15 +3,31 @@ import { createServer, type Server } from "http";
 import { z } from "zod";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
+import { 
+  loadUserData, 
+  requireRole, 
+  requireCompany, 
+  requireSameCompany, 
+  requireEmployeeAccess,
+  type AuthenticatedRequest 
+} from "./roleAuth";
 import { insertEmployeeSchema, insertCompanySchema, insertDepartmentSchema, insertPositionSchema } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup authentication
   await setupAuth(app);
   
+  // Load user data middleware for all authenticated routes
+  app.use('/api', isAuthenticated, loadUserData);
+  
   // Auth routes
-  app.get("/api/auth/user", isAuthenticated, async (req, res) => {
-    const user = req.user as any;
+  app.get("/api/auth/user", async (req, res) => {
+    const authReq = req as AuthenticatedRequest;
+    const user = authReq.user;
+    if (!user?.claims?.sub) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+    
     const userData = await storage.getUser(user.claims.sub);
     
     if (!userData) {
@@ -21,8 +37,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(userData);
   });
 
-  // Company routes
-  app.get("/api/companies", isAuthenticated, async (req, res) => {
+  // Company routes - Super Admin Only
+  app.get("/api/companies", requireRole('SUPER_ADMIN'), async (req, res) => {
     try {
       const companies = await storage.getCompanies();
       res.json(companies);
@@ -31,7 +47,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/companies", isAuthenticated, async (req, res) => {
+  app.post("/api/companies", requireRole('SUPER_ADMIN'), async (req, res) => {
     try {
       const validatedData = insertCompanySchema.parse(req.body);
       const company = await storage.createCompany({
@@ -49,8 +65,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Employee routes
-  app.get("/api/employees", isAuthenticated, async (req, res) => {
+  // Employee routes - Company Admins and HR only
+  app.get("/api/employees", requireRole('COMPANY_ADMIN', 'HR_MANAGER', 'DEPARTMENT_MANAGER'), requireCompany, async (req, res) => {
     try {
       const user = req.user as any;
       const userData = await storage.getUser(user.claims.sub);
@@ -66,7 +82,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/employees/:id", isAuthenticated, async (req, res) => {
+  app.get("/api/employees/:id", requireEmployeeAccess, async (req, res) => {
     try {
       const employee = await storage.getEmployee(req.params.id);
       if (!employee) {
@@ -78,7 +94,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/employees", isAuthenticated, async (req, res) => {
+  app.post("/api/employees", requireRole('COMPANY_ADMIN', 'HR_MANAGER'), requireCompany, async (req, res) => {
     try {
       const user = req.user as any;
       const userData = await storage.getUser(user.claims.sub);
@@ -109,8 +125,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Department routes
-  app.get("/api/departments", isAuthenticated, async (req, res) => {
+  // Department routes - Company Admins and HR only
+  app.get("/api/departments", requireRole('COMPANY_ADMIN', 'HR_MANAGER', 'DEPARTMENT_MANAGER'), requireCompany, async (req, res) => {
     try {
       const user = req.user as any;
       const userData = await storage.getUser(user.claims.sub);
@@ -126,7 +142,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/departments", isAuthenticated, async (req, res) => {
+  app.post("/api/departments", requireRole('COMPANY_ADMIN', 'HR_MANAGER'), requireCompany, async (req, res) => {
     try {
       const user = req.user as any;
       const userData = await storage.getUser(user.claims.sub);
@@ -155,8 +171,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Position routes
-  app.get("/api/positions", isAuthenticated, async (req, res) => {
+  // Position routes - Company Admins and HR only
+  app.get("/api/positions", requireRole('COMPANY_ADMIN', 'HR_MANAGER', 'DEPARTMENT_MANAGER'), requireCompany, async (req, res) => {
     try {
       const user = req.user as any;
       const userData = await storage.getUser(user.claims.sub);
@@ -172,7 +188,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/positions", isAuthenticated, async (req, res) => {
+  app.post("/api/positions", requireRole('COMPANY_ADMIN', 'HR_MANAGER'), requireCompany, async (req, res) => {
     try {
       const user = req.user as any;
       const userData = await storage.getUser(user.claims.sub);

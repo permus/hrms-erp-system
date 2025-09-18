@@ -7,6 +7,7 @@ import type { Express, RequestHandler } from "express";
 import memoize from "memoizee";
 import connectPg from "connect-pg-simple";
 import { storage } from "./storage";
+import { seedSuperAdmin } from "./roleAuth";
 
 if (!process.env.REPLIT_DOMAINS) {
   throw new Error("Environment variable REPLIT_DOMAINS not provided");
@@ -57,13 +58,27 @@ function updateUserSession(
 async function upsertUser(
   claims: any,
 ) {
-  await storage.upsertUser({
+  const userData = {
     id: claims["sub"],
     email: claims["email"],
     firstName: claims["first_name"],
     lastName: claims["last_name"],
     profileImageUrl: claims["profile_image_url"],
-  });
+  };
+  
+  // Check if this is the super admin email
+  const superAdminEmail = process.env.SUPER_ADMIN_EMAIL || "omar@omeda.io";
+  if (userData.email === superAdminEmail) {
+    // Ensure super admin role is set
+    await storage.upsertUser({
+      ...userData,
+      role: "SUPER_ADMIN",
+      isActive: true,
+      companyId: null,
+    });
+  } else {
+    await storage.upsertUser(userData);
+  }
 }
 
 export async function setupAuth(app: Express) {
@@ -71,6 +86,9 @@ export async function setupAuth(app: Express) {
   app.use(getSession());
   app.use(passport.initialize());
   app.use(passport.session());
+
+  // Seed super admin user
+  await seedSuperAdmin();
 
   const config = await getOidcConfig();
 
