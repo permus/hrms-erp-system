@@ -20,6 +20,8 @@ import {
 import { db } from "./db";
 import { eq, and, inArray, sql } from "drizzle-orm";
 import { randomBytes } from "crypto";
+import { PasswordService } from "./services/passwordService";
+import { sendCompanyAdminInvitation } from "./services/emailService";
 
 // Interface for storage operations
 export interface IStorage {
@@ -422,8 +424,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createCompanyAdminUser(data: any): Promise<User & { tempPassword: string }> {
-    // Create an active company admin user for Replit Auth integration
-    // Since we're using Replit Auth, users are immediately active upon creation
+    // Generate a secure temporary password
+    const tempPassword = PasswordService.generateSecurePassword(12);
+    
+    // Hash the password for secure storage
+    const passwordHash = await PasswordService.hashPassword(tempPassword);
+    
+    // Create an active company admin user with password authentication
     const [user] = await db
       .insert(users)
       .values({
@@ -434,12 +441,37 @@ export class DatabaseStorage implements IStorage {
         role: 'COMPANY_ADMIN',
         mustChangePassword: true,
         invitedBy: 'super_admin',
-        isActive: true, // Active immediately for Replit Auth users
+        isActive: true,
+        passwordHash,
+        passwordUpdatedAt: new Date(),
+        failedLoginCount: 0,
       })
       .returning();
     
+    // Send invitation email with temporary password
+    try {
+      const company = await this.getCompany(data.companyId);
+      const companyName = company?.name || 'Your Company';
+      const signinUrl = process.env.REPLIT_DOMAINS ? 
+        `https://${process.env.REPLIT_DOMAINS.split(',')[0]}/auth/signin` : 
+        'http://localhost:5000/auth/signin';
+      
+      const emailSent = await sendCompanyAdminInvitation(
+        data.email,
+        companyName,
+        tempPassword,
+        signinUrl
+      );
+      
+      if (!emailSent) {
+        console.error('Failed to send invitation email to:', data.email);
+      }
+    } catch (error) {
+      console.error('Error sending invitation email:', error);
+    }
+    
     // Return user with the temp password for the response
-    return { ...user, tempPassword: data.tempPassword };
+    return { ...user, tempPassword };
   }
 }
 
