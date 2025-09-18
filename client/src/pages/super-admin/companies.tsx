@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Building2, Plus, Calendar, Users, DollarSign, Edit, Trash2 } from "lucide-react";
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
+import ErrorModal from "@/components/ErrorModal";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -31,6 +32,64 @@ export default function SuperAdminCompanies() {
   const { toast } = useToast();
   const [editingCompany, setEditingCompany] = useState<Company | null>(null);
   const [deletingCompany, setDeletingCompany] = useState<Company | null>(null);
+  const [errorModal, setErrorModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    details?: string;
+  }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    details: undefined,
+  });
+
+  // Function to show error modal with user-friendly messages
+  const showErrorModal = (error: any, context: string) => {
+    let title = "Error";
+    let message = "Something went wrong. Please try again.";
+    let details = "";
+
+    // Extract error information from different possible error formats
+    const status = error.status || error.response?.status;
+    const errorData = error.error || error.response?.data?.error || error.response?.data;
+    const errorMessage = error.message || error.response?.data?.message;
+
+    if (status === 409) {
+      title = "Conflict Error";
+      message = "The company slug you entered is already being used by another company. Please choose a different slug.";
+      details = "Slugs must be unique across all companies and are used in web addresses.";
+    } else if (status === 400) {
+      title = "Validation Error";
+      message = "Please check your input and make sure all required fields are filled out correctly.";
+      details = Array.isArray(errorData) 
+        ? errorData.map((e: any) => `${e.path?.join('.')}: ${e.message}`).join(', ')
+        : errorMessage || "Invalid input provided.";
+    } else if (status === 404) {
+      title = "Not Found";
+      message = "The company you're trying to update could not be found.";
+      details = "The company may have been deleted or you may not have permission to access it.";
+    } else if (status === 403 || status === 401) {
+      title = "Access Denied";
+      message = "You don't have permission to perform this action.";
+      details = "Please contact your system administrator if you believe this is an error.";
+    } else if (!navigator.onLine) {
+      title = "Network Error";
+      message = "You appear to be offline. Please check your internet connection and try again.";
+      details = "Make sure you're connected to the internet before attempting this action.";
+    } else {
+      title = `${context} Failed`;
+      message = errorMessage || `Failed to ${context.toLowerCase()}. Please try again.`;
+      details = status ? `Server responded with error code: ${status}` : "Network or server error occurred.";
+    }
+
+    setErrorModal({
+      isOpen: true,
+      title,
+      message,
+      details,
+    });
+  };
 
   // Fetch companies
   const { data: companies = [] } = useQuery<Company[]>({
@@ -52,11 +111,7 @@ export default function SuperAdminCompanies() {
       setEditingCompany(null);
     },
     onError: (error: any) => {
-      toast({
-        title: "Update Failed",
-        description: error.message || "Failed to update company. Please try again.",
-        variant: "destructive",
-      });
+      showErrorModal(error, "Update Company");
     },
   });
 
@@ -74,11 +129,7 @@ export default function SuperAdminCompanies() {
       setDeletingCompany(null);
     },
     onError: (error: any) => {
-      toast({
-        title: "Delete Failed", 
-        description: error.message || "Failed to delete company. Please try again.",
-        variant: "destructive",
-      });
+      showErrorModal(error, "Delete Company");
     },
   });
 
@@ -538,6 +589,15 @@ export default function SuperAdminCompanies() {
       
       {/* Delete Company Confirmation Dialog */}
       <DeleteCompanyDialog />
+      
+      {/* Error Modal */}
+      <ErrorModal
+        isOpen={errorModal.isOpen}
+        onClose={() => setErrorModal(prev => ({ ...prev, isOpen: false }))}
+        title={errorModal.title}
+        message={errorModal.message}
+        details={errorModal.details}
+      />
     </div>
   );
 }

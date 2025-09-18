@@ -14,6 +14,7 @@ import { Separator } from "@/components/ui/separator";
 import { ArrowLeft, Building2, Users, DollarSign, Package, Mail, Calculator } from "lucide-react";
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
+import ErrorModal from "@/components/ErrorModal";
 import { 
   CompanyFormData, 
   DEFAULT_COMPANY_FORM, 
@@ -32,12 +33,66 @@ export default function CreateCompany() {
   const { toast } = useToast();
   const [formData, setFormData] = useState<CompanyFormData>(DEFAULT_COMPANY_FORM);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorModal, setErrorModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    details?: string;
+  }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    details: undefined,
+  });
 
   // Fetch available modules
   const { data: availableModules = [] } = useQuery<AvailableModule[]>({
     queryKey: ["/api/modules"],
     enabled: !!user && (user as any).role === 'SUPER_ADMIN'
   });
+
+  // Function to show error modal with user-friendly messages
+  const showErrorModal = (error: any, context: string) => {
+    let title = "Error";
+    let message = "Something went wrong. Please try again.";
+    let details = "";
+
+    // Extract error information from different possible error formats
+    const status = error.status || error.response?.status;
+    const errorData = error.error || error.response?.data?.error || error.response?.data;
+    const errorMessage = error.message || error.response?.data?.message;
+
+    if (status === 409) {
+      title = "Conflict Error";
+      message = "The company slug you entered is already being used by another company. Please choose a different slug.";
+      details = "Slugs must be unique across all companies and are used in web addresses.";
+    } else if (status === 400) {
+      title = "Validation Error";
+      message = "Please check your input and make sure all required fields are filled out correctly.";
+      details = Array.isArray(errorData) 
+        ? errorData.map((e: any) => `${e.path?.join('.')}: ${e.message}`).join(', ')
+        : errorMessage || "Invalid input provided.";
+    } else if (status === 403 || status === 401) {
+      title = "Access Denied";
+      message = "You don't have permission to perform this action.";
+      details = "Please contact your system administrator if you believe this is an error.";
+    } else if (!navigator.onLine) {
+      title = "Network Error";
+      message = "You appear to be offline. Please check your internet connection and try again.";
+      details = "Make sure you're connected to the internet before attempting this action.";
+    } else {
+      title = `${context} Failed`;
+      message = errorMessage || `Failed to ${context.toLowerCase()}. Please try again.`;
+      details = status ? `Server responded with error code: ${status}` : "Network or server error occurred.";
+    }
+
+    setErrorModal({
+      isOpen: true,
+      title,
+      message,
+      details,
+    });
+  };
 
   // Transform to ModuleConfig format for pricing calculations
   const moduleConfigs: ModuleConfig[] = availableModules.map(module => ({
@@ -122,11 +177,7 @@ export default function CreateCompany() {
       }, 12000);
     },
     onError: (error: any) => {
-      toast({
-        title: "Failed to Create Company",
-        description: error.message || "An error occurred while creating the company",
-        variant: "destructive"
-      });
+      showErrorModal(error, "Create Company");
     }
   });
 
@@ -135,10 +186,11 @@ export default function CreateCompany() {
     e.preventDefault();
     
     if (!formData.companyName || !formData.adminEmail || !formData.adminFirstName || !formData.adminLastName) {
-      toast({
+      setErrorModal({
+        isOpen: true,
         title: "Missing Required Fields",
-        description: "Please fill in all required company and admin information",
-        variant: "destructive"
+        message: "Please fill in all required company and admin information",
+        details: "Company name, admin email, first name, and last name are required to create a company.",
       });
       return;
     }
@@ -507,6 +559,15 @@ export default function CreateCompany() {
           </div>
         </main>
       </div>
+      
+      {/* Error Modal */}
+      <ErrorModal
+        isOpen={errorModal.isOpen}
+        onClose={() => setErrorModal(prev => ({ ...prev, isOpen: false }))}
+        title={errorModal.title}
+        message={errorModal.message}
+        details={errorModal.details}
+      />
     </div>
   );
 }

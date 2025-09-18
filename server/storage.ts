@@ -141,7 +141,9 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getCompanyBySlug(slug: string): Promise<Company | undefined> {
-    const [company] = await db.select().from(companies).where(eq(companies.slug, slug));
+    const [company] = await db.select().from(companies).where(
+      and(eq(companies.slug, slug), eq(companies.isActive, true))
+    );
     return company;
   }
 
