@@ -35,6 +35,8 @@ export interface IStorage {
   getCompanyBySlug(slug: string): Promise<Company | undefined>;
   listCompaniesForUser(userId: string): Promise<Company[]>;
   createCompany(company: Omit<Company, 'id' | 'createdAt' | 'updatedAt'>): Promise<Company>;
+  updateCompany(id: string, updates: Partial<Company>): Promise<Company | undefined>;
+  deleteCompany(id: string): Promise<Company | undefined>;
   // Employee operations
   getEmployees(companyId: string): Promise<Employee[]>;
   getEmployee(id: string): Promise<Employee | undefined>;
@@ -158,6 +160,25 @@ export class DatabaseStorage implements IStorage {
     const [company] = await db
       .insert(companies)
       .values(companyData)
+      .returning();
+    return company;
+  }
+
+  async updateCompany(id: string, updates: Partial<Company>): Promise<Company | undefined> {
+    const [company] = await db
+      .update(companies)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(companies.id, id))
+      .returning();
+    return company;
+  }
+
+  async deleteCompany(id: string): Promise<Company | undefined> {
+    // Soft delete - set company as inactive instead of hard delete
+    const [company] = await db
+      .update(companies)
+      .set({ isActive: false, updatedAt: new Date() })
+      .where(eq(companies.id, id))
       .returning();
     return company;
   }
