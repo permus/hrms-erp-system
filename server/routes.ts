@@ -245,8 +245,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         tempPassword
       });
       
-      // Send invitation email (placeholder - would integrate with email service)
-      // Note: Temporary password generated for invitation system (not logged for security)
+      // Send invitation email using SendGrid
+      try {
+        const { sendEmail, createInvitationEmail } = await import('./services/email');
+        const emailParams = createInvitationEmail(
+          company.name,
+          `${formData.adminFirstName} ${formData.adminLastName}`,
+          formData.adminEmail,
+          tempPassword,
+          formData.slug
+        );
+        
+        const emailSent = await sendEmail(emailParams);
+        if (!emailSent) {
+          console.error('Failed to send invitation email to:', formData.adminEmail);
+        }
+      } catch (emailError) {
+        console.error('Email service error:', emailError);
+      }
       
       res.status(201).json({ 
         success: true, 
