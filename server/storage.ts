@@ -26,8 +26,18 @@ export interface IStorage {
   // User operations (required for Replit Auth)
   getUser(id: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
+  listUsers(): Promise<User[]>;
   createUser(user: Omit<User, 'createdAt' | 'updatedAt'>): Promise<User>;
   updateUserRole(userId: string, role: string): Promise<User>;
+  updateUserAuth(userId: string, updates: {
+    passwordHash?: string | null;
+    passwordUpdatedAt?: Date | null;
+    resetTokenHash?: string | null;
+    resetTokenExpiresAt?: Date | null;
+    failedLoginCount?: number | null;
+    lockedUntil?: Date | null;
+    mustChangePassword?: boolean | null;
+  }): Promise<User>;
   upsertUser(user: UpsertUser): Promise<User>;
   // Company operations
   getCompanies(): Promise<Company[]>;
@@ -388,6 +398,27 @@ export class DatabaseStorage implements IStorage {
     }
     
     return password;
+  }
+
+  async listUsers(): Promise<User[]> {
+    return await db.select().from(users);
+  }
+
+  async updateUserAuth(userId: string, updates: {
+    passwordHash?: string | null;
+    passwordUpdatedAt?: Date | null;
+    resetTokenHash?: string | null;
+    resetTokenExpiresAt?: Date | null;
+    failedLoginCount?: number | null;
+    lockedUntil?: Date | null;
+    mustChangePassword?: boolean | null;
+  }): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(users.id, userId))
+      .returning();
+    return user;
   }
 
   async createCompanyAdminUser(data: any): Promise<User & { tempPassword: string }> {

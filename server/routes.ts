@@ -12,10 +12,200 @@ import {
   type AuthenticatedRequest 
 } from "./roleAuth";
 import { insertEmployeeSchema, insertCompanySchema, insertDepartmentSchema, insertPositionSchema } from "@shared/schema";
+import { PasswordService } from "./services/passwordService";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup authentication
   await setupAuth(app);
+  
+  // Password authentication routes (before auth middleware)
+  app.post("/api/auth/signin", async (req, res) => {
+    try {
+      const { email, password } = z.object({
+        email: z.string().email(),
+        password: z.string().min(1)
+      }).parse(req.body);
+      
+      // Get user by email
+      const user = await storage.getUserByEmail(email.toLowerCase());
+      
+      if (!user || !user.isActive || !user.passwordHash) {
+        return res.status(401).json({ error: "Invalid credentials" });
+      }
+      
+      // Check if account is locked
+      if (user.lockedUntil && new Date(user.lockedUntil) > new Date()) {
+        return res.status(423).json({ 
+          error: "Account temporarily locked due to failed login attempts" 
+        });
+      }
+      
+      // Verify password
+      const isValidPassword = await PasswordService.verifyPassword(
+        user.passwordHash, 
+        password
+      );
+      
+      if (!isValidPassword) {
+        // Increment failed login count
+        const failedCount = (user.failedLoginCount || 0) + 1;
+        let lockedUntil = null;
+        
+        // Lock account after 5 failed attempts for 15 minutes
+        if (failedCount >= 5) {
+          lockedUntil = new Date(Date.now() + 15 * 60 * 1000);
+        }
+        
+        await storage.updateUserAuth(user.id, {
+          failedLoginCount: failedCount,
+          lockedUntil
+        });
+        
+        return res.status(401).json({ error: "Invalid credentials" });
+      }
+      
+      // Reset failed login count on successful login
+      if (user.failedLoginCount && user.failedLoginCount > 0) {
+        await storage.updateUserAuth(user.id, {
+          failedLoginCount: 0,
+          lockedUntil: null
+        });
+      }
+      
+      // Create session
+      const sessionUser = {
+        authMethod: 'password',
+        claims: {
+          sub: user.id,
+          email: user.email || '',
+          first_name: user.firstName || '',
+          last_name: user.lastName || ''
+        },
+        role: user.role
+      };
+      
+      req.login(sessionUser, (err) => {
+        if (err) {
+          console.error('Session creation error:', err);
+          return res.status(500).json({ error: "Login failed" });
+        }
+        
+        res.json({ 
+          success: true,
+          user: {
+            id: user.id,
+            email: user.email,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            role: user.role,
+            companyId: user.companyId,
+            mustChangePassword: user.mustChangePassword
+          }
+        });
+      });
+      
+    } catch (error) {
+      console.error('Signin error:', error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid input", details: error.errors });
+      }
+      res.status(500).json({ error: "Signin failed" });
+    }
+  });
+  
+  app.post("/api/auth/logout", (req, res) => {
+    req.logout((err) => {
+      if (err) {
+        return res.status(500).json({ error: "Logout failed" });
+      }
+      res.status(204).send();
+    });
+  });
+  
+  app.post("/api/auth/password/request-reset", async (req, res) => {
+    try {
+      const { email } = z.object({
+        email: z.string().email()
+      }).parse(req.body);
+      
+      const user = await storage.getUserByEmail(email.toLowerCase());
+      if (!user || !user.isActive) {
+        // Always return success to prevent email enumeration
+        return res.json({ success: true });
+      }
+      
+      const { token, hash } = PasswordService.generateResetToken();
+      const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+      
+      await storage.updateUserAuth(user.id, {
+        resetTokenHash: hash,
+        resetTokenExpiresAt: expiresAt
+      });
+      
+      // TODO: Send email with reset token
+      // For now, we'll just log it (remove in production)
+      console.log(`Password reset token for ${email}: ${token}`);
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Password reset request error:', error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid input", details: error.errors });
+      }
+      res.status(500).json({ error: "Password reset failed" });
+    }
+  });
+  
+  app.post("/api/auth/password/reset", async (req, res) => {
+    try {
+      const { token, newPassword } = z.object({
+        token: z.string(),
+        newPassword: z.string().min(8)
+      }).parse(req.body);
+      
+      // Validate password strength
+      const passwordValidation = PasswordService.validatePasswordStrength(newPassword);
+      if (!passwordValidation.valid) {
+        return res.status(400).json({ 
+          error: "Password does not meet requirements", 
+          details: passwordValidation.errors 
+        });
+      }
+      
+      // Find user with valid reset token
+      const users = await storage.listUsers();
+      const user = users.find(u => 
+        u.resetTokenHash && 
+        u.resetTokenExpiresAt &&
+        new Date(u.resetTokenExpiresAt) > new Date() &&
+        PasswordService.verifyToken(token, u.resetTokenHash)
+      );
+      
+      if (!user) {
+        return res.status(400).json({ error: "Invalid or expired reset token" });
+      }
+      
+      // Hash new password and update user
+      const passwordHash = await PasswordService.hashPassword(newPassword);
+      await storage.updateUserAuth(user.id, {
+        passwordHash,
+        passwordUpdatedAt: new Date(),
+        resetTokenHash: null,
+        resetTokenExpiresAt: null,
+        mustChangePassword: false,
+        failedLoginCount: 0,
+        lockedUntil: null
+      });
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Password reset error:', error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid input", details: error.errors });
+      }
+      res.status(500).json({ error: "Password reset failed" });
+    }
+  });
   
   // Load user data middleware for all authenticated routes
   app.use('/api', isAuthenticatedAny, loadUserData);
