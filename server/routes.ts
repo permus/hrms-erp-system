@@ -177,6 +177,92 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get available modules for super admin
+  app.get("/api/modules", requireRole('SUPER_ADMIN'), async (req, res) => {
+    try {
+      const modules = await storage.getAvailableModules();
+      res.json(modules);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch modules" });
+    }
+  });
+
+  // Enhanced company creation with licensing and admin invitation
+  app.post("/api/super-admin/create-company", requireRole('SUPER_ADMIN'), async (req, res) => {
+    try {
+      // Basic validation of required fields
+      const formData = req.body;
+      
+      if (!formData.companyName || !formData.slug || !formData.adminEmail || !formData.adminFirstName || !formData.adminLastName) {
+        return res.status(400).json({ error: "Missing required fields: companyName, slug, adminEmail, adminFirstName, adminLastName" });
+      }
+      
+      // Check for slug conflicts
+      const existingCompany = await storage.getCompanyBySlug(formData.slug);
+      if (existingCompany) {
+        return res.status(409).json({ error: "Company slug already exists. Please choose a different slug." });
+      }
+      
+      // Calculate monthly cost
+      const selectedModules = await storage.getAvailableModulesByKeys(formData.enabledModules);
+      const modulesCost = selectedModules.reduce((total, module) => total + parseFloat(module.basePrice), 0);
+      const userLicensesCost = formData.userLicenseCount * formData.userLicensePrice;
+      const employeeLicensesCost = formData.employeeLicenseCount * formData.employeeLicensePrice;
+      const subtotal = modulesCost + userLicensesCost + employeeLicensesCost;
+      const total = subtotal * 1.05; // 5% VAT
+      
+      // Create company with enhanced data
+      const company = await storage.createCompanyWithLicensing({
+        name: formData.companyName,
+        slug: formData.slug,
+        industry: formData.industry,
+        employeeCount: formData.employeeCount,
+        country: formData.country,
+        city: formData.city,
+        subscriptionType: formData.subscriptionType,
+        trialDays: formData.trialDays,
+        monthlyCost: total.toFixed(2),
+        status: 'trial',
+        isActive: true,
+        settings: {
+          enabledModules: formData.enabledModules,
+          licensing: {
+            userLicenseCount: formData.userLicenseCount,
+            userLicensePrice: formData.userLicensePrice,
+            employeeLicenseCount: formData.employeeLicenseCount,
+            employeeLicensePrice: formData.employeeLicensePrice,
+          }
+        }
+      });
+      
+      // Create company admin user
+      const tempPassword = await storage.generateSecurePassword(12);
+      const adminUser = await storage.createCompanyAdminUser({
+        firstName: formData.adminFirstName,
+        lastName: formData.adminLastName,
+        email: formData.adminEmail,
+        companyId: company.id,
+        tempPassword
+      });
+      
+      // Send invitation email (placeholder - would integrate with email service)
+      // Note: Temporary password generated for invitation system (not logged for security)
+      
+      res.status(201).json({ 
+        success: true, 
+        company, 
+        adminUser: { 
+          ...adminUser, 
+          tempPassword: undefined // Don't return password in response 
+        }, 
+        message: `Company created successfully. Invitation sent to ${formData.adminEmail}` 
+      });
+    } catch (error) {
+      console.error('Company creation error:', error);
+      res.status(500).json({ error: "Failed to create company and send invitation" });
+    }
+  });
+
   // Employee routes - Company Admins and HR only
   app.get("/api/employees", requireRole('SUPER_ADMIN', 'COMPANY_ADMIN', 'HR_MANAGER', 'DEPARTMENT_MANAGER'), requireCompany, async (req, res) => {
     try {

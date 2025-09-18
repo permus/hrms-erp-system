@@ -140,12 +140,12 @@ export default function SuperAdminDashboard() {
                   variant="outline" 
                   className="p-4 h-auto justify-start hover-elevate active-elevate-2"
                   data-testid="button-add-company"
-                  onClick={() => setShowInviteForm(true)}
+                  onClick={() => window.location.href = '/super-admin/create-company'}
                 >
                   <Plus className="w-5 h-5 mr-3" />
                   <div className="text-left">
                     <h3 className="font-semibold mb-1">Add New Company</h3>
-                    <p className="text-sm text-muted-foreground">Invite a company administrator</p>
+                    <p className="text-sm text-muted-foreground">Create company with modules and licensing</p>
                   </div>
                 </Button>
                 
@@ -187,7 +187,10 @@ export default function SuperAdminDashboard() {
                   <Building2 className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
                   <h3 className="text-lg font-semibold mb-2">No companies yet</h3>
                   <p className="text-muted-foreground mb-4">Get started by adding your first company to the platform</p>
-                  <Button data-testid="button-add-first-company">
+                  <Button 
+                    data-testid="button-add-first-company"
+                    onClick={() => window.location.href = '/super-admin/create-company'}
+                  >
                     <Plus className="w-4 h-4 mr-2" />
                     Add First Company
                   </Button>

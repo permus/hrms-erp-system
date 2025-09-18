@@ -10,6 +10,7 @@ import { useEffect } from "react";
 import Landing from "@/pages/landing";
 import Home from "@/pages/home";
 import SuperAdminDashboard from "@/pages/super-admin/dashboard";
+import CreateCompany from "@/pages/super-admin/create-company";
 import CompanyAdminDashboard from "@/pages/company-admin/dashboard";
 import EmployeeDashboard from "@/pages/employee/dashboard";
 import NotFound from "@/pages/not-found";
@@ -84,8 +85,9 @@ function Router() {
           {/* Role-based default redirect */}
           <Route path="/" component={RoleBasedRedirect} />
           
-          {/* Super Admin Portal (unchanged) */}
+          {/* Super Admin Portal */}
           <Route path="/super-admin/dashboard" component={SuperAdminDashboard} />
+          <Route path="/super-admin/create-company" component={CreateCompany} />
           <Route path="/super-admin/*" component={SuperAdminDashboard} />
           
           {/* Company Admin Portal - slug-based */}

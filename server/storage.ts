@@ -4,15 +4,22 @@ import {
   employees,
   departments,
   positions,
+  availableModules,
+  companyModules,
+  companyLicenses,
   type User,
   type UpsertUser,
   type Company,
   type Employee,
   type Department,
   type Position,
+  type AvailableModule,
+  type CompanyModule,
+  type CompanyLicense,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
+import { randomBytes } from "crypto";
 
 // Interface for storage operations
 export interface IStorage {
@@ -39,6 +46,15 @@ export interface IStorage {
   // Position operations
   getPositions(companyId: string): Promise<Position[]>;
   createPosition(position: Omit<Position, 'id' | 'createdAt' | 'updatedAt'>): Promise<Position>;
+  
+  // Module operations
+  getAvailableModules(): Promise<AvailableModule[]>;
+  getAvailableModulesByKeys(keys: string[]): Promise<AvailableModule[]>;
+  
+  // Enhanced company operations
+  createCompanyWithLicensing(data: any): Promise<Company>;
+  generateSecurePassword(length: number): Promise<string>;
+  createCompanyAdminUser(data: any): Promise<User>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -196,6 +212,123 @@ export class DatabaseStorage implements IStorage {
       .values(positionData)
       .returning();
     return position;
+  }
+
+  // Module operations
+  async getAvailableModules(): Promise<AvailableModule[]> {
+    return await db
+      .select()
+      .from(availableModules)
+      .where(eq(availableModules.isActive, true));
+  }
+
+  async getAvailableModulesByKeys(keys: string[]): Promise<AvailableModule[]> {
+    if (keys.length === 0) return [];
+    return await db
+      .select()
+      .from(availableModules)
+      .where(inArray(availableModules.moduleKey, keys));
+  }
+
+  // Enhanced company operations with proper licensing persistence
+  async createCompanyWithLicensing(data: any): Promise<Company> {
+    // Use transaction to ensure data consistency
+    return await db.transaction(async (tx) => {
+      // 1. Create the company
+      const [company] = await tx
+        .insert(companies)
+        .values({
+          name: data.name,
+          slug: data.slug,
+          industry: data.industry,
+          employeeCount: data.employeeCount,
+          country: data.country,
+          city: data.city,
+          subscriptionType: data.subscriptionType,
+          trialDays: data.trialDays,
+          monthlyCost: data.monthlyCost,
+          status: data.status,
+          isActive: data.isActive,
+          settings: data.settings,
+        })
+        .returning();
+
+      // 2. Create license records
+      if (data.settings?.licensing) {
+        const licensing = data.settings.licensing;
+        
+        // User licenses
+        if (licensing.userLicenseCount > 0) {
+          await tx.insert(companyLicenses).values({
+            companyId: company.id,
+            licenseType: 'user',
+            count: licensing.userLicenseCount,
+            pricePerUnit: licensing.userLicensePrice.toString(),
+            totalPrice: (licensing.userLicenseCount * licensing.userLicensePrice).toString(),
+          });
+        }
+
+        // Employee licenses  
+        if (licensing.employeeLicenseCount > 0) {
+          await tx.insert(companyLicenses).values({
+            companyId: company.id,
+            licenseType: 'employee',
+            count: licensing.employeeLicenseCount,
+            pricePerUnit: licensing.employeeLicensePrice.toString(),
+            totalPrice: (licensing.employeeLicenseCount * licensing.employeeLicensePrice).toString(),
+          });
+        }
+      }
+
+      // 3. Enable selected modules
+      if (data.settings?.enabledModules && data.settings.enabledModules.length > 0) {
+        const modules = await this.getAvailableModulesByKeys(data.settings.enabledModules);
+        const companyModuleValues = modules.map(module => ({
+          companyId: company.id,
+          moduleId: module.id,
+          isEnabled: true,
+        }));
+
+        if (companyModuleValues.length > 0) {
+          await tx.insert(companyModules).values(companyModuleValues);
+        }
+      }
+
+      return company;
+    });
+  }
+
+  async generateSecurePassword(length: number): Promise<string> {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
+    let password = '';
+    const bytes = randomBytes(length);
+    
+    for (let i = 0; i < length; i++) {
+      password += chars[bytes[i] % chars.length];
+    }
+    
+    return password;
+  }
+
+  async createCompanyAdminUser(data: any): Promise<User> {
+    // Create a placeholder user record for invitation
+    // Note: This creates an invited user record without auth credentials
+    // The user will complete registration through Replit Auth when they accept the invitation
+    const [user] = await db
+      .insert(users)
+      .values({
+        firstName: data.firstName,
+        lastName: data.lastName,
+        email: data.email,
+        companyId: data.companyId,
+        role: 'COMPANY_ADMIN',
+        mustChangePassword: true,
+        invitedBy: 'super_admin',
+        isActive: false, // Inactive until they complete registration
+      })
+      .returning();
+    
+    return user;
   }
 }
 
