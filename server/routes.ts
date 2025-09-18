@@ -296,13 +296,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const existingUser = await storage.getUserByEmail(email);
+      console.log(`[EMAIL VALIDATION] Email: ${email}`);
+      console.log(`[EMAIL VALIDATION] Existing user:`, existingUser);
+      console.log(`[EMAIL VALIDATION] User isActive:`, existingUser?.isActive);
+      
       // Email is available if no user exists OR if the user exists but is inactive
       const isAvailable = !existingUser || !existingUser.isActive;
+      console.log(`[EMAIL VALIDATION] Is available:`, isAvailable);
+      
       res.json({ 
         isValid: isAvailable,
         message: isAvailable ? "Email is available" : "This email is already registered. Please use a different email address."
       });
     } catch (error) {
+      console.error(`[EMAIL VALIDATION] Error:`, error);
       res.status(500).json({ error: "Failed to validate email" });
     }
   });
