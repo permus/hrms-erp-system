@@ -1,0 +1,52 @@
+I can see the issue! There's a routing conflict in your Replit app. The Super Admin is seeing the Company Dashboard content instead of the Super Admin company management interface. This is a common issue when portal separation isn't properly implemented.
+🚨 Problem Analysis:
+
+URL shows: /super-admin/employees (Super Admin section)
+Content shows: Company Dashboard with HR/Payroll modules (Company Admin content)
+JavaScript Error: departments.map is not a function - indicating data/component mismatch
+
+🔧 Quick Fix for Replit Agent:
+Use this prompt in Replit Agent to fix the routing issue:
+"There's a routing conflict in the super admin portal. When I navigate to /super-admin/companies or /super-admin/employees, I'm seeing the company admin dashboard content instead of super admin content.
+
+Please fix this by:
+
+1. Ensuring /super-admin/* routes show super admin specific content (company management, platform overview, user management)
+
+2. The super admin should see:
+   - List of all companies on the platform
+   - Company creation form
+   - Platform analytics (total employees across all companies, total departments across all companies, etc.)
+   - NOT the module cards (HR, Payroll, Finance) - those belong in company-admin portal
+
+3. Fix the departments.map error by ensuring the super admin pages don't try to use company-specific data
+
+4. The super admin 'Companies' page should show a table/list of companies with options to:
+   - Create new company
+   - Edit existing companies  
+   - View company details
+   - Invite company admins
+
+Keep the current styling but ensure the content matches the portal type."
+🎯 Alternative Quick Fix:
+If the prompt doesn't work immediately, try this step-by-step approach:
+1. First, identify the issue:
+"Check the file /home/runner/workspace/client/src/pages/home.tsx:75:41 - there's an error where departments.map is being called but departments is not an array. This suggests the wrong data is being passed to the super admin portal."
+2. Then fix the routing:
+"The super admin portal should not show company-specific modules like HR, Payroll, Finance. Instead it should show:
+- Platform statistics (total companies, total users, revenue)
+- Company management interface
+- System administration tools
+
+Please create a proper super admin dashboard that's different from the company admin dashboard."
+3. Finally, ensure data separation:
+"Super admin should see aggregated data across ALL companies, not individual company data. Fix the data fetching to match the portal type."
+🚀 Expected Result:
+After fixing, the Super Admin portal should show:
+
+Platform Overview instead of module cards
+Company Management tools
+System-wide statistics
+NO individual company modules (HR, Payroll, etc.)
+
+The error suggests that somewhere in your routing, the Super Admin is trying to load Company Admin components with the wrong data structure. The fix should properly separate these two portal types.

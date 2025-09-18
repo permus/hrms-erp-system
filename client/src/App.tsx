@@ -12,6 +12,8 @@ import Home from "@/pages/home";
 import SuperAdminDashboard from "@/pages/super-admin/dashboard";
 import CreateCompany from "@/pages/super-admin/create-company";
 import ManageCompany from "@/pages/super-admin/manage-company";
+import SuperAdminCompanies from "@/pages/super-admin/companies";
+import SuperAdminEmployees from "@/pages/super-admin/employees";
 import CompanyAdminDashboard from "@/pages/company-admin/dashboard";
 import EmployeeDashboard from "@/pages/employee/dashboard";
 import NotFound from "@/pages/not-found";
@@ -36,9 +38,9 @@ function RoleBasedRedirect() {
   // Handle redirection based on role and available slugs using useEffect
   useEffect(() => {
     if (!isLoading && userSlugs && user) {
-      if (user.role === 'SUPER_ADMIN') {
+      if ((user as any).role === 'SUPER_ADMIN') {
         setLocation('/super-admin/dashboard');
-      } else if (['COMPANY_ADMIN', 'HR_MANAGER', 'DEPARTMENT_MANAGER'].includes(user.role || '')) {
+      } else if (['COMPANY_ADMIN', 'HR_MANAGER', 'DEPARTMENT_MANAGER'].includes((user as any).role || '')) {
         // Redirect to slug-based company admin URL
         if (userSlugs.companySlugs && userSlugs.companySlugs.length > 0) {
           setLocation(`/${userSlugs.companySlugs[0]}/dashboard`);
@@ -46,7 +48,7 @@ function RoleBasedRedirect() {
           // Fallback to old route if no company slugs available
           setLocation('/company-admin/dashboard');
         }
-      } else if (user.role === 'EMPLOYEE') {
+      } else if ((user as any).role === 'EMPLOYEE') {
         // Redirect to slug-based employee URL
         if (userSlugs.companySlugs && userSlugs.companySlugs.length > 0 && userSlugs.employeeSlug) {
           setLocation(`/${userSlugs.companySlugs[0]}/${userSlugs.employeeSlug}/dashboard`);
@@ -90,6 +92,8 @@ function Router() {
           <Route path="/super-admin/dashboard" component={SuperAdminDashboard} />
           <Route path="/super-admin/create-company" component={CreateCompany} />
           <Route path="/super-admin/companies/:companyId" component={ManageCompany} />
+          <Route path="/super-admin/companies" component={SuperAdminCompanies} />
+          <Route path="/super-admin/employees" component={SuperAdminEmployees} />
           
           {/* Company Admin Portal - slug-based */}
           <Route path="/:companySlug/dashboard" component={CompanyAdminDashboard} />
