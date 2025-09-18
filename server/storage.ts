@@ -33,6 +33,7 @@ export interface IStorage {
   getCompanies(): Promise<Company[]>;
   getCompany(id: string): Promise<Company | undefined>;
   getCompanyBySlug(slug: string): Promise<Company | undefined>;
+  isSlugAvailable(slug: string): Promise<boolean>;
   listCompaniesForUser(userId: string): Promise<Company[]>;
   createCompany(company: Omit<Company, 'id' | 'createdAt' | 'updatedAt'>): Promise<Company>;
   updateCompany(id: string, updates: Partial<Company>): Promise<Company | undefined>;
@@ -145,6 +146,11 @@ export class DatabaseStorage implements IStorage {
       and(eq(companies.slug, slug), eq(companies.isActive, true))
     );
     return company;
+  }
+
+  async isSlugAvailable(slug: string): Promise<boolean> {
+    const [existingCompany] = await db.select().from(companies).where(eq(companies.slug, slug));
+    return !existingCompany; // Returns true if slug is available (no company found)
   }
 
   async listCompaniesForUser(userId: string): Promise<Company[]> {

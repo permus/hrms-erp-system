@@ -240,9 +240,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Missing required fields: companyName, slug, adminEmail, adminFirstName, adminLastName" });
       }
       
-      // Check for slug conflicts
-      const existingCompany = await storage.getCompanyBySlug(formData.slug);
-      if (existingCompany) {
+      // Check for slug conflicts (including inactive companies)
+      const slugAvailable = await storage.isSlugAvailable(formData.slug);
+      if (!slugAvailable) {
         return res.status(409).json({ error: "Company slug already exists. Please choose a different slug." });
       }
       
@@ -301,6 +301,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       console.error('Company creation error:', error);
+      
+      // Handle specific database constraint violations
+      if (error.code === '23505' && error.constraint === 'companies_slug_unique') {
+        return res.status(409).json({ error: "Company slug already exists. Please choose a different slug." });
+      }
+      
+      // Handle duplicate email errors
+      if (error.code === '23505' && error.constraint?.includes('email')) {
+        return res.status(409).json({ error: "A user with this email already exists. Please use a different email address." });
+      }
+      
       res.status(500).json({ error: "Failed to create company and send invitation" });
     }
   });
