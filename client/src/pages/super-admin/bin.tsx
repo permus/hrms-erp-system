@@ -147,7 +147,16 @@ export default function SuperAdminBin() {
           companyName="ERP Platform"
         />
         <main className="flex-1">
-          <Header />
+          <Header 
+            user={{
+              name: ((user as any).firstName || '') + ' ' + ((user as any).lastName || ''),
+              email: (user as any).email || '',
+              profileImageUrl: (user as any).profileImageUrl,
+              role: (user as any).role || 'SUPER_ADMIN',
+              companyName: 'ERP Platform'
+            }}
+            onLogout={() => window.location.href = '/api/logout'}
+          />
           <div className="p-6">
             <div className="flex items-center justify-between mb-6">
               <div>
