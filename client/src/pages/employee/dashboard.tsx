@@ -107,6 +107,8 @@ export default function EmployeeDashboard() {
       <Sidebar 
         userRole={user.role || 'EMPLOYEE'} 
         companyName={companySlug || 'Unknown Company'}
+        companySlug={companySlug}
+        employeeSlug={employeeSlug}
       />
       
       <div className="flex-1 flex flex-col">

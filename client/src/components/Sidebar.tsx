@@ -7,37 +7,72 @@ import { cn } from "@/lib/utils";
 interface SidebarProps {
   userRole: string;
   companyName?: string;
+  companySlug?: string;
+  employeeSlug?: string;
 }
 
-const menuItems = {
-  SUPER_ADMIN: [
-    { icon: Shield, label: "Platform Overview", href: "/super-admin", badge: null },
-    { icon: Building2, label: "Companies", href: "/super-admin/companies", badge: null },
-    { icon: BarChart3, label: "Analytics", href: "/super-admin/analytics", badge: null },
-    { icon: Settings, label: "System Settings", href: "/super-admin/settings", badge: null },
-  ],
-  COMPANY_ADMIN: [
-    { icon: BarChart3, label: "Dashboard", href: "/company-admin", badge: null },
-    { icon: Users, label: "Employees", href: "/company-admin/employees", badge: null },
-    { icon: Building2, label: "Departments", href: "/company-admin/departments", badge: null },
-    { icon: FileText, label: "Documents", href: "/company-admin/documents", badge: "12" },
-    { icon: Calendar, label: "Leave Management", href: "/company-admin/leave", badge: "3" },
-    { icon: Clock, label: "Attendance", href: "/company-admin/attendance", badge: null },
-    { icon: UserCheck, label: "Probation Tracking", href: "/company-admin/probation", badge: "5" },
-    { icon: Settings, label: "Company Settings", href: "/company-admin/settings", badge: null },
-  ],
-  EMPLOYEE: [
-    { icon: BarChart3, label: "My Dashboard", href: "/employee", badge: null },
-    { icon: Users, label: "My Profile", href: "/employee/profile", badge: null },
-    { icon: FileText, label: "My Documents", href: "/employee/documents", badge: "2" },
-    { icon: Calendar, label: "Leave Requests", href: "/employee/leave", badge: null },
-    { icon: Clock, label: "My Attendance", href: "/employee/attendance", badge: null },
-  ],
+// Base menu structure without hardcoded hrefs
+const getMenuItems = (userRole: string, companySlug?: string, employeeSlug?: string) => {
+  console.log('getMenuItems called with:', { userRole, companySlug, employeeSlug });
+  const menuItems = {
+    SUPER_ADMIN: [
+      { icon: Shield, label: "Platform Overview", path: "dashboard", badge: null },
+      { icon: Building2, label: "Companies", path: "companies", badge: null },
+      { icon: BarChart3, label: "Analytics", path: "analytics", badge: null },
+      { icon: Settings, label: "System Settings", path: "settings", badge: null },
+    ],
+    COMPANY_ADMIN: [
+      { icon: BarChart3, label: "Dashboard", path: "dashboard", badge: null },
+      { icon: Users, label: "Employees", path: "employees", badge: null },
+      { icon: Building2, label: "Departments", path: "departments", badge: null },
+      { icon: FileText, label: "Documents", path: "documents", badge: "12" },
+      { icon: Calendar, label: "Leave Management", path: "leave", badge: "3" },
+      { icon: Clock, label: "Attendance", path: "attendance", badge: null },
+      { icon: UserCheck, label: "Probation Tracking", path: "probation", badge: "5" },
+      { icon: Settings, label: "Company Settings", path: "settings", badge: null },
+    ],
+    EMPLOYEE: [
+      { icon: BarChart3, label: "My Dashboard", path: "dashboard", badge: null },
+      { icon: Users, label: "My Profile", path: "profile", badge: null },
+      { icon: FileText, label: "My Documents", path: "documents", badge: "2" },
+      { icon: Calendar, label: "Leave Requests", path: "leave", badge: null },
+      { icon: Clock, label: "My Attendance", path: "attendance", badge: null },
+    ],
+  };
+
+  const items = menuItems[userRole as keyof typeof menuItems] || menuItems.EMPLOYEE;
+  
+  // Generate dynamic hrefs based on role and slugs
+  return items.map(item => {
+    let href = '';
+    
+    if (userRole === 'SUPER_ADMIN') {
+      href = `/super-admin/${item.path}`;
+    } else if (['COMPANY_ADMIN', 'HR_MANAGER', 'DEPARTMENT_MANAGER'].includes(userRole)) {
+      if (companySlug) {
+        href = `/${companySlug}/${item.path}`;
+        console.log(`Generated slug-based URL for ${item.label}: ${href}`);
+      } else {
+        // Fallback to old URLs if no slug available
+        href = `/company-admin/${item.path}`;
+        console.log(`Fallback URL for ${item.label} (no companySlug): ${href}`);
+      }
+    } else if (userRole === 'EMPLOYEE') {
+      if (companySlug && employeeSlug) {
+        href = `/${companySlug}/${employeeSlug}/${item.path}`;
+      } else {
+        // Fallback to old URLs if no slugs available
+        href = `/employee/${item.path}`;
+      }
+    }
+    
+    return { ...item, href };
+  });
 };
 
-export default function Sidebar({ userRole, companyName }: SidebarProps) {
+export default function Sidebar({ userRole, companyName, companySlug, employeeSlug }: SidebarProps) {
   const [location] = useLocation();
-  const items = menuItems[userRole as keyof typeof menuItems] || menuItems.EMPLOYEE;
+  const items = getMenuItems(userRole, companySlug, employeeSlug);
 
   return (
     <div className="h-screen w-64 bg-sidebar border-r border-sidebar-border flex flex-col">

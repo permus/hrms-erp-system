@@ -77,7 +77,28 @@ async function upsertUser(
       companyId: null,
     });
   } else {
-    await storage.upsertUser(userData);
+    // Extract role and company information from claims
+    const role = claims["role"] || "EMPLOYEE"; // Default to EMPLOYEE if no role specified
+    const companySlugs = claims["companySlugs"] || claims["company_slugs"] || [];
+    const companySlug = claims["company_slug"] || claims["companySlug"] || (companySlugs.length > 0 ? companySlugs[0] : null);
+    
+    // If there's a company slug, try to find the company and set companyId
+    let companyId = null;
+    if (companySlug) {
+      try {
+        const company = await storage.getCompanyBySlug(companySlug);
+        companyId = company?.id || null;
+      } catch (error) {
+        console.warn(`Company not found for slug: ${companySlug}`);
+      }
+    }
+    
+    await storage.upsertUser({
+      ...userData,
+      role,
+      isActive: true,
+      companyId,
+    });
   }
 }
 

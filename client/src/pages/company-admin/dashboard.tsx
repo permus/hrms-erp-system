@@ -74,6 +74,7 @@ export default function CompanyAdminDashboard() {
       <Sidebar 
         userRole={user.role || 'COMPANY_ADMIN'} 
         companyName={companySlug || 'Unknown Company'}
+        companySlug={companySlug}
       />
       
       <div className="flex-1 flex flex-col">
