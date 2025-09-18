@@ -37,6 +37,118 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(userData);
   });
 
+  // Slug resolution endpoints
+  app.get("/api/resolve/me", async (req, res) => {
+    try {
+      const authReq = req as AuthenticatedRequest;
+      const user = authReq.user;
+      
+      if (!user?.claims?.sub) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
+      const userData = await storage.getUser(user.claims.sub);
+      if (!userData) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      const companies = await storage.listCompaniesForUser(userData.id);
+      const companySlugs = companies.map(c => c.slug).filter(Boolean);
+      
+      let employeeSlug: string | undefined;
+      if (userData.role === 'EMPLOYEE' && userData.companyId) {
+        // Find the employee record to get their slug
+        const employees = await storage.getEmployees(userData.companyId);
+        const employee = employees.find(emp => emp.userId === userData.id);
+        employeeSlug = employee?.slug;
+      }
+      
+      const response = {
+        role: userData.role,
+        companySlugs,
+        employeeSlug
+      };
+      
+      res.json(response);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to resolve user slugs" });
+    }
+  });
+  
+  // Company slug resolution - security-first approach
+  app.get("/api/companies/by-slug/:slug", async (req, res) => {
+    try {
+      const authReq = req as AuthenticatedRequest;
+      const user = authReq.user;
+      
+      if (!user?.claims?.sub) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
+      const userData = await storage.getUser(user.claims.sub);
+      if (!userData) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      const company = await storage.getCompanyBySlug(req.params.slug);
+      if (!company) {
+        return res.status(404).json({ error: "Company not found" });
+      }
+      
+      // Security: Only allow access to company if user has permission
+      if (userData.role === 'SUPER_ADMIN' || userData.companyId === company.id) {
+        res.json({ id: company.id, slug: company.slug, name: company.name });
+      } else {
+        res.status(404).json({ error: "Company not found" }); // Hide existence from unauthorized users
+      }
+    } catch (error) {
+      res.status(500).json({ error: "Failed to resolve company slug" });
+    }
+  });
+  
+  // Employee slug resolution - security-first approach 
+  app.get("/api/employees/by-slug/:companySlug/:employeeSlug", async (req, res) => {
+    try {
+      const authReq = req as AuthenticatedRequest;
+      const user = authReq.user;
+      
+      if (!user?.claims?.sub) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
+      const userData = await storage.getUser(user.claims.sub);
+      if (!userData) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      // First resolve company by slug
+      const company = await storage.getCompanyBySlug(req.params.companySlug);
+      if (!company) {
+        return res.status(404).json({ error: "Company not found" });
+      }
+      
+      // Security: Only allow access if user has permission to this company
+      if (userData.role !== 'SUPER_ADMIN' && userData.companyId !== company.id) {
+        return res.status(404).json({ error: "Employee not found" }); // Hide existence
+      }
+      
+      // Resolve employee by slug within company
+      const employee = await storage.getEmployeeBySlug(company.id, req.params.employeeSlug);
+      if (!employee) {
+        return res.status(404).json({ error: "Employee not found" });
+      }
+      
+      // Additional security: employees can only see their own data
+      if (userData.role === 'EMPLOYEE' && employee.userId !== userData.id) {
+        return res.status(404).json({ error: "Employee not found" });
+      }
+      
+      res.json({ id: employee.id, slug: employee.slug, companyId: employee.companyId });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to resolve employee slug" });
+    }
+  });
+
   // Company routes - Super Admin Only
   app.get("/api/companies", requireRole('SUPER_ADMIN'), async (req, res) => {
     try {
