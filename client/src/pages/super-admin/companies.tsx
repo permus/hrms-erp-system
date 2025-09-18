@@ -4,6 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -33,6 +34,7 @@ export default function SuperAdminCompanies() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [editingCompany, setEditingCompany] = useState<Company | null>(null);
+  const [deletingCompany, setDeletingCompany] = useState<Company | null>(null);
 
   // Fetch companies
   const { data: companies = [] } = useQuery<Company[]>({
@@ -62,13 +64,40 @@ export default function SuperAdminCompanies() {
     },
   });
 
+  // Delete company mutation
+  const deleteCompanyMutation = useMutation({
+    mutationFn: async (companyId: string) => {
+      return apiRequest('DELETE', `/api/companies/${companyId}`);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Company Deleted",
+        description: "Company has been marked as inactive and removed from the active list.",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/companies'] });
+      setDeletingCompany(null);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Delete Failed", 
+        description: error.message || "Failed to delete company. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleEditCompany = (company: Company) => {
     setEditingCompany(company);
   };
 
   const handleDeleteCompany = (company: Company) => {
-    // TODO: Open delete confirmation dialog
-    console.log('Delete company:', company);
+    setDeletingCompany(company);
+  };
+
+  const confirmDeleteCompany = () => {
+    if (deletingCompany) {
+      deleteCompanyMutation.mutate(deletingCompany.id);
+    }
   };
 
   const stats = {
@@ -256,6 +285,45 @@ export default function SuperAdminCompanies() {
           </Form>
         </DialogContent>
       </Dialog>
+    );
+  };
+
+  // Delete Company Confirmation Dialog
+  const DeleteCompanyDialog = () => {
+    return (
+      <AlertDialog open={!!deletingCompany} onOpenChange={() => setDeletingCompany(null)}>
+        <AlertDialogContent data-testid="dialog-delete-company">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Company</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete <strong>{deletingCompany?.name}</strong>?
+              <br /><br />
+              <strong>This action will:</strong>
+              <ul className="list-disc ml-4 mt-2 space-y-1">
+                <li>Mark the company as inactive</li>
+                <li>Remove it from the active companies list</li>
+                <li>Preserve all company data for compliance</li>
+                <li>Disable access for all company users</li>
+              </ul>
+              <br />
+              <em>This is a soft delete - the company can be reactivated later if needed.</em>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-delete">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmDeleteCompany}
+              disabled={deleteCompanyMutation.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              data-testid="button-confirm-delete"
+            >
+              {deleteCompanyMutation.isPending ? "Deleting..." : "Delete Company"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     );
   };
 
@@ -471,6 +539,9 @@ export default function SuperAdminCompanies() {
 
       {/* Edit Company Modal */}
       <EditCompanyModal />
+      
+      {/* Delete Company Confirmation Dialog */}
+      <DeleteCompanyDialog />
     </div>
   );
 }
