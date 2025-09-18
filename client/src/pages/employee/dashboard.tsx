@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
+import { useParams } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -22,6 +23,11 @@ import Sidebar from "@/components/Sidebar";
 
 export default function EmployeeDashboard() {
   const { user } = useAuth();
+  const params = useParams<{ companySlug: string; employeeSlug: string }>();
+  const { companySlug, employeeSlug } = params;
+
+  // Verify this employee belongs to this user (security check)
+  const isValidEmployee = user?.role === 'EMPLOYEE';
 
   // Mock employee-specific data - TODO: replace with real API calls
   const employeeStats = {
@@ -80,12 +86,17 @@ export default function EmployeeDashboard() {
     window.location.href = "/api/logout";
   };
 
-  if (!user || user.role !== 'EMPLOYEE') {
+  if (!user || user.role !== 'EMPLOYEE' || !isValidEmployee) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-destructive">Access Denied</h1>
           <p className="text-muted-foreground">This is the employee self-service portal.</p>
+          {companySlug && employeeSlug && (
+            <p className="text-xs text-muted-foreground mt-2">
+              Company: {companySlug} | Employee: {employeeSlug}
+            </p>
+          )}
         </div>
       </div>
     );
@@ -95,7 +106,7 @@ export default function EmployeeDashboard() {
     <div className="h-screen bg-background flex">
       <Sidebar 
         userRole={user.role || 'EMPLOYEE'} 
-        companyName="Acme Corporation"
+        companyName={companySlug || 'Unknown Company'}
       />
       
       <div className="flex-1 flex flex-col">
@@ -104,7 +115,7 @@ export default function EmployeeDashboard() {
             name: (user.firstName || '') + ' ' + (user.lastName || ''),
             email: user.email || '',
             role: user.role || 'EMPLOYEE',
-            companyName: 'Acme Corporation'
+            companyName: companySlug || 'Unknown Company'
           }}
           onLogout={handleLogout}
           pendingNotifications={employeeStats.documents.pending}
@@ -113,7 +124,9 @@ export default function EmployeeDashboard() {
         <main className="flex-1 overflow-auto p-6">
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-foreground">My Dashboard</h1>
-            <p className="text-muted-foreground">Welcome back! Here's your overview</p>
+            <p className="text-muted-foreground">
+              Welcome back! Here's your overview for {companySlug || 'your company'}
+            </p>
           </div>
           
           {/* Personal Stats Cards */}

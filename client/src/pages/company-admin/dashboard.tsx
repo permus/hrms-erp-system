@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
+import { useParams } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { 
@@ -23,20 +24,25 @@ import type { Employee, Department, Position } from "@shared/schema";
 
 export default function CompanyAdminDashboard() {
   const { user } = useAuth();
+  const params = useParams<{ companySlug: string }>();
+  const { companySlug } = params;
 
-  // Fetch company data
+  // Update query keys to include company context for cache isolation
+  const companyContext = companySlug || 'default';
+
+  // Fetch company data with cache isolation per company
   const { data: employees = [] } = useQuery<Employee[]>({
-    queryKey: ["/api/employees"],
+    queryKey: ["/api/employees", companyContext],
     enabled: !!user && ['COMPANY_ADMIN', 'HR_MANAGER'].includes(user.role || '')
   });
 
   const { data: departments = [] } = useQuery<Department[]>({
-    queryKey: ["/api/departments"],
+    queryKey: ["/api/departments", companyContext],
     enabled: !!user && ['COMPANY_ADMIN', 'HR_MANAGER'].includes(user.role || '')
   });
 
   const { data: positions = [] } = useQuery<Position[]>({
-    queryKey: ["/api/positions"],
+    queryKey: ["/api/positions", companyContext],
     enabled: !!user && ['COMPANY_ADMIN', 'HR_MANAGER'].includes(user.role || '')
   });
 
@@ -67,7 +73,7 @@ export default function CompanyAdminDashboard() {
     <div className="h-screen bg-background flex">
       <Sidebar 
         userRole={user.role || 'COMPANY_ADMIN'} 
-        companyName="Acme Corporation"
+        companyName={companySlug || 'Unknown Company'}
       />
       
       <div className="flex-1 flex flex-col">
@@ -76,7 +82,7 @@ export default function CompanyAdminDashboard() {
             name: (user.firstName || '') + ' ' + (user.lastName || ''),
             email: user.email || '',
             role: user.role || 'COMPANY_ADMIN',
-            companyName: 'Acme Corporation'
+            companyName: companySlug || 'Unknown Company'
           }}
           onLogout={handleLogout}
           pendingNotifications={stats.pendingApprovals}
@@ -85,7 +91,9 @@ export default function CompanyAdminDashboard() {
         <main className="flex-1 overflow-auto p-6">
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-foreground">Company Dashboard</h1>
-            <p className="text-muted-foreground">Overview of your company operations</p>
+            <p className="text-muted-foreground">
+              Overview of {companySlug || 'your company'} operations
+            </p>
           </div>
           
           {/* Company Stats */}
@@ -166,7 +174,7 @@ export default function CompanyAdminDashboard() {
                     <p className="text-sm text-muted-foreground mb-4">
                       Employee management, leave tracking, and HR analytics
                     </p>
-                    <Link href="/company-admin/employees">
+                    <Link href={`/${companySlug}/employees`}>
                       <Button 
                         variant="outline" 
                         size="sm" 

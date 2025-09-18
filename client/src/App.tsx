@@ -1,10 +1,12 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "next-themes";
 import { useAuth } from "@/hooks/useAuth";
+import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
 import Landing from "@/pages/landing";
 import Home from "@/pages/home";
 import SuperAdminDashboard from "@/pages/super-admin/dashboard";
@@ -12,26 +14,59 @@ import CompanyAdminDashboard from "@/pages/company-admin/dashboard";
 import EmployeeDashboard from "@/pages/employee/dashboard";
 import NotFound from "@/pages/not-found";
 
+// Type for the /api/resolve/me response
+type UserSlugsResponse = {
+  role: string;
+  companySlugs: string[];
+  employeeSlug?: string;
+};
+
 function RoleBasedRedirect() {
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
+  const [, setLocation] = useLocation();
   
-  // Redirect to appropriate portal based on user role
-  if (user?.role === 'SUPER_ADMIN') {
-    window.location.href = '/super-admin/dashboard';
-  } else if (['COMPANY_ADMIN', 'HR_MANAGER', 'DEPARTMENT_MANAGER'].includes(user?.role || '')) {
-    window.location.href = '/company-admin/dashboard';
-  } else if (user?.role === 'EMPLOYEE') {
-    window.location.href = '/employee/dashboard';
-  } else {
-    // Fallback for users without proper roles
-    window.location.href = '/api/login';
-  }
+  // Fetch user's available slugs
+  const { data: userSlugs, isLoading } = useQuery<UserSlugsResponse>({
+    queryKey: ['/api/resolve/me'],
+    enabled: isAuthenticated && !!user,
+  });
+  
+  // Handle redirection based on role and available slugs using useEffect
+  useEffect(() => {
+    if (!isLoading && userSlugs && user) {
+      if (user.role === 'SUPER_ADMIN') {
+        setLocation('/super-admin/dashboard');
+      } else if (['COMPANY_ADMIN', 'HR_MANAGER', 'DEPARTMENT_MANAGER'].includes(user.role || '')) {
+        // Redirect to slug-based company admin URL
+        if (userSlugs.companySlugs && userSlugs.companySlugs.length > 0) {
+          setLocation(`/${userSlugs.companySlugs[0]}/dashboard`);
+        } else {
+          // Fallback to old route if no company slugs available
+          setLocation('/company-admin/dashboard');
+        }
+      } else if (user.role === 'EMPLOYEE') {
+        // Redirect to slug-based employee URL
+        if (userSlugs.companySlugs && userSlugs.companySlugs.length > 0 && userSlugs.employeeSlug) {
+          setLocation(`/${userSlugs.companySlugs[0]}/${userSlugs.employeeSlug}/dashboard`);
+        } else {
+          // Fallback to old route if slugs not available
+          setLocation('/employee/dashboard');
+        }
+      } else {
+        window.location.href = '/api/login'; // Unknown role
+      }
+    }
+  }, [isLoading, userSlugs, user, setLocation]);
   
   return (
     <div className="min-h-screen flex items-center justify-center">
       <div className="text-center">
-        <h2 className="text-lg font-semibold mb-2">Redirecting...</h2>
-        <p className="text-muted-foreground">Taking you to your portal</p>
+        <h2 className="text-lg font-semibold mb-2">
+          {isLoading ? 'Loading...' : 'Redirecting...'}
+        </h2>
+        <p className="text-muted-foreground">
+          {isLoading ? 'Preparing your workspace' : 'Taking you to your workspace'}
+        </p>
       </div>
     </div>
   );
@@ -49,18 +84,23 @@ function Router() {
           {/* Role-based default redirect */}
           <Route path="/" component={RoleBasedRedirect} />
           
-          {/* Super Admin Portal */}
+          {/* Super Admin Portal (unchanged) */}
           <Route path="/super-admin/dashboard" component={SuperAdminDashboard} />
           <Route path="/super-admin/*" component={SuperAdminDashboard} />
           
-          {/* Company Admin Portal */}
-          <Route path="/company-admin/dashboard" component={CompanyAdminDashboard} />
-          <Route path="/company-admin/employees" component={Home} />
-          <Route path="/company-admin/*" component={CompanyAdminDashboard} />
+          {/* Company Admin Portal - slug-based */}
+          <Route path="/:companySlug/dashboard" component={CompanyAdminDashboard} />
+          <Route path="/:companySlug/employees" component={Home} />
+          <Route path="/:companySlug/departments" component={Home} />
+          <Route path="/:companySlug/positions" component={Home} />
+          <Route path="/:companySlug/*" component={CompanyAdminDashboard} />
           
-          {/* Employee Self-Service Portal */}
-          <Route path="/employee/dashboard" component={EmployeeDashboard} />
-          <Route path="/employee/*" component={EmployeeDashboard} />
+          {/* Employee Self-Service Portal - slug-based */}
+          <Route path="/:companySlug/:employeeSlug/dashboard" component={EmployeeDashboard} />
+          <Route path="/:companySlug/:employeeSlug/attendance" component={EmployeeDashboard} />
+          <Route path="/:companySlug/:employeeSlug/documents" component={EmployeeDashboard} />
+          <Route path="/:companySlug/:employeeSlug/leave" component={EmployeeDashboard} />
+          <Route path="/:companySlug/:employeeSlug/*" component={EmployeeDashboard} />
         </>
       )}
       <Route component={NotFound} />
