@@ -229,6 +229,12 @@ export class DatabaseStorage implements IStorage {
 
   async hardDeleteCompany(id: string): Promise<Company | undefined> {
     // Permanently delete company from database
+    // First delete all associated users (company admins, employees, etc.)
+    await db
+      .delete(users)
+      .where(eq(users.companyId, id));
+    
+    // Then delete the company itself
     const [company] = await db
       .delete(companies)
       .where(eq(companies.id, id))
