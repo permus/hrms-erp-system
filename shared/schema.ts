@@ -39,6 +39,13 @@ export const users = pgTable("users", {
   isActive: boolean("is_active").default(true),
   mustChangePassword: boolean("must_change_password").default(false),
   invitedBy: varchar("invited_by"),
+  // Password authentication fields
+  passwordHash: text("password_hash"),
+  passwordUpdatedAt: timestamp("password_updated_at"),
+  resetTokenHash: text("reset_token_hash"),
+  resetTokenExpiresAt: timestamp("reset_token_expires_at"),
+  failedLoginCount: integer("failed_login_count").default(0),
+  lockedUntil: timestamp("locked_until"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
