@@ -1,11 +1,52 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Building2, Users, FileText, Shield, Clock, CheckCircle } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Building2, Users, FileText, Shield, Clock, CheckCircle, Building } from "lucide-react";
+
+type AuthMode = "admin" | "company" | "employee";
 
 export default function Landing() {
+  const [authMode, setAuthMode] = useState<AuthMode>("company");
+
   const handleLogin = () => {
-    window.location.href = "/api/login";
+    if (authMode === "admin") {
+      window.location.href = "/api/login";
+    } else {
+      window.location.href = `/auth/signin?mode=${authMode}`;
+    }
   };
+
+  const getAuthModeConfig = (mode: AuthMode) => {
+    switch (mode) {
+      case "admin":
+        return {
+          label: "Admin Portal",
+          description: "Platform administration",
+          icon: Shield,
+        };
+      case "company":
+        return {
+          label: "Company Portal", 
+          description: "Manage company & employees",
+          icon: Building,
+        };
+      case "employee":
+        return {
+          label: "Employee Portal",
+          description: "Employee self-service",
+          icon: Users,
+        };
+    }
+  };
+
+  const config = getAuthModeConfig(authMode);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/10 via-background to-secondary/10">
@@ -21,9 +62,36 @@ export default function Landing() {
               <p className="text-sm text-muted-foreground">UAE Compliant</p>
             </div>
           </div>
-          <Button onClick={handleLogin} data-testid="login-button">
-            Sign In
-          </Button>
+          <div className="flex items-center gap-3">
+            <Select value={authMode} onValueChange={(value: AuthMode) => setAuthMode(value)}>
+              <SelectTrigger className="w-48" data-testid="header-auth-mode">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="admin" data-testid="header-option-admin">
+                  <div className="flex items-center gap-2">
+                    <Shield className="h-4 w-4" />
+                    <span>Admin Portal</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="company" data-testid="header-option-company">
+                  <div className="flex items-center gap-2">
+                    <Building className="h-4 w-4" />
+                    <span>Company Portal</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="employee" data-testid="header-option-employee">
+                  <div className="flex items-center gap-2">
+                    <Users className="h-4 w-4" />
+                    <span>Employee Portal</span>
+                  </div>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+            <Button onClick={handleLogin} data-testid="header-login-button">
+              Sign In
+            </Button>
+          </div>
         </div>
       </header>
 
@@ -40,10 +108,52 @@ export default function Landing() {
             </p>
           </div>
           
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button size="lg" onClick={handleLogin} data-testid="hero-login">
-              Get Started
-            </Button>
+          <div className="flex flex-col items-center gap-6">
+            {/* Auth Mode Selector */}
+            <div className="bg-background/80 backdrop-blur-sm rounded-xl p-6 border shadow-lg max-w-md w-full">
+              <div className="space-y-4">
+                <div className="text-center">
+                  <div className="flex items-center justify-center mb-3">
+                    <config.icon className="h-8 w-8 text-primary" />
+                  </div>
+                  <h3 className="text-lg font-semibold">{config.label}</h3>
+                  <p className="text-sm text-muted-foreground">{config.description}</p>
+                </div>
+                
+                <div className="space-y-3">
+                  <Select value={authMode} onValueChange={(value: AuthMode) => setAuthMode(value)}>
+                    <SelectTrigger data-testid="hero-auth-mode">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="admin" data-testid="hero-option-admin">
+                        <div className="flex items-center gap-2">
+                          <Shield className="h-4 w-4" />
+                          <span>Admin Portal</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="company" data-testid="hero-option-company">
+                        <div className="flex items-center gap-2">
+                          <Building className="h-4 w-4" />
+                          <span>Company Portal</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="employee" data-testid="hero-option-employee">
+                        <div className="flex items-center gap-2">
+                          <Users className="h-4 w-4" />
+                          <span>Employee Portal</span>
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  
+                  <Button size="lg" onClick={handleLogin} className="w-full" data-testid="hero-get-started">
+                    Get Started
+                  </Button>
+                </div>
+              </div>
+            </div>
+            
             <Button size="lg" variant="outline">
               View Demo
             </Button>
