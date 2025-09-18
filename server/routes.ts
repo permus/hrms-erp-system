@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { z } from "zod";
 import { storage } from "./storage";
-import { setupAuth, isAuthenticated } from "./replitAuth";
+import { setupAuth, isAuthenticated, isAuthenticatedAny } from "./replitAuth";
 import { 
   loadUserData, 
   requireRole, 
@@ -18,7 +18,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   await setupAuth(app);
   
   // Load user data middleware for all authenticated routes
-  app.use('/api', isAuthenticated, loadUserData);
+  app.use('/api', isAuthenticatedAny, loadUserData);
   
   // Auth routes
   app.get("/api/auth/user", async (req, res) => {

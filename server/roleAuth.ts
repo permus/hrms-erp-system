@@ -3,6 +3,7 @@ import { storage } from "./storage";
 
 export interface AuthenticatedRequest extends Request {
   user?: {
+    authMethod?: 'oidc' | 'password';
     claims: {
       sub: string;
       email: string;
@@ -12,6 +13,7 @@ export interface AuthenticatedRequest extends Request {
     access_token?: string;
     refresh_token?: string;
     expires_at?: number;
+    role?: string;
   };
   dbUser?: {
     id: string;
