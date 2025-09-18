@@ -17,15 +17,11 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Company } from "@shared/schema";
+import { insertCompanySchema } from "@shared/schema";
 
-// Edit company form schema
-const editCompanySchema = z.object({
-  name: z.string().min(1, "Company name is required"),
-  slug: z.string().min(1, "Slug is required").regex(/^[a-z0-9-]+$/, "Slug must contain only lowercase letters, numbers, and hyphens"),
-  industry: z.string().optional(),
-  employeeCount: z.string().optional(),
-  country: z.string().optional(),
-  city: z.string().optional(),
+// Edit company form schema - use shared schema with partial updates
+const editCompanySchema = insertCompanySchema.partial().extend({
+  employeeCount: z.string().optional(), // Keep as string for form handling
 });
 
 type EditCompanyFormData = z.infer<typeof editCompanySchema>;

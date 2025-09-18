@@ -181,6 +181,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { id } = req.params;
       const validatedData = insertCompanySchema.partial().parse(req.body);
+      
+      // Check for slug conflicts if slug is being updated
+      if (validatedData.slug) {
+        const existingCompany = await storage.getCompanyBySlug(validatedData.slug);
+        if (existingCompany && existingCompany.id !== id) {
+          return res.status(409).json({ error: "Company slug already exists. Please choose a different slug." });
+        }
+      }
+      
       const company = await storage.updateCompany(id, validatedData);
       
       if (!company) {
