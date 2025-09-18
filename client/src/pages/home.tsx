@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
@@ -12,13 +13,59 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Search, Filter } from "lucide-react";
+import type { Employee, Department, Position } from "@shared/schema";
 
 export default function Home() {
   const { user } = useAuth();
   const [activeView, setActiveView] = useState("dashboard");
   const [showEmployeeForm, setShowEmployeeForm] = useState(false);
 
-  // TODO: remove mock functionality
+  // Fetch real data from API
+  const { data: employees = [] } = useQuery<Employee[]>({
+    queryKey: ["/api/employees"],
+    enabled: !!user
+  });
+
+  const { data: departments = [] } = useQuery<Department[]>({
+    queryKey: ["/api/departments"],
+    enabled: !!user
+  });
+
+  const { data: positions = [] } = useQuery<Position[]>({
+    queryKey: ["/api/positions"], 
+    enabled: !!user
+  });
+
+  // Calculate stats from real data
+  const stats = {
+    totalEmployees: employees.length,
+    activeEmployees: employees.filter(emp => {
+      const empDetails = emp.employmentDetails as any;
+      return empDetails?.employmentStatus !== 'TERMINATED';
+    }).length,
+    onProbation: employees.filter(emp => {
+      const empDetails = emp.employmentDetails as any;
+      return empDetails?.employmentStatus === 'PROBATION';
+    }).length,
+    pendingDocuments: 12, // TODO: implement document tracking
+    expiringDocuments: 5, // TODO: implement document expiry tracking
+    pendingLeave: 7, // TODO: implement leave tracking
+    totalCompanies: 24, // TODO: implement for super admin
+    recentActivities: [] // TODO: implement activity tracking
+  };
+
+  // Prepare form data
+  const departmentOptions = departments.map(dept => ({
+    id: dept.id,
+    name: dept.name
+  }));
+
+  const positionOptions = positions.map(pos => ({
+    id: pos.id,
+    title: pos.title
+  }));
+
+  // Mock managers for now - TODO: implement manager hierarchy
   const mockStats = {
     totalEmployees: 156,
     activeEmployees: 142,
@@ -44,81 +91,6 @@ export default function Home() {
       }
     ]
   };
-
-  const mockEmployees = [
-    {
-      id: 'emp-001',
-      employeeCode: 'EMP2024001',
-      personalInfo: {
-        name: 'Ahmed Al Mansouri',
-        nationality: 'UAE',
-        dob: '1990-05-15'
-      },
-      contactInfo: {
-        email: 'ahmed.almansouri@company.com',
-        uaePhone: '+971 50 123 4567',
-        uaeAddress: 'Marina District, Dubai, UAE'
-      },
-      employmentDetails: {
-        position: 'Senior Software Engineer',
-        department: 'Engineering',
-        startDate: '2024-01-15',
-        employmentStatus: 'PROBATION' as const
-      },
-      probationInfo: {
-        endDate: '2024-07-15',
-        status: 'ACTIVE' as const
-      },
-      visaInfo: {
-        expiryDate: '2024-12-31',
-        visaType: 'Employment Visa'
-      },
-      emiratesIdInfo: {
-        expiryDate: '2024-06-30'
-      }
-    },
-    {
-      id: 'emp-002',
-      employeeCode: 'EMP2024002',
-      personalInfo: {
-        name: 'Sara Abdullah',
-        nationality: 'Jordan',
-        dob: '1988-03-22'
-      },
-      contactInfo: {
-        email: 'sara.abdullah@company.com',
-        uaePhone: '+971 52 987 6543',
-        uaeAddress: 'Business Bay, Dubai, UAE'
-      },
-      employmentDetails: {
-        position: 'HR Manager',
-        department: 'Human Resources',
-        startDate: '2023-06-10',
-        employmentStatus: 'CONFIRMED' as const
-      },
-      visaInfo: {
-        expiryDate: '2025-06-10',
-        visaType: 'Employment Visa'
-      },
-      emiratesIdInfo: {
-        expiryDate: '2025-03-15'
-      }
-    }
-  ];
-
-  const mockDepartments = [
-    { id: 'eng', name: 'Engineering' },
-    { id: 'hr', name: 'Human Resources' },
-    { id: 'fin', name: 'Finance' },
-    { id: 'ops', name: 'Operations' }
-  ];
-
-  const mockPositions = [
-    { id: 'senior-engineer', title: 'Senior Software Engineer' },
-    { id: 'hr-manager', title: 'HR Manager' },
-    { id: 'accountant', title: 'Senior Accountant' },
-    { id: 'ops-manager', title: 'Operations Manager' }
-  ];
 
   const mockManagers = [
     { id: 'john-doe', name: 'John Doe - Engineering Director' },
@@ -163,9 +135,9 @@ export default function Home() {
       <div className="h-screen bg-background">
         <Header 
           user={{
-            name: user.firstName + ' ' + user.lastName,
+            name: (user.firstName || '') + ' ' + (user.lastName || ''),
             email: user.email || '',
-            role: user.role,
+            role: user.role || 'EMPLOYEE',
             companyName: 'Acme Corporation'
           }}
           onLogout={handleLogout}
@@ -173,8 +145,8 @@ export default function Home() {
         />
         <main className="h-[calc(100vh-4rem)] overflow-auto p-6">
           <EmployeeForm
-            departments={mockDepartments}
-            positions={mockPositions}
+            departments={departmentOptions}
+            positions={positionOptions}
             managers={mockManagers}
             onSubmit={handleEmployeeSubmit}
             onCancel={handleEmployeeCancel}
@@ -187,16 +159,16 @@ export default function Home() {
   return (
     <div className="h-screen bg-background flex">
       <Sidebar 
-        userRole={user.role} 
+        userRole={user.role || 'EMPLOYEE'} 
         companyName="Acme Corporation"
       />
       
       <div className="flex-1 flex flex-col">
         <Header 
           user={{
-            name: user.firstName + ' ' + user.lastName,
+            name: (user.firstName || '') + ' ' + (user.lastName || ''),
             email: user.email || '',
-            role: user.role,
+            role: user.role || 'EMPLOYEE',
             companyName: 'Acme Corporation'
           }}
           onLogout={handleLogout}
@@ -213,8 +185,8 @@ export default function Home() {
 
             <TabsContent value="dashboard">
               <Dashboard 
-                userRole={user.role as 'SUPER_ADMIN' | 'COMPANY_ADMIN' | 'EMPLOYEE'} 
-                stats={mockStats} 
+                userRole={(user.role || 'EMPLOYEE') as 'SUPER_ADMIN' | 'COMPANY_ADMIN' | 'EMPLOYEE'} 
+                stats={stats} 
               />
             </TabsContent>
 
@@ -242,14 +214,28 @@ export default function Home() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {mockEmployees.map((employee) => (
+                {employees.map((employee) => (
                   <EmployeeCard
                     key={employee.id}
-                    employee={employee}
+                    employee={{
+                      id: employee.id,
+                      employeeCode: employee.employeeCode,
+                      personalInfo: employee.personalInfo as any,
+                      contactInfo: employee.contactInfo as any,
+                      employmentDetails: employee.employmentDetails as any,
+                      probationInfo: employee.probationInfo as any,
+                      visaInfo: employee.visaInfo as any,
+                      emiratesIdInfo: employee.emiratesIdInfo as any
+                    }}
                     onViewDetails={handleViewEmployee}
                     onEditEmployee={handleEditEmployee}
                   />
                 ))}
+                {employees.length === 0 && (
+                  <div className="col-span-full text-center py-12">
+                    <p className="text-muted-foreground">No employees found. Add your first employee to get started.</p>
+                  </div>
+                )}
               </div>
             </TabsContent>
 
