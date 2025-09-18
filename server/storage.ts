@@ -12,7 +12,7 @@ import {
   type Position,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 
 // Interface for storage operations
 export interface IStorage {
@@ -25,10 +25,13 @@ export interface IStorage {
   // Company operations
   getCompanies(): Promise<Company[]>;
   getCompany(id: string): Promise<Company | undefined>;
+  getCompanyBySlug(slug: string): Promise<Company | undefined>;
+  listCompaniesForUser(userId: string): Promise<Company[]>;
   createCompany(company: Omit<Company, 'id' | 'createdAt' | 'updatedAt'>): Promise<Company>;
   // Employee operations
   getEmployees(companyId: string): Promise<Employee[]>;
   getEmployee(id: string): Promise<Employee | undefined>;
+  getEmployeeBySlug(companyId: string, slug: string): Promise<Employee | undefined>;
   createEmployee(employee: Omit<Employee, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt'>): Promise<Employee>;
   // Department operations
   getDepartments(companyId: string): Promise<Department[]>;
@@ -92,6 +95,22 @@ export class DatabaseStorage implements IStorage {
     return company;
   }
 
+  async getCompanyBySlug(slug: string): Promise<Company | undefined> {
+    const [company] = await db.select().from(companies).where(eq(companies.slug, slug));
+    return company;
+  }
+
+  async listCompaniesForUser(userId: string): Promise<Company[]> {
+    // For now, users are associated with a single company via users.companyId
+    // This method will support multi-company users in the future
+    const user = await this.getUser(userId);
+    if (!user || !user.companyId) {
+      return [];
+    }
+    const company = await this.getCompany(user.companyId);
+    return company ? [company] : [];
+  }
+
   async createCompany(companyData: Omit<Company, 'id' | 'createdAt' | 'updatedAt'>): Promise<Company> {
     const [company] = await db
       .insert(companies)
@@ -107,6 +126,14 @@ export class DatabaseStorage implements IStorage {
 
   async getEmployee(id: string): Promise<Employee | undefined> {
     const [employee] = await db.select().from(employees).where(eq(employees.id, id));
+    return employee;
+  }
+
+  async getEmployeeBySlug(companyId: string, slug: string): Promise<Employee | undefined> {
+    const [employee] = await db
+      .select()
+      .from(employees)
+      .where(and(eq(employees.companyId, companyId), eq(employees.slug, slug)));
     return employee;
   }
 

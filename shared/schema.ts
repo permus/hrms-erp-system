@@ -48,6 +48,7 @@ export const companies = pgTable("companies", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: varchar("name", { length: 255 }).notNull(),
   subdomain: varchar("subdomain", { length: 100 }).unique(),
+  slug: varchar("slug", { length: 100 }).unique().notNull(), // URL-friendly identifier
   settings: jsonb("settings").default(sql`'{}'::jsonb`),
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
@@ -84,6 +85,7 @@ export const employees = pgTable("employees", {
   companyId: varchar("company_id").notNull(),
   userId: varchar("user_id").unique(),
   employeeCode: varchar("employee_code").notNull(),
+  slug: varchar("slug", { length: 100 }).notNull(), // URL-friendly identifier unique within company
   
   // Personal Information (UAE compliance)
   personalInfo: jsonb("personal_info").notNull(),
@@ -116,7 +118,7 @@ export const employees = pgTable("employees", {
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
   deletedAt: timestamp("deleted_at"),
-});
+}, (table) => [index("unique_employee_slug_per_company").on(table.companyId, table.slug)]);
 
 // Document Management
 export const employeeDocuments = pgTable("employee_documents", {
@@ -272,8 +274,12 @@ export const positionsRelations = relations(positions, ({ one }) => ({
 
 // Insert Schemas
 export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true, updatedAt: true });
-export const insertCompanySchema = createInsertSchema(companies).omit({ id: true, createdAt: true, updatedAt: true });
-export const insertEmployeeSchema = createInsertSchema(employees).omit({ id: true, createdAt: true, updatedAt: true, deletedAt: true });
+export const insertCompanySchema = createInsertSchema(companies).omit({ id: true, createdAt: true, updatedAt: true }).extend({
+  slug: z.string().min(1).max(100).regex(/^[a-z0-9-]+$/, "Slug must contain only lowercase letters, numbers, and hyphens")
+});
+export const insertEmployeeSchema = createInsertSchema(employees).omit({ id: true, createdAt: true, updatedAt: true, deletedAt: true }).extend({
+  slug: z.string().min(1).max(100).regex(/^[a-z0-9-]+$/, "Slug must contain only lowercase letters, numbers, and hyphens")
+});
 export const insertDepartmentSchema = createInsertSchema(departments).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertPositionSchema = createInsertSchema(positions).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertEmployeeDocumentSchema = createInsertSchema(employeeDocuments).omit({ id: true, createdAt: true, updatedAt: true });
