@@ -177,6 +177,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.put("/api/companies/:id", requireRole('SUPER_ADMIN'), async (req, res) => {
+    try {
+      const { id } = req.params;
+      const validatedData = insertCompanySchema.partial().parse(req.body);
+      const company = await storage.updateCompany(id, validatedData);
+      
+      if (!company) {
+        return res.status(404).json({ error: "Company not found" });
+      }
+      
+      res.json(company);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: error.errors });
+      }
+      res.status(500).json({ error: "Failed to update company" });
+    }
+  });
+
+  app.delete("/api/companies/:id", requireRole('SUPER_ADMIN'), async (req, res) => {
+    try {
+      const { id } = req.params;
+      const company = await storage.deleteCompany(id);
+      
+      if (!company) {
+        return res.status(404).json({ error: "Company not found" });
+      }
+      
+      res.json({ message: "Company deleted successfully", company });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete company" });
+    }
+  });
+
   // Get available modules for super admin
   app.get("/api/modules", requireRole('SUPER_ADMIN'), async (req, res) => {
     try {
