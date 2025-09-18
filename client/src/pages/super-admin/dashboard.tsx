@@ -217,7 +217,12 @@ export default function SuperAdminDashboard() {
                             >
                               {company.isActive ? 'Active' : 'Inactive'}
                             </span>
-                            <Button variant="outline" size="sm" data-testid={`button-manage-company-${company.id}`}>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              data-testid={`button-manage-company-${company.id}`}
+                              onClick={() => window.location.href = `/${company.slug}/dashboard`}
+                            >
                               Manage
                             </Button>
                           </div>

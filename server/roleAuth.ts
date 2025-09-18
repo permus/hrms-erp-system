@@ -80,6 +80,11 @@ export function requireRole(...allowedRoles: UserRole[]) {
  * Middleware to require user to belong to a company
  */
 export function requireCompany(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+  // Super admins can access any company's data
+  if (req.dbUser?.role === 'SUPER_ADMIN') {
+    return next();
+  }
+  
   if (!req.dbUser?.companyId) {
     return res.status(400).json({ error: "User not associated with a company" });
   }

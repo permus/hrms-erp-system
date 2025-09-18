@@ -58,12 +58,18 @@ export default function CompanyAdminDashboard() {
     window.location.href = "/api/logout";
   };
 
-  if (!user || !['COMPANY_ADMIN', 'HR_MANAGER', 'DEPARTMENT_MANAGER'].includes(user.role || '')) {
+  if (!user || !['SUPER_ADMIN', 'COMPANY_ADMIN', 'HR_MANAGER', 'DEPARTMENT_MANAGER'].includes(user.role || '')) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
+        <div className="text-center space-y-4">
           <h1 className="text-2xl font-bold text-destructive">Access Denied</h1>
           <p className="text-muted-foreground">You don't have company admin privileges.</p>
+          <p className="text-sm text-muted-foreground">
+            Currently logged in as: {user?.firstName || 'Unknown'} ({user?.email || 'No email'})
+          </p>
+          <Button onClick={handleLogout} variant="outline" data-testid="button-logout">
+            Logout & Try Different Account
+          </Button>
         </div>
       </div>
     );

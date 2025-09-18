@@ -20,22 +20,36 @@ export default function Home() {
   const { user } = useAuth();
   const params = useParams<{ companySlug?: string }>();
   const { companySlug } = params;
-  const [activeView, setActiveView] = useState("dashboard");
+  
+  // Determine the active view based on URL path
+  const currentPath = window.location.pathname;
+  const getViewFromPath = () => {
+    if (currentPath.endsWith('/employees')) return 'employees';
+    if (currentPath.endsWith('/departments')) return 'departments'; 
+    if (currentPath.endsWith('/positions')) return 'positions';
+    if (currentPath.endsWith('/documents')) return 'documents';
+    return 'dashboard';
+  };
+  
+  const [activeView, setActiveView] = useState(getViewFromPath());
   const [showEmployeeForm, setShowEmployeeForm] = useState(false);
 
-  // Fetch real data from API
+  // Fetch real data from API with company context
   const { data: employees = [] } = useQuery<Employee[]>({
-    queryKey: ["/api/employees"],
+    queryKey: companySlug ? ["/api/employees", companySlug] : ["/api/employees"],
+    queryFn: () => fetch(`/api/employees${companySlug ? `?companySlug=${companySlug}` : ''}`).then(r => r.json()),
     enabled: !!user
   });
 
   const { data: departments = [] } = useQuery<Department[]>({
-    queryKey: ["/api/departments"],
+    queryKey: companySlug ? ["/api/departments", companySlug] : ["/api/departments"],
+    queryFn: () => fetch(`/api/departments${companySlug ? `?companySlug=${companySlug}` : ''}`).then(r => r.json()),
     enabled: !!user
   });
 
   const { data: positions = [] } = useQuery<Position[]>({
-    queryKey: ["/api/positions"], 
+    queryKey: companySlug ? ["/api/positions", companySlug] : ["/api/positions"],
+    queryFn: () => fetch(`/api/positions${companySlug ? `?companySlug=${companySlug}` : ''}`).then(r => r.json()),
     enabled: !!user
   });
 
@@ -162,7 +176,7 @@ export default function Home() {
   return (
     <div className="h-screen bg-background flex">
       <Sidebar 
-        userRole={user.role || 'EMPLOYEE'} 
+        userRole={companySlug && user.role === 'SUPER_ADMIN' ? 'COMPANY_ADMIN' : (user.role || 'EMPLOYEE')}
         companyName={companySlug ? `Company: ${companySlug}` : "Acme Corporation"}
         companySlug={companySlug}
       />

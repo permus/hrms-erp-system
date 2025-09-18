@@ -178,16 +178,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Employee routes - Company Admins and HR only
-  app.get("/api/employees", requireRole('COMPANY_ADMIN', 'HR_MANAGER', 'DEPARTMENT_MANAGER'), requireCompany, async (req, res) => {
+  app.get("/api/employees", requireRole('SUPER_ADMIN', 'COMPANY_ADMIN', 'HR_MANAGER', 'DEPARTMENT_MANAGER'), requireCompany, async (req, res) => {
     try {
       const user = req.user as any;
       const userData = await storage.getUser(user.claims.sub);
       
-      if (!userData?.companyId) {
-        return res.status(400).json({ error: "User not associated with a company" });
+      let companyId = userData?.companyId;
+      
+      // For super admins, try to get company from query parameter or header
+      if (userData?.role === 'SUPER_ADMIN' && !companyId) {
+        const companySlug = req.query.companySlug as string || req.headers['x-company-slug'] as string;
+        if (companySlug) {
+          const company = await storage.getCompanyBySlug(companySlug);
+          companyId = company?.id;
+        }
       }
       
-      const employees = await storage.getEmployees(userData.companyId);
+      if (!companyId) {
+        return res.status(400).json({ error: "Company context required" });
+      }
+      
+      const employees = await storage.getEmployees(companyId);
       res.json(employees);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch employees" });
@@ -206,13 +217,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/employees", requireRole('COMPANY_ADMIN', 'HR_MANAGER'), requireCompany, async (req, res) => {
+  app.post("/api/employees", requireRole('SUPER_ADMIN', 'COMPANY_ADMIN', 'HR_MANAGER'), requireCompany, async (req, res) => {
     try {
       const user = req.user as any;
       const userData = await storage.getUser(user.claims.sub);
       
-      if (!userData?.companyId) {
-        return res.status(400).json({ error: "User not associated with a company" });
+      let companyId = userData?.companyId;
+      
+      // For super admins, try to get company from request body or query
+      if (userData?.role === 'SUPER_ADMIN' && !companyId) {
+        const companySlug = req.body.companySlug || req.query.companySlug as string;
+        if (companySlug) {
+          const company = await storage.getCompanyBySlug(companySlug);
+          companyId = company?.id;
+        }
+      }
+      
+      if (!companyId) {
+        return res.status(400).json({ error: "Company context required" });
       }
       
       const validatedData = insertEmployeeSchema.parse({
@@ -238,29 +260,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Department routes - Company Admins and HR only
-  app.get("/api/departments", requireRole('COMPANY_ADMIN', 'HR_MANAGER', 'DEPARTMENT_MANAGER'), requireCompany, async (req, res) => {
+  app.get("/api/departments", requireRole('SUPER_ADMIN', 'COMPANY_ADMIN', 'HR_MANAGER', 'DEPARTMENT_MANAGER'), requireCompany, async (req, res) => {
     try {
       const user = req.user as any;
       const userData = await storage.getUser(user.claims.sub);
       
-      if (!userData?.companyId) {
-        return res.status(400).json({ error: "User not associated with a company" });
+      let companyId = userData?.companyId;
+      
+      // For super admins, try to get company from query parameter or header
+      if (userData?.role === 'SUPER_ADMIN' && !companyId) {
+        const companySlug = req.query.companySlug as string || req.headers['x-company-slug'] as string;
+        if (companySlug) {
+          const company = await storage.getCompanyBySlug(companySlug);
+          companyId = company?.id;
+        }
       }
       
-      const departments = await storage.getDepartments(userData.companyId);
+      if (!companyId) {
+        return res.status(400).json({ error: "Company context required" });
+      }
+      
+      const departments = await storage.getDepartments(companyId);
       res.json(departments);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch departments" });
     }
   });
 
-  app.post("/api/departments", requireRole('COMPANY_ADMIN', 'HR_MANAGER'), requireCompany, async (req, res) => {
+  app.post("/api/departments", requireRole('SUPER_ADMIN', 'COMPANY_ADMIN', 'HR_MANAGER'), requireCompany, async (req, res) => {
     try {
       const user = req.user as any;
       const userData = await storage.getUser(user.claims.sub);
       
-      if (!userData?.companyId) {
-        return res.status(400).json({ error: "User not associated with a company" });
+      let companyId = userData?.companyId;
+      
+      // For super admins, try to get company from request body or query
+      if (userData?.role === 'SUPER_ADMIN' && !companyId) {
+        const companySlug = req.body.companySlug || req.query.companySlug as string;
+        if (companySlug) {
+          const company = await storage.getCompanyBySlug(companySlug);
+          companyId = company?.id;
+        }
+      }
+      
+      if (!companyId) {
+        return res.status(400).json({ error: "Company context required" });
       }
       
       const validatedData = insertDepartmentSchema.parse({
@@ -284,29 +328,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Position routes - Company Admins and HR only
-  app.get("/api/positions", requireRole('COMPANY_ADMIN', 'HR_MANAGER', 'DEPARTMENT_MANAGER'), requireCompany, async (req, res) => {
+  app.get("/api/positions", requireRole('SUPER_ADMIN', 'COMPANY_ADMIN', 'HR_MANAGER', 'DEPARTMENT_MANAGER'), requireCompany, async (req, res) => {
     try {
       const user = req.user as any;
       const userData = await storage.getUser(user.claims.sub);
       
-      if (!userData?.companyId) {
-        return res.status(400).json({ error: "User not associated with a company" });
+      let companyId = userData?.companyId;
+      
+      // For super admins, try to get company from query parameter or header
+      if (userData?.role === 'SUPER_ADMIN' && !companyId) {
+        const companySlug = req.query.companySlug as string || req.headers['x-company-slug'] as string;
+        if (companySlug) {
+          const company = await storage.getCompanyBySlug(companySlug);
+          companyId = company?.id;
+        }
       }
       
-      const positions = await storage.getPositions(userData.companyId);
+      if (!companyId) {
+        return res.status(400).json({ error: "Company context required" });
+      }
+      
+      const positions = await storage.getPositions(companyId);
       res.json(positions);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch positions" });
     }
   });
 
-  app.post("/api/positions", requireRole('COMPANY_ADMIN', 'HR_MANAGER'), requireCompany, async (req, res) => {
+  app.post("/api/positions", requireRole('SUPER_ADMIN', 'COMPANY_ADMIN', 'HR_MANAGER'), requireCompany, async (req, res) => {
     try {
       const user = req.user as any;
       const userData = await storage.getUser(user.claims.sub);
       
-      if (!userData?.companyId) {
-        return res.status(400).json({ error: "User not associated with a company" });
+      let companyId = userData?.companyId;
+      
+      // For super admins, try to get company from request body or query
+      if (userData?.role === 'SUPER_ADMIN' && !companyId) {
+        const companySlug = req.body.companySlug || req.query.companySlug as string;
+        if (companySlug) {
+          const company = await storage.getCompanyBySlug(companySlug);
+          companyId = company?.id;
+        }
+      }
+      
+      if (!companyId) {
+        return res.status(400).json({ error: "Company context required" });
       }
       
       const validatedData = insertPositionSchema.parse({
