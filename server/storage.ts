@@ -391,9 +391,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createCompanyAdminUser(data: any): Promise<User & { tempPassword: string }> {
-    // Create a placeholder user record for invitation
-    // Note: This creates an invited user record without auth credentials
-    // The user will complete registration through Replit Auth when they accept the invitation
+    // Create an active company admin user for Replit Auth integration
+    // Since we're using Replit Auth, users are immediately active upon creation
     const [user] = await db
       .insert(users)
       .values({
@@ -404,7 +403,7 @@ export class DatabaseStorage implements IStorage {
         role: 'COMPANY_ADMIN',
         mustChangePassword: true,
         invitedBy: 'super_admin',
-        isActive: false, // Inactive until they complete registration
+        isActive: true, // Active immediately for Replit Auth users
       })
       .returning();
     

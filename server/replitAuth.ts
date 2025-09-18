@@ -77,13 +77,16 @@ async function upsertUser(
       companyId: null,
     });
   } else {
-    // Extract role and company information from claims
-    const role = claims["role"] || "EMPLOYEE"; // Default to EMPLOYEE if no role specified
+    // Check if user already exists to preserve their existing role and company data
+    const existingUser = await storage.getUser(userData.id);
+    
+    // Extract role and company information from claims, but preserve existing data if claims don't specify
+    const role = claims["role"] || (existingUser?.role) || "EMPLOYEE";
     const companySlugs = claims["companySlugs"] || claims["company_slugs"] || [];
     const companySlug = claims["company_slug"] || claims["companySlug"] || (companySlugs.length > 0 ? companySlugs[0] : null);
     
     // If there's a company slug, try to find the company and set companyId
-    let companyId = null;
+    let companyId = existingUser?.companyId || null; // Preserve existing companyId by default
     if (companySlug) {
       try {
         const company = await storage.getCompanyBySlug(companySlug);
