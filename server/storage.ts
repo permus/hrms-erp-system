@@ -39,6 +39,10 @@ export interface IStorage {
   createCompany(company: Omit<Company, 'id' | 'createdAt' | 'updatedAt'>): Promise<Company>;
   updateCompany(id: string, updates: Partial<Company>): Promise<Company | undefined>;
   deleteCompany(id: string): Promise<Company | undefined>;
+  // Bin operations for soft-deleted companies
+  getDeletedCompanies(): Promise<Company[]>;
+  restoreCompany(id: string): Promise<Company | undefined>;
+  hardDeleteCompany(id: string): Promise<Company | undefined>;
   // Employee operations
   getEmployees(companyId: string): Promise<Employee[]>;
   getEmployee(id: string): Promise<Employee | undefined>;
@@ -203,6 +207,30 @@ export class DatabaseStorage implements IStorage {
     const [company] = await db
       .update(companies)
       .set({ isActive: false, updatedAt: new Date() })
+      .where(eq(companies.id, id))
+      .returning();
+    return company;
+  }
+
+  // Bin operations for soft-deleted companies
+  async getDeletedCompanies(): Promise<Company[]> {
+    return await db.select().from(companies).where(eq(companies.isActive, false));
+  }
+
+  async restoreCompany(id: string): Promise<Company | undefined> {
+    // Restore soft-deleted company by setting isActive back to true
+    const [company] = await db
+      .update(companies)
+      .set({ isActive: true, updatedAt: new Date() })
+      .where(eq(companies.id, id))
+      .returning();
+    return company;
+  }
+
+  async hardDeleteCompany(id: string): Promise<Company | undefined> {
+    // Permanently delete company from database
+    const [company] = await db
+      .delete(companies)
       .where(eq(companies.id, id))
       .returning();
     return company;

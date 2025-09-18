@@ -159,6 +159,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Bin routes for soft-deleted companies
+  app.get("/api/companies/bin", requireRole('SUPER_ADMIN'), async (req, res) => {
+    try {
+      const deletedCompanies = await storage.getDeletedCompanies();
+      res.json(deletedCompanies);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch deleted companies" });
+    }
+  });
+
+  app.post("/api/companies/:id/restore", requireRole('SUPER_ADMIN'), async (req, res) => {
+    try {
+      const { id } = req.params;
+      const restoredCompany = await storage.restoreCompany(id);
+      
+      if (!restoredCompany) {
+        return res.status(404).json({ error: "Company not found" });
+      }
+      
+      res.json({ message: "Company restored successfully", company: restoredCompany });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to restore company" });
+    }
+  });
+
+  app.delete("/api/companies/:id/hard-delete", requireRole('SUPER_ADMIN'), async (req, res) => {
+    try {
+      const { id } = req.params;
+      const deletedCompany = await storage.hardDeleteCompany(id);
+      
+      if (!deletedCompany) {
+        return res.status(404).json({ error: "Company not found" });
+      }
+      
+      res.json({ message: "Company permanently deleted", company: deletedCompany });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to permanently delete company" });
+    }
+  });
+
   app.post("/api/companies", requireRole('SUPER_ADMIN'), async (req, res) => {
     try {
       const validatedData = insertCompanySchema.parse(req.body);

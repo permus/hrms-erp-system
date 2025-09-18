@@ -1,4 +1,4 @@
-import { Building2, Users, FileText, Calendar, Clock, Settings, BarChart3, UserCheck, Shield } from "lucide-react";
+import { Building2, Users, FileText, Calendar, Clock, Settings, BarChart3, UserCheck, Shield, Trash2 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,7 @@ const getMenuItems = (userRole: string, companySlug?: string, employeeSlug?: str
     SUPER_ADMIN: [
       { icon: Shield, label: "Platform Overview", path: "dashboard", badge: null },
       { icon: Building2, label: "Companies", path: "companies", badge: null },
+      { icon: Trash2, label: "Deleted Companies", path: "bin", badge: null },
       { icon: BarChart3, label: "Analytics", path: "analytics", badge: null },
       { icon: Settings, label: "System Settings", path: "settings", badge: null },
     ],
