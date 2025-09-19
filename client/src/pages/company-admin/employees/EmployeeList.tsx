@@ -34,8 +34,6 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select";
-import Header from "@/components/Header";
-import Sidebar from "@/components/Sidebar";
 import { Link } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -157,43 +155,7 @@ export default function EmployeeList() {
   };
 
   return (
-    <div className="h-screen bg-background flex">
-      <Sidebar 
-        userRole="HR_MODULE"
-        companyName={companySlug || 'Unknown Company'}
-        companySlug={companySlug}
-      />
-      
-      <div className="flex-1 flex flex-col">
-        {/* Header with Back to Main Dashboard button */}
-        <div className="border-b border-border">
-          <div className="flex items-center justify-between p-4">
-            <div className="flex items-center space-x-4">
-              <Link href={`/${companySlug}/dashboard`}>
-                <Button variant="ghost" size="sm" data-testid="button-back-to-main">
-                  ← Back to Main Dashboard
-                </Button>
-              </Link>
-              <div className="h-6 w-px bg-border" />
-              <div>
-                <h1 className="text-lg font-semibold">Employee Management</h1>
-                <p className="text-sm text-muted-foreground">Manage employee profiles and documentation</p>
-              </div>
-            </div>
-            <Header 
-              user={{
-                name: (user?.firstName || '') + ' ' + (user?.lastName || ''),
-                email: user?.email || '',
-                role: user?.role || 'HR_MANAGER',
-                companyName: companySlug || 'Unknown Company'
-              }}
-              onLogout={handleLogout}
-              pendingNotifications={0}
-            />
-          </div>
-        </div>
-
-        <main className="flex-1 overflow-auto p-6">
+    <div className="p-6">
           {/* Page Header with Actions */}
           <div className="flex items-center justify-between mb-6">
             <div>
@@ -202,7 +164,7 @@ export default function EmployeeList() {
                 {filteredEmployees.length} of {employees.length} employees
               </p>
             </div>
-            <Link href={`/${companySlug}/employees/new`}>
+            <Link href={`/${companySlug}/hr/employees/new`}>
               <Button className="flex items-center gap-2" data-testid="button-add-employee">
                 <Plus className="w-4 h-4" />
                 Add Employee

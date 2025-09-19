@@ -1,4 +1,4 @@
-import { Users, Building2, UserPlus, Settings, BarChart3, Calendar, FileText, LogOut, User } from "lucide-react";
+import { Building2, BarChart3, Users, Settings, FileText, CreditCard, LogOut, PieChart } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
@@ -17,46 +17,26 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 
-// Navigation items for HR module only
-const hrMenuItems = [
+// Navigation items for main company dashboard
+const mainMenuItems = [
   {
-    title: "HR Dashboard",
+    title: "Dashboard",
     icon: BarChart3,
-    url: "/hr/dashboard",
+    url: "/dashboard",
   },
   {
-    title: "Employees",
-    icon: Users,
-    url: "/hr/employees",
+    title: "Analytics", 
+    icon: PieChart,
+    url: "/analytics",
   },
   {
-    title: "Departments",
-    icon: Building2,
-    url: "/hr/departments",
-  },
-  {
-    title: "Documents",
-    icon: FileText,
-    url: "/hr/documents",
-  },
-  {
-    title: "Leave Management",
-    icon: Calendar,
-    url: "/hr/leave",
-  },
-  {
-    title: "Attendance",
-    icon: Calendar,
-    url: "/hr/attendance",
-  },
-  {
-    title: "Probation Tracking",
+    title: "Settings",
     icon: Settings,
-    url: "/hr/probation",
+    url: "/settings",
   },
 ];
 
-export function AppSidebar() {
+export function MainDashboardSidebar() {
   const { user } = useAuth();
   const [location] = useLocation();
   
@@ -81,28 +61,27 @@ export function AppSidebar() {
     : userData?.email?.[0]?.toUpperCase() || 'U';
 
   return (
-    <Sidebar data-testid="sidebar-navigation">
+    <Sidebar data-testid="sidebar-main-navigation">
       <SidebarHeader className="border-b p-4">
         <div className="flex items-center gap-3">
           <div className="flex items-center justify-center w-8 h-8 bg-primary text-primary-foreground rounded-md font-semibold">
-            HR
+            ERP
           </div>
           <div className="flex flex-col">
-            <span className="text-sm font-semibold">HR Management</span>
-            <span className="text-xs text-muted-foreground">Employee Portal</span>
+            <span className="text-sm font-semibold">Business Platform</span>
+            <span className="text-xs text-muted-foreground">Company Management</span>
           </div>
         </div>
       </SidebarHeader>
       
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>HR Modules</SidebarGroupLabel>
+          <SidebarGroupLabel>Main Modules</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {hrMenuItems.map((item) => {
+              {mainMenuItems.map((item) => {
                 const fullPath = `${basePath}${item.url}`;
-                const isActive = location === fullPath || 
-                  (item.url === '/hr/employees' && location.startsWith(`${basePath}/hr/employees`));
+                const isActive = location === fullPath;
                 
                 return (
                   <SidebarMenuItem key={item.title}>
