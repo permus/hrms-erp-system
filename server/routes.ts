@@ -744,13 +744,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       // Create company admin user
-      const tempPassword = await storage.generateSecurePassword(12);
       const adminUser = await storage.createCompanyAdminUser({
         firstName: formData.adminFirstName,
         lastName: formData.adminLastName,
         email: formData.adminEmail,
-        companyId: company.id,
-        tempPassword
+        companyId: company.id
       });
       
       // Skip email sending - provide password in response for manual sharing
@@ -760,7 +758,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         company, 
         adminUser: { 
           ...adminUser, 
-          tempPassword // Include password for manual sharing
+          tempPassword: adminUser.tempPassword // Include password for manual sharing
         }, 
         message: `Company created successfully. Admin credentials generated.`
       });
