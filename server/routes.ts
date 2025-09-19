@@ -1,6 +1,8 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { z } from "zod";
+import multer from "multer";
+import path from "path";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated, isAuthenticatedAny } from "./replitAuth";
 import { 
@@ -17,6 +19,25 @@ import { PasswordService } from "./services/passwordService";
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup authentication
   await setupAuth(app);
+  
+  // File upload configuration
+  const upload = multer({
+    dest: 'uploads/',
+    limits: {
+      fileSize: 10 * 1024 * 1024, // 10MB limit
+    },
+    fileFilter: (req, file, cb) => {
+      const allowedTypes = /jpeg|jpg|png|pdf/;
+      const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+      const mimetype = allowedTypes.test(file.mimetype);
+
+      if (mimetype && extname) {
+        return cb(null, true);
+      } else {
+        cb(new Error('Only .jpeg, .jpg, .png and .pdf files are allowed!'));
+      }
+    }
+  });
   
   // Password authentication routes (before auth middleware)
   app.post("/api/auth/signin", async (req, res) => {
@@ -120,6 +141,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       res.status(204).send();
     });
+  });
+
+  // File upload endpoint for employee documents and photos
+  app.post("/api/upload", isAuthenticated, upload.single('file'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "No file uploaded" });
+      }
+
+      const { category = 'general' } = req.body;
+      
+      // In a real implementation, you would:
+      // 1. Move file to object storage (AWS S3, Google Cloud, etc.)
+      // 2. Generate thumbnails for images
+      // 3. Store file metadata in database
+      
+      // For now, simulate object storage URL
+      const fileUrl = `/uploads/${req.file.filename}`;
+      
+      res.json({
+        url: fileUrl,
+        filename: req.file.originalname,
+        size: req.file.size,
+        category
+      });
+    } catch (error) {
+      console.error("File upload error:", error);
+      res.status(500).json({ error: "File upload failed" });
+    }
   });
   
   app.post("/api/auth/password/request-reset", async (req, res) => {

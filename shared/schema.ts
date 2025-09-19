@@ -104,32 +104,66 @@ export const employees = pgTable("employees", {
   employeeCode: varchar("employee_code").notNull(),
   slug: varchar("slug", { length: 100 }).notNull(), // URL-friendly identifier unique within company
   
-  // Personal Information (UAE compliance)
+  // Personal Information (UAE compliance - Enhanced for Phase 2)
   personalInfo: jsonb("personal_info").notNull(),
-  // { name, fatherName, motherName, dob, nationality, religion, maritalStatus }
+  // { 
+  //   name, preferredName, fatherName, motherName, dob, age (calculated), 
+  //   nationality, languages: string[], religion, maritalStatus,
+  //   profilePhotoUrl: string, profileThumbnails: { small: string, medium: string, large: string },
+  //   emergencyContact: { name, relation, phone, email }
+  // }
   
-  // Contact Information
+  // Contact Information (Enhanced for Phase 2)
   contactInfo: jsonb("contact_info").notNull(),
-  // { uaePhone, homeCountryPhone, email, uaeAddress, homeCountryAddress }
+  // { 
+  //   personalEmail, companyEmail (auto-generated option), 
+  //   uaePhone, homeCountryPhone,
+  //   uaeAddress: { street, city, emirate, poBox }, 
+  //   homeCountryAddress: { street, city, state, country, postalCode }
+  // }
   
-  // Employment Details
+  // Employment Details (Enhanced for Phase 2)
   employmentDetails: jsonb("employment_details").notNull(),
-  // { position, department, reportingManagerId, startDate, employmentStatus, probationMonths }
+  // { 
+  //   position, departmentId, reportingManagerId, startDate, tenure (calculated),
+  //   employmentStatus, probationEndDate (auto-calculated), employmentType: 'full-time'|'part-time'|'contract',
+  //   workLocation: 'office'|'remote'|'hybrid', probationMonths
+  // }
   
   // Probation Information
   probationInfo: jsonb("probation_info"),
   // { startDate, endDate, status, evaluationScores, confirmationDate, extensionDetails }
   
-  // Compensation
+  // Compensation & Benefits (Enhanced for Phase 2)
   compensation: jsonb("compensation").notNull(),
-  // { basicSalary, housingAllowance, transportAllowance, otherAllowance, totalSalary }
+  // { 
+  //   basicSalary, housingAllowance, transportAllowance, otherAllowance, totalSalary,
+  //   benefits: { medicalInsurance: boolean, lifeInsurance: boolean },
+  //   bankDetails: { bankName, accountNumber, iban },
+  //   endOfServiceGratuity: number (calculated)
+  // }
   
-  // UAE Specific Information
+  // UAE Legal & Compliance Documents (Enhanced for Phase 2)
   visaInfo: jsonb("visa_info"),
-  // { currentStatus, visaType, expiryDate, passportPlaceOfIssue }
+  // { 
+  //   type, number, expiryDate, sponsor, status, currentStatus, 
+  //   passportPlaceOfIssue, documents: { visaPageUrl, entryStampUrl }
+  // }
   
   emiratesIdInfo: jsonb("emirates_id_info"),
-  // { status, idNumber, expiryDate }
+  // { status, idNumber, expiryDate, documents: { frontUrl, backUrl } }
+  
+  passportInfo: jsonb("passport_info"),
+  // { 
+  //   number, nationality, expiryDate, placeOfIssue,
+  //   documents: { biodataPageUrl, visaPagesUrls: string[] }
+  // }
+  
+  workPermitInfo: jsonb("work_permit_info"),
+  // { number, expiryDate, restrictions, documents: { workPermitUrl } }
+  
+  laborCardInfo: jsonb("labor_card_info"),
+  // { number, expiryDate, profession, documents: { laborCardUrl } }
   
   status: varchar("status", { length: 50 }).default("ACTIVE"), // ACTIVE, INACTIVE, TERMINATED
   createdAt: timestamp("created_at").defaultNow(),

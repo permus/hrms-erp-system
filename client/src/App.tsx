@@ -18,6 +18,7 @@ import SuperAdminBin from "@/pages/super-admin/bin";
 import CompanyAdminDashboard from "@/pages/company-admin/dashboard";
 import EmployeeDashboard from "@/pages/employee/dashboard";
 import HRDashboard from "@/pages/company-admin/hr/dashboard";
+import EmployeeList from "@/pages/company-admin/employees/EmployeeList";
 import SigninPage from "@/pages/auth/signin";
 import ChangePasswordPage from "@/pages/auth/change-password";
 import NotFound from "@/pages/not-found";
@@ -113,7 +114,7 @@ function Router() {
           {/* Company Admin Portal - slug-based */}
           <Route path="/:companySlug/dashboard" component={CompanyAdminDashboard} />
           <Route path="/:companySlug/hr/dashboard" component={HRDashboard} />
-          <Route path="/:companySlug/employees" component={Home} />
+          <Route path="/:companySlug/employees" component={EmployeeList} />
           <Route path="/:companySlug/departments" component={Home} />
           <Route path="/:companySlug/positions" component={Home} />
           <Route path="/:companySlug/*" component={CompanyAdminDashboard} />
