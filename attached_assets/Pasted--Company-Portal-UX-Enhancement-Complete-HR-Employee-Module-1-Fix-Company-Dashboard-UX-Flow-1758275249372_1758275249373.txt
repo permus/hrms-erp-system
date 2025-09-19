@@ -1,0 +1,361 @@
+# Company Portal UX Enhancement & Complete HR Employee Module
+
+## 1. Fix Company Dashboard UX Flow
+
+### **Main Dashboard Should NOT Show Sidebar Initially**
+
+The main company dashboard should be clean with no sidebar, showing only:
+- Welcome header with company name
+- Overview stats (total employees, departments, etc.)
+- Module cards (HR, Payroll, Finance, CRM, Projects, Reports)
+- No sidebar menu until user enters a specific module
+
+### **Module Navigation Logic:**
+```
+Main Dashboard (no sidebar) 
+    → Click "Open Dashboard" on HR module 
+    → Enter HR Dashboard (with HR-specific sidebar)
+    → HR sidebar shows: Dashboard, Employees, Departments, Documents, Leave Management, Attendance, Probation Tracking
+```
+
+**Replit Agent Prompt:**
+```
+"Fix the company portal navigation:
+
+1. Remove the sidebar from the main company dashboard - it should only show module cards and overview stats
+2. Only show module-specific sidebars when user clicks into a specific module (like HR)
+3. When user clicks 'Open Dashboard' on HR module card, navigate to /company-admin/hr/dashboard with HR-specific sidebar
+4. The HR sidebar should show: Dashboard, Employees, Departments, Documents, Leave Management, Attendance, Probation Tracking
+5. Add a 'Back to Main Dashboard' option in module headers to return to module selection
+
+The main dashboard should be a clean module launcher, not a functional workspace."
+```
+
+## 2. Complete HR Employee Management System
+
+### **Employee Sub-Module Requirements**
+
+**Core Employee Features Needed:**
+1. **Full Employee Onboarding Workflow**
+2. **Employee Termination Workflow** 
+3. **Complete Employee Profile System**
+4. **Employee Photo/Avatar System**
+5. **Employee Portal Invitation System**
+
+### **Employee Onboarding Workflow**
+
+**Replit Agent Prompt:**
+```
+"Build a comprehensive employee onboarding workflow in the HR module with these stages:
+
+STAGE 1: Pre-boarding Setup
+- Create employee record with basic info (name, email, position, start date)
+- Generate employee ID automatically
+- Set probation period (default 6 months, UAE compliant)
+- Assign to department and reporting manager
+
+STAGE 2: Document Collection
+- Upload employee photo for avatar
+- Collect UAE-required documents (passport, Emirates ID, visa, education certificates)
+- Generate document checklist with completion tracking
+- Document approval workflow
+
+STAGE 3: System Access Setup  
+- Create employee portal account
+- Generate secure invitation link with temporary password
+- Send welcome email with portal access instructions
+- Setup company equipment assignment
+
+STAGE 4: Orientation Tracking
+- First day checklist (office tour, introductions, equipment setup)
+- Training schedule assignment
+- Company handbook acknowledgment
+- Probation review schedule setup
+
+STAGE 5: Integration
+- Add to company directory
+- Setup recurring check-ins during probation
+- Performance goal setting
+- Integration with payroll system
+
+Create a multi-step wizard interface for HR to manage this entire process."
+```
+
+### **Employee Photo/Avatar System**
+
+**Technical Requirements:**
+```javascript
+// Employee photo upload and management
+const photoUploadFeatures = {
+  upload: {
+    maxSize: '5MB',
+    allowedFormats: ['jpg', 'jpeg', 'png'],
+    cropToSquare: true,
+    generateThumbnails: ['150x150', '64x64', '32x32']
+  },
+  storage: {
+    location: 'employees/{employeeId}/photos/',
+    naming: 'profile-photo-{timestamp}.{ext}',
+    backup: true
+  },
+  display: {
+    defaultAvatar: 'initials-based-avatar',
+    useInDirectory: true,
+    useInChats: true,
+    privacy: 'company-only'
+  }
+}
+```
+
+**Replit Agent Prompt:**
+```
+"Add employee photo/avatar system to the HR module:
+
+1. Add photo upload to employee profile with drag-and-drop interface
+2. Auto-crop photos to square format and generate multiple sizes (150px, 64px, 32px)
+3. Create default avatar with employee initials if no photo uploaded
+4. Display employee photos in: employee list, employee profile, company directory
+5. Add photo update functionality with version history
+6. Ensure photos are secure and only visible to company users
+7. Use Replit's built-in file storage for photo management
+
+The photo should become the employee's avatar throughout the system."
+```
+
+### **Employee Portal Invitation System**
+
+**Invitation Workflow:**
+```javascript
+// Employee invitation process
+const employeeInvitationFlow = {
+  trigger: 'HR completes employee onboarding',
+  process: [
+    {
+      step: 1,
+      action: 'Generate secure invitation token (24-hour expiry)',
+      data: 'employee_id, company_id, invitation_token, expires_at'
+    },
+    {
+      step: 2, 
+      action: 'Send welcome email with portal access link',
+      template: 'employee_welcome_template',
+      link: '{app_url}/employee/activate/{invitation_token}'
+    },
+    {
+      step: 3,
+      action: 'Employee clicks link and sets up password',
+      redirect: '/employee/dashboard after setup'
+    },
+    {
+      step: 4,
+      action: 'Track invitation status and send reminders',
+      reminders: ['3 days', '7 days', 'expire warning']
+    }
+  ]
+}
+```
+
+**Replit Agent Prompt:**
+```
+"Create employee portal invitation system:
+
+1. After HR completes employee onboarding, generate a secure invitation link
+2. Send professional welcome email with: company welcome message, portal access link, first-day information
+3. Invitation link takes employee to password setup page (not login page)
+4. After password setup, employee lands in their self-service portal
+5. Track invitation status: sent, opened, completed, expired
+6. Send reminder emails for uncompleted invitations
+7. Allow HR to resend invitations if needed
+
+The employee should receive a branded welcome email that makes them feel welcomed to the company."
+```
+
+### **Employee Termination Workflow**
+
+**Replit Agent Prompt:**
+```
+"Build employee termination workflow with these stages:
+
+TERMINATION INITIATION:
+- Select termination type: resignation, dismissal, end of contract, retirement
+- Set last working day and notice period (UAE labor law compliant)
+- Generate termination checklist
+
+EXIT PROCESS:
+- Asset return tracking (laptop, ID card, keys, etc.)
+- Access revocation (portal access, system accounts)
+- Final documentation (resignation letter, clearance forms)
+- Exit interview scheduling
+
+FINAL SETTLEMENT:
+- Calculate end of service gratuity (using existing EOSG calculator)
+- Process final salary and benefits
+- Generate clearance certificate
+- Archive employee record (don't delete, mark as terminated)
+
+HANDOVER:
+- Knowledge transfer documentation
+- Project handover tracking
+- Client/contact reassignment
+- File transfer to replacement/manager
+
+Create a step-by-step termination wizard that ensures legal compliance and smooth transitions."
+```
+
+### **Enhanced Employee Profile System**
+
+**Complete Employee Data Structure:**
+```javascript
+const enhancedEmployeeProfile = {
+  // Basic Information
+  personal: {
+    photo: 'profile-photo-url',
+    employeeId: 'auto-generated',
+    fullName: 'first + last name',
+    preferredName: 'display name',
+    dateOfBirth: 'with age calculation',
+    nationality: 'dropdown selection',
+    languages: ['English', 'Arabic', 'Hindi'],
+    maritalStatus: 'single/married/divorced'
+  },
+  
+  // Employment Details
+  employment: {
+    position: 'job title',
+    department: 'linked to departments table',
+    reportingManager: 'linked to employees table',
+    startDate: 'with tenure calculation',
+    employmentStatus: 'probation/confirmed/notice',
+    probationEndDate: 'auto-calculated',
+    workLocation: 'office/remote/hybrid',
+    employmentType: 'full-time/part-time/contract'
+  },
+  
+  // Contact & Location
+  contact: {
+    personalEmail: 'employee personal email',
+    companyEmail: 'auto-generated or manual',
+    uaePhone: 'UAE mobile number',
+    homeCountryPhone: 'international contact',
+    emergencyContact: {name: '', relation: '', phone: ''},
+    uaeAddress: 'current residential address',
+    homeCountryAddress: 'permanent address'
+  },
+  
+  // Legal & Compliance with Document Upload Integration
+  legal: {
+    emiratesId: {
+      number: '', 
+      expiryDate: '', 
+      status: '',
+      documentUpload: {
+        frontSide: 'file-upload-component',
+        backSide: 'file-upload-component',
+        syncToDocuments: true,
+        category: 'identity-documents'
+      }
+    },
+    visa: {
+      type: '', 
+      number: '', 
+      expiryDate: '', 
+      sponsor: '',
+      documentUpload: {
+        visaPage: 'file-upload-component',
+        entryStamp: 'file-upload-component',
+        syncToDocuments: true,
+        category: 'visa-documents'
+      }
+    },
+    passport: {
+      number: '', 
+      nationality: '', 
+      expiryDate: '',
+      documentUpload: {
+        bioDataPage: 'file-upload-component',
+        visaPages: 'multiple-file-upload-component',
+        syncToDocuments: true,
+        category: 'identity-documents'
+      }
+    },
+    workPermit: {
+      number: '', 
+      expiryDate: '', 
+      restrictions: '',
+      documentUpload: {
+        workPermitCopy: 'file-upload-component',
+        syncToDocuments: true,
+        category: 'employment-documents'
+      }
+    },
+    laborCard: {
+      number: '', 
+      expiryDate: '', 
+      profession: '',
+      documentUpload: {
+        laborCardCopy: 'file-upload-component',
+        syncToDocuments: true,
+        category: 'employment-documents'
+      }
+    }
+  },
+  
+  // Benefits & Compensation
+  compensation: {
+    basicSalary: 'monthly amount in AED',
+    allowances: {housing: '', transport: '', other: ''},
+    benefits: {medicalInsurance: '', lifeInsurance: '', others: ''},
+    bankDetails: {bankName: '', accountNumber: '', iban: ''},
+    taxInfo: 'if applicable for UAE residents'
+  },
+  
+  // Performance & Development
+  performance: {
+    currentRating: 'latest performance score',
+    goals: 'current objectives',
+    skills: 'technical and soft skills list',
+    certifications: 'professional certifications',
+    trainingHistory: 'completed training programs'
+  }
+}
+```
+
+**Replit Agent Prompt:**
+```
+"Enhance the employee profile system with comprehensive UAE-compliant data structure:
+
+1. Create tabbed employee profile interface with: Personal, Employment, Contact, Legal, Compensation, Performance
+2. Add photo upload with avatar display throughout system
+3. Implement auto-calculations: age, tenure, probation end date, visa expiry warnings
+4. Create validation for UAE-specific fields (Emirates ID format, UAE phone numbers)
+5. Add document expiry tracking with automatic alerts (90, 60, 30 days before expiry)
+6. Build employee directory with photo grid view and search functionality
+7. Implement employee profile audit trail (track all changes with timestamps)
+
+The profile should be the central hub for all employee information and comply with UAE labor law requirements."
+```
+
+## 3. Implementation Priority Order
+
+**Phase 1: UX Flow Fix**
+1. Remove sidebar from main dashboard
+2. Implement module-specific navigation
+3. Add "Back to Dashboard" functionality
+
+**Phase 2: Employee Core System**
+1. Enhanced employee profile with photo system
+2. Employee onboarding workflow wizard
+3. Employee portal invitation system
+
+**Phase 3: Employee Operations**
+1. Employee termination workflow
+2. Document management and expiry tracking
+3. Performance and goal management
+
+**Phase 4: HR Sub-Modules**
+1. Departments management
+2. Leave management system
+3. Attendance tracking
+4. Probation tracking and evaluations
+
+This approach ensures a professional user experience while building a comprehensive employee management system that handles the complete employee lifecycle from hire to termination.

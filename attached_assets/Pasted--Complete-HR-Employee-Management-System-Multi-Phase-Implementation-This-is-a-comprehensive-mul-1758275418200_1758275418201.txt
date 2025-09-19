@@ -1,0 +1,313 @@
+# Complete HR Employee Management System - Multi-Phase Implementation
+
+This is a comprehensive multi-phase prompt to build a complete HR employee management system with proper UX flow, document integration, and full employee lifecycle management.
+
+## PHASE 1: Fix Company Portal UX Flow
+
+**Objective**: Fix navigation so main dashboard is a clean module launcher
+
+**Implementation**:
+```
+Fix the company portal navigation structure:
+
+1. MAIN DASHBOARD CHANGES:
+   - Remove the HR-specific sidebar from the main company dashboard
+   - Main dashboard should only show: welcome header, overview stats (total employees, departments, open positions, pending approvals), and module cards (HR, Payroll, Finance, CRM, Projects, Reports)
+   - No functional sidebar until user enters a specific module
+
+2. MODULE NAVIGATION LOGIC:
+   - When user clicks "Open Dashboard" on HR module card, navigate to /company-admin/hr/dashboard
+   - Only then show HR-specific sidebar with: Dashboard, Employees, Departments, Documents, Leave Management, Attendance, Probation Tracking
+   - Add "Back to Main Dashboard" button in module headers to return to module selection
+
+3. CLEAN SEPARATION:
+   - Main dashboard = Module launcher (no sidebar)
+   - Module dashboard = Functional workspace (with module-specific sidebar)
+   - Each module should have its own routing and navigation context
+```
+
+## PHASE 2: Enhanced Employee Profile System with Document Integration
+
+**Objective**: Create comprehensive employee profiles with integrated document uploads
+
+**Implementation**:
+```
+Build enhanced employee profile system with these specifications:
+
+1. COMPREHENSIVE EMPLOYEE DATA STRUCTURE:
+
+Personal Information:
+- Employee photo upload (drag-and-drop, auto-crop to square, generate thumbnails: 150px, 64px, 32px)
+- Auto-generated employee ID
+- Full name, preferred name, date of birth (with age calculation)
+- Nationality (UAE-focused dropdown), languages, marital status
+- Emergency contact details
+
+Employment Details:
+- Position, department (linked to departments table), reporting manager
+- Start date (with tenure calculation), employment status, probation end date (auto-calculated)
+- Work location (office/remote/hybrid), employment type (full-time/part-time/contract)
+
+Contact Information:
+- Personal email, company email (auto-generated option)
+- UAE phone, home country phone
+- UAE address, home country address
+- Emergency contact (name, relation, phone)
+
+Legal & Compliance with INTEGRATED DOCUMENT UPLOAD:
+- Emirates ID: number, expiry date, status + Front/Back document upload
+- Visa: type, number, expiry date, sponsor + Visa page/Entry stamp upload
+- Passport: number, nationality, expiry date + Bio-data page/Visa pages upload
+- Work Permit: number, expiry date, restrictions + Work permit copy upload
+- Labor Card: number, expiry date, profession + Labor card copy upload
+
+2. DOCUMENT UPLOAD INTEGRATION:
+- Each legal document field has drag-and-drop upload component
+- Support PDF, JPG, PNG formats (max 10MB per file)
+- Preview thumbnails after upload
+- Multiple file support for documents like passport visa pages
+
+3. AUTOMATIC SYNC WITH DOCUMENTS MODULE:
+- When documents uploaded in employee profile, automatically create entries in Documents sub-module
+- Categorize: Identity Documents, Visa Documents, Employment Documents
+- Link documents to specific employee
+- Update document status and expiry tracking
+- Show "Synced to Documents" confirmation
+
+4. BIDIRECTIONAL SYNC:
+- Documents uploaded in Documents module reflect in employee profile
+- Show document status (uploaded/missing/expired)
+- Version control with history
+- Document approval workflow integration
+
+Compensation & Benefits:
+- Basic salary, allowances (housing, transport, other)
+- Benefits (medical insurance, life insurance)
+- Bank details (bank name, account number, IBAN)
+- End of service gratuity calculation (using existing EOSG calculator)
+```
+
+## PHASE 3: Employee Onboarding Workflow System
+
+**Objective**: Create comprehensive onboarding process with progress tracking
+
+**Implementation**:
+```
+Build complete employee onboarding workflow with these stages:
+
+1. PRE-BOARDING SETUP:
+- Create employee record with basic info (name, email, position, start date)
+- Generate unique employee ID automatically
+- Set probation period (default 6 months, UAE compliant)
+- Assign to department and reporting manager
+- Create onboarding checklist with completion tracking
+
+2. DOCUMENT COLLECTION STAGE:
+- Upload employee photo for avatar
+- Document upload wizard for UAE-required documents:
+  * Passport (bio-data page + visa pages)
+  * Emirates ID (front + back)
+  * Visa documentation (visa page + entry stamps)
+  * Educational certificates
+  * Previous employment certificates
+- Generate document checklist with completion tracking
+- Document approval workflow with HR review
+
+3. SYSTEM ACCESS SETUP:
+- Create employee portal account with secure invitation system
+- Generate invitation token (24-hour expiry)
+- Send professional welcome email with:
+  * Company welcome message
+  * Portal access link: {app_url}/employee/activate/{invitation_token}
+  * First-day information and expectations
+- Track invitation status (sent, opened, completed, expired)
+- Send reminder emails for uncompleted invitations
+
+4. ORIENTATION TRACKING:
+- First day checklist (office tour, introductions, equipment setup)
+- Training schedule assignment
+- Company handbook acknowledgment
+- Equipment assignment tracking (laptop, ID card, keys)
+- Probation review schedule setup (30, 60, 90 day reviews)
+
+5. INTEGRATION COMPLETION:
+- Add to company directory with photo
+- Setup recurring check-ins during probation
+- Performance goal setting
+- Integration with payroll system
+- Welcome announcement (optional)
+
+Create a multi-step wizard interface for HR to manage this entire process with progress indicators and completion tracking.
+```
+
+## PHASE 4: Employee Portal Invitation & Access System
+
+**Objective**: Secure employee portal setup with password creation
+
+**Implementation**:
+```
+Create employee portal invitation and access system:
+
+1. INVITATION GENERATION:
+- After HR completes onboarding, automatically generate secure invitation
+- Create invitation token with 24-hour expiry
+- Store invitation details: employee_id, company_id, invitation_token, expires_at, status
+
+2. WELCOME EMAIL SYSTEM:
+- Send branded welcome email with company logo and styling
+- Include: Welcome message, portal access link, first-day information, company contact details
+- Professional template that makes employee feel welcomed
+
+3. EMPLOYEE ACTIVATION FLOW:
+- Invitation link takes employee to password setup page (not login page)
+- Employee sets up secure password with strength requirements
+- After password setup, employee lands in their self-service portal
+- Activation confirmation email sent to HR and employee
+
+4. PORTAL ACCESS TRACKING:
+- Track invitation status: sent, opened, password_set, active
+- Send reminder emails at 3 days, 7 days, and expiry warning
+- Allow HR to resend invitations if needed
+- Show invitation status in employee profile
+
+5. EMPLOYEE SELF-SERVICE PORTAL:
+After activation, employee can access:
+- Personal profile management
+- Document uploads
+- Leave balance and request submission
+- Payslip downloads (when available)
+- Company directory
+- Company announcements
+```
+
+## PHASE 5: Employee Termination Workflow System
+
+**Objective**: Complete termination process with legal compliance
+
+**Implementation**:
+```
+Build comprehensive employee termination workflow:
+
+1. TERMINATION INITIATION:
+- Select termination type: resignation, dismissal, end of contract, retirement, mutual separation
+- Set last working day and notice period (UAE labor law compliant)
+- Generate termination checklist with completion tracking
+- Assign termination process owner (usually HR)
+
+2. EXIT PROCESS MANAGEMENT:
+- Asset return tracking with checklist:
+  * Company laptop/equipment
+  * ID card and access cards  
+  * Office keys
+  * Company phone/SIM
+  * Uniforms or company property
+- Access revocation timeline:
+  * Immediate: Email and system access
+  * Last day: Physical access cards
+  * Post-termination: All digital footprints
+
+3. DOCUMENTATION & COMPLIANCE:
+- Final documentation collection:
+  * Resignation letter (if resignation)
+  * Exit interview form
+  * Clearance certificate
+  * Non-disclosure agreement
+- Knowledge transfer documentation
+- Project handover tracking with assignee details
+
+4. FINANCIAL SETTLEMENT:
+- Calculate end of service gratuity using existing EOSG calculator
+- Process final salary including:
+  * Prorated salary for final month
+  * Unused leave encashment
+  * Any outstanding allowances or deductions
+- Generate settlement statement
+- Banking details confirmation for final payment
+
+5. RECORD MANAGEMENT:
+- Archive employee record (don't delete, mark as terminated)
+- Maintain document access for legal compliance
+- Generate termination certificate
+- Update company directory and organizational charts
+- Ensure data retention compliance
+
+Create termination wizard with approval workflow and automated task assignments.
+```
+
+## PHASE 6: HR Sub-Modules Integration
+
+**Objective**: Complete HR functionality with departments, leave, attendance, and probation tracking
+
+**Implementation**:
+```
+Build remaining HR sub-modules with full integration:
+
+1. DEPARTMENTS MANAGEMENT:
+- Department CRUD operations (create, read, update, delete)
+- Hierarchical department structure with parent-child relationships
+- Department head assignment
+- Employee count per department
+- Department budget allocation (future integration)
+- Department organizational chart view
+
+2. DOCUMENTS MODULE ENHANCEMENT:
+- Document categories: Identity, Employment, Educational, Medical, Legal
+- Document expiry tracking with automated alerts (90, 60, 30 days)
+- Document approval workflows
+- Version control with change history
+- Bulk document operations
+- Document search and filtering
+- Integration with employee profiles (bidirectional sync)
+
+3. LEAVE MANAGEMENT SYSTEM:
+- Leave types configuration (annual, sick, maternity, etc.)
+- Leave balance calculation and tracking
+- Leave request workflow with approval chain
+- Leave calendar visualization
+- Leave policy compliance (UAE labor law)
+- Leave encashment calculations
+- Holiday calendar management
+
+4. ATTENDANCE TRACKING:
+- Clock in/out functionality
+- Attendance reports and analytics
+- Late arrival and early departure tracking
+- Overtime calculations
+- Shift management
+- Attendance policy enforcement
+- Integration with leave system
+
+5. PROBATION TRACKING SYSTEM:
+- Probation period monitoring with automatic alerts
+- Performance review scheduling (30, 60, 90 days)
+- Probation evaluation forms
+- Manager feedback collection
+- HR review and confirmation process
+- Probation extension handling
+- Confirmation or termination recommendations
+
+All modules should integrate seamlessly with the employee profile system and share data appropriately.
+```
+
+## IMPLEMENTATION GUIDELINES
+
+1. **Build sequentially** - Complete each phase before moving to the next
+2. **Test thoroughly** - Each phase should be fully functional before proceeding
+3. **Maintain data consistency** - Ensure all modules sync and share data properly
+4. **UAE compliance** - All calculations and workflows must comply with UAE labor law
+5. **User experience** - Keep interfaces intuitive and professional
+6. **Documentation** - Each feature should be well-documented for users
+7. **Error handling** - Robust error handling and user feedback throughout
+8. **Performance** - Optimize for fast loading and smooth user experience
+
+## SUCCESS CRITERIA
+
+After all phases are complete, the system should provide:
+- Complete employee lifecycle management (hire to termination)
+- Seamless document management with automatic syncing
+- Professional user experience with proper navigation flow
+- UAE labor law compliance throughout
+- Comprehensive reporting and analytics capabilities
+- Secure employee portal with self-service capabilities
+
+This multi-phase approach ensures a professional, comprehensive HR management system that handles all aspects of employee management while maintaining excellent user experience and legal compliance.
