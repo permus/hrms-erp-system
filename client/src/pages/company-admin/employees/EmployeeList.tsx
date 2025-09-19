@@ -124,6 +124,10 @@ export default function EmployeeList() {
       return null;
     }
 
+    if (!employee.employmentDetails.startDate) {
+      return null;
+    }
+
     const startDate = new Date(employee.employmentDetails.startDate);
     const probationMonths = employee.employmentDetails.probationMonths || 6;
     const probationEndDate = new Date(startDate);

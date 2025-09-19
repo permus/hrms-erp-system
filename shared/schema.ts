@@ -337,6 +337,159 @@ export const insertEmployeeDocumentSchema = createInsertSchema(employeeDocuments
 export const insertLeaveRequestSchema = createInsertSchema(leaveRequests).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertAttendanceRecordSchema = createInsertSchema(attendanceRecords).omit({ id: true, createdAt: true, updatedAt: true });
 
+// JSONB Structure Interfaces
+export interface PersonalInfo {
+  name?: string;
+  preferredName?: string;
+  fatherName?: string;
+  motherName?: string;
+  dob?: string;
+  age?: number;
+  nationality?: string;
+  languages?: string[];
+  religion?: string;
+  maritalStatus?: string;
+  profilePhotoUrl?: string;
+  profileThumbnails?: {
+    small?: string;
+    medium?: string;
+    large?: string;
+  };
+  emergencyContact?: {
+    name?: string;
+    relation?: string;
+    phone?: string;
+    email?: string;
+  };
+}
+
+export interface ContactInfo {
+  personalEmail?: string;
+  companyEmail?: string;
+  uaePhone?: string;
+  homeCountryPhone?: string;
+  uaeAddress?: {
+    street?: string;
+    city?: string;
+    emirate?: string;
+    poBox?: string;
+  };
+  homeCountryAddress?: {
+    street?: string;
+    city?: string;
+    state?: string;
+    country?: string;
+    postalCode?: string;
+  };
+}
+
+export interface EmploymentDetails {
+  position?: string;
+  departmentId?: string;
+  reportingManagerId?: string;
+  startDate?: string;
+  tenure?: string;
+  employmentStatus?: string;
+  probationEndDate?: string;
+  employmentType?: 'full-time' | 'part-time' | 'contract';
+  workLocation?: 'office' | 'remote' | 'hybrid';
+  probationMonths?: number;
+}
+
+export interface ProbationInfo {
+  startDate?: string;
+  endDate?: string;
+  status?: string;
+  evaluationScores?: Record<string, any>;
+  confirmationDate?: string;
+  extensionDetails?: Record<string, any>;
+}
+
+export interface Compensation {
+  basicSalary?: number;
+  housingAllowance?: number;
+  transportAllowance?: number;
+  otherAllowance?: number;
+  totalSalary?: number;
+  benefits?: {
+    medicalInsurance?: boolean;
+    lifeInsurance?: boolean;
+  };
+  bankDetails?: {
+    bankName?: string;
+    accountNumber?: string;
+    iban?: string;
+  };
+  endOfServiceGratuity?: number;
+}
+
+export interface VisaInfo {
+  type?: string;
+  number?: string;
+  expiryDate?: string;
+  sponsor?: string;
+  status?: string;
+  currentStatus?: string;
+  passportPlaceOfIssue?: string;
+  documents?: {
+    visaPageUrl?: string;
+    entryStampUrl?: string;
+  };
+}
+
+export interface EmiratesIdInfo {
+  status?: string;
+  idNumber?: string;
+  expiryDate?: string;
+  documents?: {
+    frontUrl?: string;
+    backUrl?: string;
+  };
+}
+
+export interface PassportInfo {
+  number?: string;
+  nationality?: string;
+  expiryDate?: string;
+  placeOfIssue?: string;
+  documents?: {
+    biodataPageUrl?: string;
+    visaPagesUrls?: string[];
+  };
+}
+
+export interface WorkPermitInfo {
+  number?: string;
+  expiryDate?: string;
+  restrictions?: string;
+  documents?: {
+    workPermitUrl?: string;
+  };
+}
+
+export interface LaborCardInfo {
+  number?: string;
+  expiryDate?: string;
+  profession?: string;
+  documents?: {
+    laborCardUrl?: string;
+  };
+}
+
+// Enhanced Employee Type with proper JSONB typing
+export interface EmployeeWithDetails extends Omit<typeof employees.$inferSelect, 'personalInfo' | 'contactInfo' | 'employmentDetails' | 'probationInfo' | 'compensation' | 'visaInfo' | 'emiratesIdInfo' | 'passportInfo' | 'workPermitInfo' | 'laborCardInfo'> {
+  personalInfo?: PersonalInfo;
+  contactInfo?: ContactInfo;
+  employmentDetails?: EmploymentDetails;
+  probationInfo?: ProbationInfo;
+  compensation?: Compensation;
+  visaInfo?: VisaInfo;
+  emiratesIdInfo?: EmiratesIdInfo;
+  passportInfo?: PassportInfo;
+  workPermitInfo?: WorkPermitInfo;
+  laborCardInfo?: LaborCardInfo;
+}
+
 // Types
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
@@ -350,7 +503,7 @@ export type InsertLeaveRequest = z.infer<typeof insertLeaveRequestSchema>;
 export type InsertAttendanceRecord = z.infer<typeof insertAttendanceRecordSchema>;
 
 export type Company = typeof companies.$inferSelect;
-export type Employee = typeof employees.$inferSelect;
+export type Employee = EmployeeWithDetails; // Use the enhanced type instead
 export type Department = typeof departments.$inferSelect;
 export type Position = typeof positions.$inferSelect;
 export type EmployeeDocument = typeof employeeDocuments.$inferSelect;
