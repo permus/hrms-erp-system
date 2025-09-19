@@ -19,6 +19,9 @@ import CompanyAdminDashboard from "@/pages/company-admin/dashboard";
 import EmployeeDashboard from "@/pages/employee/dashboard";
 import HRDashboard from "@/pages/company-admin/hr/dashboard";
 import EmployeeList from "@/pages/company-admin/employees/EmployeeList";
+import AddEmployee from "@/pages/company-admin/employees/AddEmployee";
+import EmployeeProfile from "@/pages/company-admin/employees/EmployeeProfile";
+import EditEmployee from "@/pages/company-admin/employees/EditEmployee";
 import SigninPage from "@/pages/auth/signin";
 import ChangePasswordPage from "@/pages/auth/change-password";
 import NotFound from "@/pages/not-found";
@@ -114,6 +117,10 @@ function Router() {
           {/* Company Admin Portal - slug-based */}
           <Route path="/:companySlug/dashboard" component={CompanyAdminDashboard} />
           <Route path="/:companySlug/hr/dashboard" component={HRDashboard} />
+          {/* Employee management routes - specific to general order */}
+          <Route path="/:companySlug/employees/new" component={AddEmployee} />
+          <Route path="/:companySlug/employees/:employeeSlug/edit" component={EditEmployee} />
+          <Route path="/:companySlug/employees/:employeeSlug" component={EmployeeProfile} />
           <Route path="/:companySlug/employees" component={EmployeeList} />
           <Route path="/:companySlug/departments" component={Home} />
           <Route path="/:companySlug/positions" component={Home} />
