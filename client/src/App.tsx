@@ -126,6 +126,15 @@ function Router() {
           <Route path="/:companySlug/positions" component={Home} />
           <Route path="/:companySlug/*" component={CompanyAdminDashboard} />
           
+          {/* Company Admin Portal - fallback routes for /company-admin prefix */}
+          <Route path="/company-admin/dashboard" component={CompanyAdminDashboard} />
+          <Route path="/company-admin/hr/dashboard" component={HRDashboard} />
+          <Route path="/company-admin/employees/new" component={AddEmployee} />
+          <Route path="/company-admin/employees/:employeeSlug/edit" component={EditEmployee} />
+          <Route path="/company-admin/employees/:employeeSlug" component={EmployeeProfile} />
+          <Route path="/company-admin/employees" component={EmployeeList} />
+          <Route path="/company-admin/*" component={CompanyAdminDashboard} />
+
           {/* Employee Self-Service Portal - slug-based */}
           <Route path="/:companySlug/:employeeSlug/dashboard" component={EmployeeDashboard} />
           <Route path="/:companySlug/:employeeSlug/attendance" component={EmployeeDashboard} />

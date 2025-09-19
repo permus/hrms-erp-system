@@ -1,15 +1,26 @@
 import { useParams, useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import EmployeeProfileForm from "@/components/employee/EmployeeProfileForm";
-import type { Department, Employee } from "@shared/schema";
+import type { Department, Employee, InsertEmployee } from "@shared/schema";
 
 export default function AddEmployee() {
-  const { companySlug } = useParams<{ companySlug: string }>();
+  const { companySlug: paramSlug } = useParams<{ companySlug?: string }>();
   const [, setLocation] = useLocation();
   const { user } = useAuth();
+  const { toast } = useToast();
+
+  // Resolve company slug from user data when not in URL (fallback routes)
+  const { data: userSlugs } = useQuery({
+    queryKey: ['/api/resolve/me'],
+    enabled: !paramSlug && !!user,
+  });
+  
+  const companySlug = paramSlug || userSlugs?.companySlugs?.[0];
 
   const handleLogout = () => {
     window.location.href = "/api/logout";
@@ -31,7 +42,11 @@ export default function AddEmployee() {
   }
 
   const handleBack = () => {
-    setLocation(`/${companySlug}/employees`);
+    if (companySlug) {
+      setLocation(`/${companySlug}/employees`);
+    } else {
+      setLocation('/company-admin/employees');
+    }
   };
 
   // Fetch required data for the form
@@ -45,17 +60,86 @@ export default function AddEmployee() {
     enabled: !!companySlug
   });
 
-  const handleSubmit = async (data: any) => {
-    // Handle employee creation submission
-    // This would typically make an API call to create the employee
-    console.log("Creating employee with data:", data);
-    // Navigate back to employee list after successful creation
-    setLocation(`/${companySlug}/employees`);
+  const createEmployeeMutation = useMutation({
+    mutationFn: async (employeeData: InsertEmployee) => {
+      const payload = {
+        ...employeeData,
+        companyId: user?.companyId, // Will be resolved server-side for company admins
+        companySlug: companySlug // For super admin context
+      };
+      
+      return apiRequest('/api/employees', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+    },
+    onSuccess: (newEmployee) => {
+      toast({
+        title: "Employee Created",
+        description: `Employee ${newEmployee.personalInfo?.name} has been successfully added.`,
+      });
+      
+      // Invalidate queries to refresh employee list
+      queryClient.invalidateQueries({ queryKey: ['/api/employees', companySlug] });
+      
+      // Navigate to employee list
+      if (companySlug) {
+        setLocation(`/${companySlug}/employees`);
+      } else {
+        setLocation('/company-admin/employees');
+      }
+    },
+    onError: (error: any) => {
+      console.error('Failed to create employee:', error);
+      toast({
+        title: "Error Creating Employee",
+        description: error.message || "Failed to create employee. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const handleSubmit = (data: InsertEmployee) => {
+    createEmployeeMutation.mutate(data);
   };
 
   const handleCancel = () => {
-    setLocation(`/${companySlug}/employees`);
+    if (companySlug) {
+      setLocation(`/${companySlug}/employees`);
+    } else {
+      setLocation('/company-admin/employees');
+    }
   };
+
+  // Show loading while resolving company slug
+  if (!paramSlug && !userSlugs && user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center space-y-2">
+          <div className="text-lg font-medium">Loading company information...</div>
+          <p className="text-sm text-muted-foreground">Resolving your company access...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error if we can't resolve company slug
+  if (!companySlug) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <h1 className="text-2xl font-bold text-destructive">Company Access Required</h1>
+          <p className="text-muted-foreground">Unable to determine your company. Please contact support.</p>
+          <Button onClick={handleLogout} variant="outline" data-testid="button-logout">
+            Logout & Try Again
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   if (departmentsLoading || employeesLoading) {
     return (

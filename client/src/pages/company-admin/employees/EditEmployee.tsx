@@ -7,9 +7,17 @@ import EmployeeProfileForm from "@/components/employee/EmployeeProfileForm";
 import type { Employee, Department } from "@shared/schema";
 
 export default function EditEmployee() {
-  const { companySlug, employeeSlug } = useParams<{ companySlug: string; employeeSlug: string }>();
+  const { companySlug: paramSlug, employeeSlug } = useParams<{ companySlug?: string; employeeSlug: string }>();
   const [, setLocation] = useLocation();
   const { user } = useAuth();
+
+  // Resolve company slug from user data when not in URL (fallback routes)
+  const { data: userSlugs } = useQuery({
+    queryKey: ['/api/resolve/me'],
+    enabled: !paramSlug && !!user,
+  });
+  
+  const companySlug = paramSlug || userSlugs?.companySlugs?.[0];
 
   const handleLogout = () => {
     window.location.href = "/api/logout";
@@ -48,18 +56,30 @@ export default function EditEmployee() {
   });
 
   const handleBack = () => {
-    setLocation(`/${companySlug}/employees/${employeeSlug}`);
+    if (companySlug) {
+      setLocation(`/${companySlug}/employees/${employeeSlug}`);
+    } else {
+      setLocation(`/company-admin/employees/${employeeSlug}`);
+    }
   };
 
   const handleSubmit = async (data: any) => {
     // Handle employee update submission
     console.log("Updating employee with data:", data);
     // Navigate back to employee profile after successful edit
-    setLocation(`/${companySlug}/employees/${employeeSlug}`);
+    if (companySlug) {
+      setLocation(`/${companySlug}/employees/${employeeSlug}`);
+    } else {
+      setLocation(`/company-admin/employees/${employeeSlug}`);
+    }
   };
 
   const handleCancel = () => {
-    setLocation(`/${companySlug}/employees/${employeeSlug}`);
+    if (companySlug) {
+      setLocation(`/${companySlug}/employees/${employeeSlug}`);
+    } else {
+      setLocation(`/company-admin/employees/${employeeSlug}`);
+    }
   };
 
   if (employeeLoading || departmentsLoading || employeesLoading) {

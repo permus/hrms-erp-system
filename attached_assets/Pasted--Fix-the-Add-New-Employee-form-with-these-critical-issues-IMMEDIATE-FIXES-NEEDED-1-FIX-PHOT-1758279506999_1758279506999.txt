@@ -1,0 +1,65 @@
+"Fix the Add New Employee form with these critical issues:
+
+IMMEDIATE FIXES NEEDED:
+
+1. FIX PHOTO UPLOAD SECTION:
+- The photo upload area is overlapping with text fields
+- Move photo upload to proper position with clear spacing
+- Ensure drag-and-drop area is properly sized and positioned
+- Add proper margins between photo upload and form fields
+
+2. RESTORE MISSING NAVIGATION:
+- Add back the HR module sidebar with: Dashboard, Employees, Departments, Documents, Leave Management, Attendance, Probation Tracking
+- Add back the top navigation bar with company name, search, notifications, user profile
+- Ensure proper layout structure with sidebar and main content area
+
+3. RESTORE MISSING FORM SECTIONS:
+The current form is missing critical sections. Add back these complete sections:
+
+EMPLOYMENT DETAILS SECTION:
+- Employee ID (auto-generated)
+- Position/Job Title
+- Department (dropdown)
+- Reporting Manager (dropdown)  
+- Start Date
+- Employment Status (Probation/Confirmed)
+- Probation Months (default 6)
+- Probation End Date (auto-calculated)
+- Work Location (Office/Remote/Hybrid)
+- Employment Type (Full-time/Part-time/Contract)
+
+CONTACT INFORMATION SECTION:
+- Personal Email
+- Company Email  
+- UAE Phone Number
+- Home Country Phone
+- UAE Address (full address fields)
+- Home Country Address
+
+LEGAL & COMPLIANCE SECTION WITH DOCUMENT UPLOADS:
+- Emirates ID: Number, Expiry Date + Front/Back document upload
+- Passport: Number, Nationality, Expiry Date + Bio-data page upload
+- Visa: Type, Number, Expiry Date + Visa page upload
+- Work Permit: Number, Expiry Date + Document upload
+- Labor Card: Number, Expiry Date + Document upload
+
+COMPENSATION SECTION:
+- Basic Salary (AED)
+- Housing Allowance  
+- Transport Allowance
+- Other Allowances
+- Total Salary (auto-calculated)
+- Bank Details (Bank Name, Account Number, IBAN)
+
+4. FIX LAYOUT STRUCTURE:
+- Use proper tabbed interface for different sections
+- Add navigation between form sections
+- Add progress indicator showing completion status
+- Ensure proper responsive design
+
+5. MAINTAIN CURRENT STYLING:
+- Keep the current clean design and colors
+- Ensure consistent spacing and typography
+- Fix any overlapping elements
+
+The form should be comprehensive for UAE employment compliance and include all the employee data fields we discussed previously."
