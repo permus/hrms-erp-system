@@ -1,8 +1,10 @@
 import { useParams, useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import EmployeeProfileForm from "@/components/employee/EmployeeProfileForm";
+import type { Department, Employee } from "@shared/schema";
 
 export default function AddEmployee() {
   const { companySlug } = useParams<{ companySlug: string }>();
@@ -32,10 +34,39 @@ export default function AddEmployee() {
     setLocation(`/${companySlug}/employees`);
   };
 
-  const handleSuccess = () => {
+  // Fetch required data for the form
+  const { data: departments = [], isLoading: departmentsLoading } = useQuery<Department[]>({
+    queryKey: ["/api/departments", companySlug],
+    enabled: !!companySlug
+  });
+
+  const { data: employees = [], isLoading: employeesLoading } = useQuery<Employee[]>({
+    queryKey: ["/api/employees", companySlug],
+    enabled: !!companySlug
+  });
+
+  const handleSubmit = async (data: any) => {
+    // Handle employee creation submission
+    // This would typically make an API call to create the employee
+    console.log("Creating employee with data:", data);
     // Navigate back to employee list after successful creation
     setLocation(`/${companySlug}/employees`);
   };
+
+  const handleCancel = () => {
+    setLocation(`/${companySlug}/employees`);
+  };
+
+  if (departmentsLoading || employeesLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-muted-foreground">Loading form data...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -62,10 +93,10 @@ export default function AddEmployee() {
         {/* Employee Creation Form */}
         <div className="max-w-4xl">
           <EmployeeProfileForm
-            mode="create"
-            companySlug={companySlug}
-            onSuccess={handleSuccess}
-            onCancel={handleBack}
+            departments={departments}
+            employees={employees}
+            onSubmit={handleSubmit}
+            onCancel={handleCancel}
           />
         </div>
       </div>

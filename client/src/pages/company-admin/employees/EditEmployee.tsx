@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import EmployeeProfileForm from "@/components/employee/EmployeeProfileForm";
-import type { Employee } from "@shared/schema";
+import type { Employee, Department } from "@shared/schema";
 
 export default function EditEmployee() {
   const { companySlug, employeeSlug } = useParams<{ companySlug: string; employeeSlug: string }>();
@@ -36,11 +36,24 @@ export default function EditEmployee() {
     enabled: !!employeeSlug && !!companySlug
   });
 
+  // Fetch required data for the form
+  const { data: departments = [], isLoading: departmentsLoading } = useQuery<Department[]>({
+    queryKey: ["/api/departments", companySlug],
+    enabled: !!companySlug
+  });
+
+  const { data: employees = [], isLoading: employeesLoading } = useQuery<Employee[]>({
+    queryKey: ["/api/employees", companySlug],
+    enabled: !!companySlug
+  });
+
   const handleBack = () => {
     setLocation(`/${companySlug}/employees/${employeeSlug}`);
   };
 
-  const handleSuccess = () => {
+  const handleSubmit = async (data: any) => {
+    // Handle employee update submission
+    console.log("Updating employee with data:", data);
     // Navigate back to employee profile after successful edit
     setLocation(`/${companySlug}/employees/${employeeSlug}`);
   };
@@ -49,7 +62,7 @@ export default function EditEmployee() {
     setLocation(`/${companySlug}/employees/${employeeSlug}`);
   };
 
-  if (employeeLoading) {
+  if (employeeLoading || departmentsLoading || employeesLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center space-y-4">
@@ -101,10 +114,10 @@ export default function EditEmployee() {
         {/* Employee Edit Form */}
         <div className="max-w-4xl">
           <EmployeeProfileForm
-            mode="edit"
-            companySlug={companySlug}
-            initialData={employee}
-            onSuccess={handleSuccess}
+            employee={employee}
+            departments={departments}
+            employees={employees}
+            onSubmit={handleSubmit}
             onCancel={handleCancel}
           />
         </div>
