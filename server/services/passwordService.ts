@@ -1,5 +1,5 @@
 import argon2 from 'argon2';
-import { randomBytes } from 'crypto';
+import { randomBytes, createHash } from 'crypto';
 
 export class PasswordService {
   /**
@@ -30,11 +30,11 @@ export class PasswordService {
    */
   static generateSecurePassword(length: number = 12): string {
     const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*';
-    const randomBytes = require('crypto').randomBytes(length);
+    const bytes = randomBytes(length);
     let password = '';
     
     for (let i = 0; i < length; i++) {
-      password += charset[randomBytes[i] % charset.length];
+      password += charset[bytes[i] % charset.length];
     }
     
     return password;
@@ -53,8 +53,7 @@ export class PasswordService {
    * Hash a token for secure storage
    */
   static hashToken(token: string): string {
-    const crypto = require('crypto');
-    return crypto.createHash('sha256').update(token).digest('hex');
+    return createHash('sha256').update(token).digest('hex');
   }
 
   /**
