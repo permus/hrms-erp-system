@@ -18,7 +18,6 @@ import {
   PieChart
 } from "lucide-react";
 import Header from "@/components/Header";
-import Sidebar from "@/components/Sidebar";
 import { Link } from "wouter";
 import type { Employee, Department, Position } from "@shared/schema";
 
@@ -33,17 +32,17 @@ export default function CompanyAdminDashboard() {
   // Fetch company data with cache isolation per company
   const { data: employees = [] } = useQuery<Employee[]>({
     queryKey: ["/api/employees", companyContext],
-    enabled: !!user && ['COMPANY_ADMIN', 'HR_MANAGER'].includes(user.role || '')
+    enabled: !!user && ['COMPANY_ADMIN', 'HR_MANAGER'].includes(user?.role || '')
   });
 
   const { data: departments = [] } = useQuery<Department[]>({
     queryKey: ["/api/departments", companyContext],
-    enabled: !!user && ['COMPANY_ADMIN', 'HR_MANAGER'].includes(user.role || '')
+    enabled: !!user && ['COMPANY_ADMIN', 'HR_MANAGER'].includes(user?.role || '')
   });
 
   const { data: positions = [] } = useQuery<Position[]>({
     queryKey: ["/api/positions", companyContext],
-    enabled: !!user && ['COMPANY_ADMIN', 'HR_MANAGER'].includes(user.role || '')
+    enabled: !!user && ['COMPANY_ADMIN', 'HR_MANAGER'].includes(user?.role || '')
   });
 
   // Calculate company stats
@@ -58,7 +57,7 @@ export default function CompanyAdminDashboard() {
     window.location.href = "/api/logout";
   };
 
-  if (!user || !['SUPER_ADMIN', 'COMPANY_ADMIN', 'HR_MANAGER', 'DEPARTMENT_MANAGER'].includes(user.role || '')) {
+  if (!user || !['SUPER_ADMIN', 'COMPANY_ADMIN', 'HR_MANAGER', 'DEPARTMENT_MANAGER'].includes(user?.role || '')) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center space-y-4">
@@ -76,26 +75,19 @@ export default function CompanyAdminDashboard() {
   }
 
   return (
-    <div className="h-screen bg-background flex">
-      <Sidebar 
-        userRole={user.role || 'COMPANY_ADMIN'} 
-        companyName={companySlug || 'Unknown Company'}
-        companySlug={companySlug}
+    <div className="h-screen bg-background flex flex-col">
+      <Header 
+        user={{
+          name: (user?.firstName || '') + ' ' + (user?.lastName || ''),
+          email: user?.email || '',
+          role: user?.role || 'COMPANY_ADMIN',
+          companyName: companySlug || 'Unknown Company'
+        }}
+        onLogout={handleLogout}
+        pendingNotifications={stats.pendingApprovals}
       />
-      
-      <div className="flex-1 flex flex-col">
-        <Header 
-          user={{
-            name: (user.firstName || '') + ' ' + (user.lastName || ''),
-            email: user.email || '',
-            role: user.role || 'COMPANY_ADMIN',
-            companyName: companySlug || 'Unknown Company'
-          }}
-          onLogout={handleLogout}
-          pendingNotifications={stats.pendingApprovals}
-        />
 
-        <main className="flex-1 overflow-auto p-6">
+      <main className="flex-1 overflow-auto p-6">
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-foreground">Company Dashboard</h1>
             <p className="text-muted-foreground">
@@ -181,7 +173,7 @@ export default function CompanyAdminDashboard() {
                     <p className="text-sm text-muted-foreground mb-4">
                       Employee management, leave tracking, and HR analytics
                     </p>
-                    <Link href={`/${companySlug}/employees`}>
+                    <Link href={`/${companySlug}/hr/dashboard`}>
                       <Button 
                         variant="outline" 
                         size="sm" 
@@ -328,7 +320,6 @@ export default function CompanyAdminDashboard() {
             </Card>
           </div>
         </main>
-      </div>
     </div>
   );
 }

@@ -23,13 +23,16 @@ const getMenuItems = (userRole: string, companySlug?: string, employeeSlug?: str
     ],
     COMPANY_ADMIN: [
       { icon: BarChart3, label: "Dashboard", path: "dashboard", badge: null },
+      { icon: Settings, label: "Company Settings", path: "settings", badge: null },
+    ],
+    HR_MODULE: [
+      { icon: BarChart3, label: "HR Dashboard", path: "hr/dashboard", badge: null },
       { icon: Users, label: "Employees", path: "employees", badge: null },
       { icon: Building2, label: "Departments", path: "departments", badge: null },
       { icon: FileText, label: "Documents", path: "documents", badge: "12" },
       { icon: Calendar, label: "Leave Management", path: "leave", badge: "3" },
       { icon: Clock, label: "Attendance", path: "attendance", badge: null },
       { icon: UserCheck, label: "Probation Tracking", path: "probation", badge: "5" },
-      { icon: Settings, label: "Company Settings", path: "settings", badge: null },
     ],
     EMPLOYEE: [
       { icon: BarChart3, label: "My Dashboard", path: "dashboard", badge: null },
@@ -48,7 +51,7 @@ const getMenuItems = (userRole: string, companySlug?: string, employeeSlug?: str
     
     if (userRole === 'SUPER_ADMIN') {
       href = `/super-admin/${item.path}`;
-    } else if (['COMPANY_ADMIN', 'HR_MANAGER', 'DEPARTMENT_MANAGER'].includes(userRole)) {
+    } else if (['COMPANY_ADMIN', 'HR_MANAGER', 'DEPARTMENT_MANAGER', 'HR_MODULE'].includes(userRole)) {
       if (companySlug) {
         href = `/${companySlug}/${item.path}`;
       } else {
