@@ -59,19 +59,19 @@ export default function EmployeeList() {
   // Fetch employees with enhanced Phase 2 data
   const { data: employees = [], isLoading: employeesLoading } = useQuery<Employee[]>({
     queryKey: ["/api/employees", companyContext],
-    enabled: !!user && ['COMPANY_ADMIN', 'HR_MANAGER'].includes(user?.role || '')
+    enabled: !!user && ['SUPER_ADMIN', 'COMPANY_ADMIN', 'HR_MANAGER'].includes(user?.role || '')
   });
 
   const { data: departments = [] } = useQuery<Department[]>({
     queryKey: ["/api/departments", companyContext],
-    enabled: !!user && ['COMPANY_ADMIN', 'HR_MANAGER'].includes(user?.role || '')
+    enabled: !!user && ['SUPER_ADMIN', 'COMPANY_ADMIN', 'HR_MANAGER'].includes(user?.role || '')
   });
 
   const handleLogout = () => {
     window.location.href = "/api/logout";
   };
 
-  if (!user || !['SUPER_ADMIN', 'COMPANY_ADMIN', 'HR_MANAGER'].includes(user?.role || '')) {
+  if (!user || !['SUPER_ADMIN', 'COMPANY_ADMIN', 'HR_MANAGER', 'DEPARTMENT_MANAGER'].includes(user?.role || '')) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center space-y-4">

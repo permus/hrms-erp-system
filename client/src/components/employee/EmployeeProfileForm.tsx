@@ -15,6 +15,7 @@ import { format } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import DocumentUpload from "./DocumentUpload";
+import { insertEmployeeSchema } from "@shared/schema";
 
 // UAE Emirates for dropdown
 const UAE_EMIRATES = [
@@ -30,19 +31,21 @@ const LANGUAGES = [
 const EMPLOYMENT_TYPES = ["full-time", "part-time", "contract"] as const;
 const WORK_LOCATIONS = ["office", "remote", "hybrid"] as const;
 
-// Comprehensive employee profile schema for Phase 2
-const employeeProfileSchema = z.object({
-  // Personal Information
+// Enhanced employee profile schema that extends the backend schema for Phase 2
+const employeeProfileSchema = insertEmployeeSchema.extend({
+  // Enhanced Personal Information with calculated fields
   personalInfo: z.object({
     name: z.string().min(1, "Full name is required"),
     preferredName: z.string().optional(),
     fatherName: z.string().min(1, "Father's name is required"),
     motherName: z.string().min(1, "Mother's name is required"),
-    dob: z.date({ required_error: "Date of birth is required" }),
+    dob: z.date().transform((val) => val.toISOString()), // Normalize dates to ISO strings
     nationality: z.string().min(1, "Nationality is required"),
     languages: z.array(z.string()).min(1, "At least one language is required"),
     religion: z.string().optional(),
     maritalStatus: z.enum(["single", "married", "divorced", "widowed"]),
+    profilePhotoUrl: z.string().optional(),
+    age: z.coerce.number().optional(), // Calculated field
     emergencyContact: z.object({
       name: z.string().min(1, "Emergency contact name is required"),
       relation: z.string().min(1, "Relation is required"),
@@ -51,7 +54,7 @@ const employeeProfileSchema = z.object({
     })
   }),
 
-  // Contact Information  
+  // Enhanced Contact Information  
   contactInfo: z.object({
     personalEmail: z.string().email("Valid email is required"),
     companyEmail: z.string().email().optional(),
@@ -72,24 +75,27 @@ const employeeProfileSchema = z.object({
     }).optional()
   }),
 
-  // Employment Details
+  // Enhanced Employment Details with calculated fields
   employmentDetails: z.object({
     position: z.string().min(1, "Position is required"),
     departmentId: z.string().min(1, "Department is required"),
     reportingManagerId: z.string().optional(),
-    startDate: z.date({ required_error: "Start date is required" }),
+    startDate: z.date().transform((val) => val.toISOString()), // Normalize dates to ISO strings
     employmentStatus: z.enum(["active", "probation", "notice_period", "terminated"]),
     employmentType: z.enum(EMPLOYMENT_TYPES),
     workLocation: z.enum(WORK_LOCATIONS),
-    probationMonths: z.number().min(0).max(12).default(6)
+    probationMonths: z.coerce.number().min(0).max(12).default(6),
+    probationEndDate: z.string().optional(), // Calculated field
+    tenure: z.coerce.number().optional() // Calculated field
   }),
 
-  // Compensation & Benefits
+  // Enhanced Compensation & Benefits with calculated fields
   compensation: z.object({
-    basicSalary: z.number().min(0, "Basic salary must be positive"),
-    housingAllowance: z.number().min(0).default(0),
-    transportAllowance: z.number().min(0).default(0),
-    otherAllowance: z.number().min(0).default(0),
+    basicSalary: z.coerce.number().min(0, "Basic salary must be positive"),
+    housingAllowance: z.coerce.number().min(0).default(0),
+    transportAllowance: z.coerce.number().min(0).default(0),
+    otherAllowance: z.coerce.number().min(0).default(0),
+    totalSalary: z.coerce.number().optional(), // Calculated field
     benefits: z.object({
       medicalInsurance: z.boolean().default(false),
       lifeInsurance: z.boolean().default(false)
@@ -98,42 +104,66 @@ const employeeProfileSchema = z.object({
       bankName: z.string().min(1, "Bank name is required"),
       accountNumber: z.string().min(1, "Account number is required"),
       iban: z.string().min(1, "IBAN is required")
-    })
+    }),
+    endOfServiceGratuity: z.coerce.number().optional() // Calculated field
   }),
 
-  // UAE Legal Documents
+  // Enhanced UAE Legal Documents with document URLs
   emiratesIdInfo: z.object({
     idNumber: z.string().min(1, "Emirates ID number is required"),
-    expiryDate: z.date({ required_error: "Emirates ID expiry date is required" }),
-    status: z.enum(["valid", "expired", "pending_renewal"])
+    expiryDate: z.date().transform((val) => val.toISOString()),
+    status: z.enum(["valid", "expired", "pending_renewal"]),
+    documents: z.object({
+      frontUrl: z.string().optional(),
+      backUrl: z.string().optional()
+    }).optional()
   }),
 
   visaInfo: z.object({
     type: z.string().min(1, "Visa type is required"),
     number: z.string().min(1, "Visa number is required"),
-    expiryDate: z.date({ required_error: "Visa expiry date is required" }),
+    expiryDate: z.date().transform((val) => val.toISOString()),
     sponsor: z.string().min(1, "Sponsor is required"),
-    status: z.enum(["valid", "expired", "pending_renewal"])
+    status: z.enum(["valid", "expired", "pending_renewal"]),
+    documents: z.object({
+      visaPageUrl: z.string().optional(),
+      entryStampUrl: z.string().optional()
+    }).optional()
   }),
 
   passportInfo: z.object({
     number: z.string().min(1, "Passport number is required"),
     nationality: z.string().min(1, "Passport nationality is required"),
-    expiryDate: z.date({ required_error: "Passport expiry date is required" }),
-    placeOfIssue: z.string().min(1, "Place of issue is required")
+    expiryDate: z.date().transform((val) => val.toISOString()),
+    placeOfIssue: z.string().min(1, "Place of issue is required"),
+    documents: z.object({
+      biodataPageUrl: z.string().optional(),
+      visaPagesUrls: z.array(z.string()).optional()
+    }).optional()
   }),
 
   workPermitInfo: z.object({
     number: z.string().min(1, "Work permit number is required"),
-    expiryDate: z.date({ required_error: "Work permit expiry date is required" }),
-    restrictions: z.string().optional()
+    expiryDate: z.date().transform((val) => val.toISOString()),
+    restrictions: z.string().optional(),
+    documents: z.object({
+      workPermitUrl: z.string().optional()
+    }).optional()
   }).optional(),
 
   laborCardInfo: z.object({
     number: z.string().min(1, "Labor card number is required"),
-    expiryDate: z.date({ required_error: "Labor card expiry date is required" }),
-    profession: z.string().min(1, "Profession is required")
+    expiryDate: z.date().transform((val) => val.toISOString()),
+    profession: z.string().min(1, "Profession is required"),
+    documents: z.object({
+      laborCardUrl: z.string().optional()
+    }).optional()
   }).optional()
+}).omit({ 
+  id: true, 
+  createdAt: true, 
+  updatedAt: true, 
+  deletedAt: true 
 });
 
 type EmployeeProfileFormData = z.infer<typeof employeeProfileSchema>;

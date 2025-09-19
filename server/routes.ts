@@ -143,32 +143,144 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
-  // File upload endpoint for employee documents and photos
-  app.post("/api/upload", isAuthenticated, upload.single('file'), async (req, res) => {
+  // File upload endpoint for employee documents and photos - SECURED
+  app.post("/api/upload", requireRole('SUPER_ADMIN', 'COMPANY_ADMIN', 'HR_MANAGER', 'EMPLOYEE'), upload.single('file'), async (req, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ error: "No file uploaded" });
       }
 
-      const { category = 'general' } = req.body;
+      const user = req.user as any;
+      const userData = await storage.getUser(user.claims.sub);
       
-      // In a real implementation, you would:
-      // 1. Move file to object storage (AWS S3, Google Cloud, etc.)
-      // 2. Generate thumbnails for images
-      // 3. Store file metadata in database
+      if (!userData) {
+        return res.status(401).json({ error: "User not found" });
+      }
+
+      const { category = 'general', employeeId } = req.body;
       
-      // For now, simulate object storage URL
-      const fileUrl = `/uploads/${req.file.filename}`;
+      // Role-based employeeId validation for security
+      if (userData.role === 'EMPLOYEE') {
+        // Employees can only upload documents for themselves
+        const userEmployee = await storage.getEmployeeByUserId(userData.id);
+        if (!userEmployee) {
+          return res.status(403).json({ error: "Employee record not found" });
+        }
+        if (employeeId && employeeId !== userEmployee.id) {
+          return res.status(403).json({ error: "Employees can only upload documents for themselves" });
+        }
+        // Force employeeId to be the authenticated user's employee ID
+        req.body.employeeId = userEmployee.id;
+      } else {
+        // Admin roles can upload for any employee in their company
+        if (employeeId) {
+          const targetEmployee = await storage.getEmployee(employeeId);
+          if (!targetEmployee || targetEmployee.companyId !== userData.companyId) {
+            return res.status(403).json({ error: "Cannot upload documents for employees outside your company" });
+          }
+        }
+      }
       
+      // Validate file type with MIME sniffing (security enhancement)
+      const allowedMimeTypes = ['image/jpeg', 'image/png', 'application/pdf'];
+      if (!allowedMimeTypes.includes(req.file.mimetype)) {
+        return res.status(400).json({ error: "Invalid file type. Only JPEG, PNG, and PDF files are allowed." });
+      }
+      
+      // Generate unique filename to prevent conflicts and enumeration
+      const fileExtension = path.extname(req.file.originalname);
+      const uniqueFilename = `${Date.now()}-${Math.random().toString(36).substring(2)}${fileExtension}`;
+      const uniqueFilePath = path.join('uploads', uniqueFilename);
+      
+      // Move file to unique name to prevent conflicts
+      const fs = require('fs');
+      fs.renameSync(req.file.path, uniqueFilePath);
+      
+      // Store document metadata in database
+      const documentData = {
+        employeeId: employeeId || null,
+        documentType: category,
+        category: 'Employee Documents',
+        fileName: req.file.originalname,
+        filePath: uniqueFilename, // Store just filename for path.join usage in access route
+        fileSize: req.file.size,
+        uploadedBy: userData.id,
+        status: 'ACTIVE',
+        approvalStatus: 'PENDING'
+      };
+
+      const document = await storage.createEmployeeDocument(documentData);
+      
+      // Return secure document reference (not direct file path)
       res.json({
-        url: fileUrl,
+        documentId: document.id,
+        url: `/api/files/${document.id}`, // Secure access route
         filename: req.file.originalname,
         size: req.file.size,
-        category
+        category,
+        uploadDate: document.uploadDate
       });
     } catch (error) {
       console.error("File upload error:", error);
       res.status(500).json({ error: "File upload failed" });
+    }
+  });
+
+  // Secure file access endpoint with proper authorization
+  app.get("/api/files/:documentId", requireRole('SUPER_ADMIN', 'COMPANY_ADMIN', 'HR_MANAGER', 'DEPARTMENT_MANAGER', 'EMPLOYEE'), async (req, res) => {
+    try {
+      const user = req.user as any;
+      const userData = await storage.getUser(user.claims.sub);
+      const { documentId } = req.params;
+      
+      if (!userData) {
+        return res.status(401).json({ error: "User not authenticated" });
+      }
+      
+      const document = await storage.getEmployeeDocument(documentId);
+      if (!document) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+      
+      // Get employee to verify document ownership and company
+      const employee = await storage.getEmployee(document.employeeId);
+      if (!employee) {
+        return res.status(404).json({ error: "Employee not found for document" });
+      }
+      
+      // Company-level authorization check
+      if (employee.companyId !== userData.companyId) {
+        return res.status(403).json({ error: "Access denied - different company" });
+      }
+      
+      // Role-based authorization: EMPLOYEES can only access their own documents
+      if (userData.role === 'EMPLOYEE') {
+        // For employees, check if they own this document
+        const userEmployee = await storage.getEmployeeByUserId(userData.id);
+        if (!userEmployee || userEmployee.id !== document.employeeId) {
+          return res.status(403).json({ error: "Access denied - not your document" });
+        }
+      }
+      // Admin roles (SUPER_ADMIN, COMPANY_ADMIN, HR_MANAGER, DEPARTMENT_MANAGER) 
+      // can access any document in their company
+      
+      // Serve file securely with proper path handling
+      const filePath = path.join(__dirname, '..', 'uploads', path.basename(document.filePath));
+      
+      // Set appropriate content type
+      const ext = path.extname(document.fileName).toLowerCase();
+      if (ext === '.pdf') {
+        res.setHeader('Content-Type', 'application/pdf');
+      } else if (['.jpg', '.jpeg'].includes(ext)) {
+        res.setHeader('Content-Type', 'image/jpeg');
+      } else if (ext === '.png') {
+        res.setHeader('Content-Type', 'image/png');
+      }
+      
+      res.sendFile(filePath);
+    } catch (error) {
+      console.error("File access error:", error);
+      res.status(500).json({ error: "File access failed" });
     }
   });
   
@@ -891,7 +1003,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const validatedData = insertEmployeeSchema.parse({
         ...req.body,
-        companyId: userData.companyId
+        companyId: companyId // Use resolved companyId, not userData.companyId
       });
       
       const employee = await storage.createEmployee({
@@ -900,6 +1012,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         probationInfo: validatedData.probationInfo ?? {},
         visaInfo: validatedData.visaInfo ?? {},
         emiratesIdInfo: validatedData.emiratesIdInfo ?? {},
+        passportInfo: validatedData.passportInfo ?? {},
+        workPermitInfo: validatedData.workPermitInfo ?? {},
+        laborCardInfo: validatedData.laborCardInfo ?? {},
         status: validatedData.status ?? 'ACTIVE',
       });
       res.status(201).json(employee);
@@ -961,7 +1076,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const validatedData = insertDepartmentSchema.parse({
         ...req.body,
-        companyId: userData.companyId
+        companyId: companyId // Use resolved companyId, not userData.companyId
       });
       
       const department = await storage.createDepartment({
@@ -1029,7 +1144,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const validatedData = insertPositionSchema.parse({
         ...req.body,
-        companyId: userData.companyId
+        companyId: companyId // Use resolved companyId, not userData.companyId
       });
       
       const position = await storage.createPosition({

@@ -15,6 +15,8 @@ interface DocumentUploadProps {
   className?: string;
   label?: string;
   description?: string;
+  employeeId?: string; // CRITICAL: Link documents to employees
+  category?: string;
   "data-testid"?: string;
 }
 
@@ -27,6 +29,8 @@ export default function DocumentUpload({
   className,
   label,
   description,
+  employeeId, // CRITICAL: Link documents to employees
+  category = "general",
   "data-testid": testId
 }: DocumentUploadProps) {
   const { toast } = useToast();
@@ -83,7 +87,12 @@ export default function DocumentUpload({
       const uploadPromises = files.map(async (file) => {
         const formData = new FormData();
         formData.append('file', file);
-        formData.append('category', 'employee-documents');
+        formData.append('category', category);
+        
+        // CRITICAL: Include employeeId to link documents properly
+        if (employeeId) {
+          formData.append('employeeId', employeeId);
+        }
 
         const response = await fetch('/api/upload', {
           method: 'POST',
