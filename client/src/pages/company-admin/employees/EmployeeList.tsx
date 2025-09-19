@@ -396,8 +396,6 @@ export default function EmployeeList() {
               })}
             </div>
           )}
-        </main>
-      </div>
     </div>
   );
 }
