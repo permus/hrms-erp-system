@@ -8,8 +8,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { CalendarIcon, Upload, User, FileText, MapPin, CreditCard, Shield } from "lucide-react";
-import { useState } from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { CalendarIcon, Upload, User, FileText, MapPin, CreditCard, Shield, CheckCircle, Circle } from "lucide-react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
@@ -446,6 +449,38 @@ export default function EmployeeProfileForm({
     }
   });
 
+  // Tab state management (must be after form initialization)
+  const [activeTab, setActiveTab] = useState("personal");
+  const [completedSections, setCompletedSections] = useState<Record<string, boolean>>({});
+
+  // Tab configuration with progress tracking
+  const tabs = [
+    { id: "personal", title: "Personal Info", icon: User, required: ["personalInfo.name", "personalInfo.dob", "personalInfo.nationality"] },
+    { id: "contact", title: "Contact Info", icon: MapPin, required: ["contactInfo.personalEmail", "contactInfo.uaePhone"] },
+    { id: "employment", title: "Employment", icon: FileText, required: ["employmentDetails.position", "employmentDetails.departmentId", "employmentDetails.startDate"] },
+    { id: "legal", title: "Legal & Compliance", icon: Shield, required: ["emiratesIdInfo.idNumber", "visaInfo.type", "passportInfo.number"] },
+    { id: "compensation", title: "Compensation", icon: CreditCard, required: ["compensation.basicSalary", "compensation.bankDetails.bankName"] }
+  ];
+
+  // Calculate completion status for each section (safe hook dependency)
+  useEffect(() => {
+    const subscription = form.watch((value) => {
+      const newCompletedSections: Record<string, boolean> = {};
+      
+      tabs.forEach(tab => {
+        const isComplete = tab.required.every(path => {
+          const formValue = form.getValues(path as any);
+          return formValue !== undefined && formValue !== null && formValue !== '';
+        });
+        newCompletedSections[tab.id] = isComplete;
+      });
+      
+      setCompletedSections(newCompletedSections);
+    });
+    
+    return () => subscription.unsubscribe();
+  }, [form]);
+
   // Transform form data to backend JSONB format
   const transformFormDataToBackend = (data: EmployeeProfileFormData): InsertEmployee => {
     return {
@@ -559,12 +594,63 @@ export default function EmployeeProfileForm({
     return tenure * daysPerYear * dailySalary;
   };
 
+  // Calculate overall progress
+  const completedCount = Object.values(completedSections).filter(Boolean).length;
+  const progressPercentage = Math.round((completedCount / tabs.length) * 100);
+
   return (
-    <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-8">
-      
-      {/* Personal Information Section */}
-      <Card>
-        <CardHeader>
+    <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6 max-w-5xl mx-auto">
+      {/* Progress Header */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold">Employee Profile</h2>
+          <Badge variant={progressPercentage === 100 ? "default" : "secondary"}>
+            {completedCount}/{tabs.length} sections completed
+          </Badge>
+        </div>
+        <div className="space-y-2">
+          <div className="flex items-center justify-between text-sm text-muted-foreground">
+            <span>Overall Progress</span>
+            <span>{progressPercentage}%</span>
+          </div>
+          <Progress value={progressPercentage} className="h-2" />
+        </div>
+      </div>
+
+      {/* Tabbed Interface */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-5 mb-8">
+          {tabs.map((tab, index) => {
+            const Icon = tab.icon;
+            const isCompleted = completedSections[tab.id];
+            const isCurrent = activeTab === tab.id;
+            
+            return (
+              <TabsTrigger 
+                key={tab.id} 
+                value={tab.id}
+                className="flex items-center gap-2 text-xs sm:text-sm"
+                data-testid={`tab-${tab.id}`}
+              >
+                <div className="flex items-center gap-1">
+                  {isCompleted ? (
+                    <CheckCircle className="w-4 h-4 text-green-500" />
+                  ) : isCurrent ? (
+                    <Icon className="w-4 h-4" />
+                  ) : (
+                    <Circle className="w-4 h-4" />
+                  )}
+                  <span className="hidden sm:inline">{tab.title}</span>
+                </div>
+              </TabsTrigger>
+            );
+          })}
+        </TabsList>
+
+        {/* Personal Information Tab */}
+        <TabsContent value="personal">
+          <Card>
+            <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <User className="w-5 h-5" />
             Personal Information
@@ -793,9 +879,12 @@ export default function EmployeeProfileForm({
         </CardContent>
       </Card>
 
-      {/* Employment Details Section */}
-      <Card>
-        <CardHeader>
+        </TabsContent>
+
+        {/* Contact Information Tab */}
+        <TabsContent value="contact">
+          <Card>
+            <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <FileText className="w-5 h-5" />
             Employment Details
@@ -936,9 +1025,12 @@ export default function EmployeeProfileForm({
         </CardContent>
       </Card>
 
-      {/* Contact Information Section */}
-      <Card>
-        <CardHeader>
+        </TabsContent>
+
+        {/* Employment Details Tab */}
+        <TabsContent value="employment">
+          <Card>
+            <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <MapPin className="w-5 h-5" />
             Contact Information
@@ -1112,9 +1204,12 @@ export default function EmployeeProfileForm({
         </CardContent>
       </Card>
 
-      {/* Legal & Compliance Section */}
-      <Card>
-        <CardHeader>
+        </TabsContent>
+
+        {/* Legal & Compliance Tab */}
+        <TabsContent value="legal">
+          <Card>
+            <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Shield className="w-5 h-5" />
             Legal & Compliance Documentation
@@ -1485,9 +1580,12 @@ export default function EmployeeProfileForm({
         </CardContent>
       </Card>
 
-      {/* Compensation Section */}
-      <Card>
-        <CardHeader>
+        </TabsContent>
+
+        {/* Compensation Tab */}
+        <TabsContent value="compensation">
+          <Card>
+            <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <CreditCard className="w-5 h-5" />
             Compensation & Benefits
@@ -1630,7 +1728,15 @@ export default function EmployeeProfileForm({
             </div>
           </div>
         </CardContent>
-      </Card>
+          </Card>
+        </TabsContent>
+
+        {/* Other tabs placeholder */}
+        <TabsContent value="contact"><Card><CardHeader><CardTitle>Contact Information</CardTitle></CardHeader><CardContent><p>Coming soon</p></CardContent></Card></TabsContent>
+        <TabsContent value="employment"><Card><CardHeader><CardTitle>Employment Details</CardTitle></CardHeader><CardContent><p>Coming soon</p></CardContent></Card></TabsContent>
+        <TabsContent value="legal"><Card><CardHeader><CardTitle>Legal & Compliance</CardTitle></CardHeader><CardContent><p>Coming soon</p></CardContent></Card></TabsContent>
+        <TabsContent value="compensation"><Card><CardHeader><CardTitle>Compensation</CardTitle></CardHeader><CardContent><p>Coming soon</p></CardContent></Card></TabsContent>
+      </Tabs>
 
       {/* Action Buttons */}
       <div className="flex justify-end space-x-4">
