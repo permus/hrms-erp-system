@@ -656,7 +656,7 @@ export default function EmployeeProfileForm({
       {/* Form Content */}
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
         <Card className="border-2">
-          <CardContent className="p-6 max-h-96 overflow-y-auto">
+          <CardContent className="p-6">
             {renderCurrentStep()}
           </CardContent>
         </Card>
