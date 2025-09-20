@@ -12,7 +12,7 @@ export default function EditEmployee() {
   const { user } = useAuth();
 
   // Resolve company slug from user data when not in URL (fallback routes)
-  const { data: userSlugs } = useQuery({
+  const { data: userSlugs } = useQuery<{companySlugs?: string[]}>({
     queryKey: ['/api/resolve/me'],
     enabled: !paramSlug && !!user,
   });
@@ -136,7 +136,7 @@ export default function EditEmployee() {
           <EmployeeProfileForm
             employee={employee}
             departments={departments}
-            employees={employees}
+            employees={employees.map(emp => ({ id: emp.id, personalInfo: emp.personalInfo || {} }))}
             onSubmit={handleSubmit}
             onCancel={handleCancel}
           />

@@ -9,11 +9,15 @@ import {
   PieChart,
   DollarSign,
   FolderOpen,
-  UserCheck
+  UserCheck,
+  Menu,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
 import {
   Sidebar,
   SidebarContent,
@@ -25,9 +29,11 @@ import {
   SidebarMenuItem,
   SidebarHeader,
   SidebarFooter,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 // Navigation items for main company dashboard
 const mainMenuItems = [
@@ -86,6 +92,20 @@ const mainMenuItems = [
 export function MainDashboardSidebar() {
   const { user } = useAuth();
   const [location] = useLocation();
+  const { state: sidebarState, setOpen, isMobile } = useSidebar();
+  
+  // Sidebar collapsed state - default to collapsed for cleaner interface
+  const [isCollapsed, setIsCollapsed] = useState(true);
+  
+  // Auto-collapse after navigation (except initial load)
+  const [hasNavigated, setHasNavigated] = useState(false);
+  useEffect(() => {
+    if (hasNavigated) {
+      setIsCollapsed(true);
+    } else {
+      setHasNavigated(true);
+    }
+  }, [location, hasNavigated]);
   
   // Get user's company context for navigation
   const { data: userSlugs } = useQuery<{companySlugs?: string[]}>({
@@ -107,23 +127,45 @@ export function MainDashboardSidebar() {
     ? `${userData.firstName[0]}${userData.lastName[0]}`.toUpperCase()
     : userData?.email?.[0]?.toUpperCase() || 'U';
 
+  const toggleSidebar = () => {
+    setIsCollapsed(!isCollapsed);
+  };
+
   return (
-    <Sidebar data-testid="sidebar-main-navigation">
+    <Sidebar 
+      data-testid="sidebar-main-navigation" 
+      className={cn("transition-all duration-300", isCollapsed && !isMobile ? "w-16" : "")}
+      collapsible="icon"
+      variant={isCollapsed && !isMobile ? "floating" : "sidebar"}
+    >
       <SidebarHeader className="border-b p-4">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center justify-center w-8 h-8 bg-primary text-primary-foreground rounded-md font-semibold">
-            ERP
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center justify-center w-8 h-8 bg-primary text-primary-foreground rounded-md font-semibold">
+              ERP
+            </div>
+            {!isCollapsed && (
+              <div className="flex flex-col">
+                <span className="text-sm font-semibold">Business Platform</span>
+                <span className="text-xs text-muted-foreground">Company Management</span>
+              </div>
+            )}
           </div>
-          <div className="flex flex-col">
-            <span className="text-sm font-semibold">Business Platform</span>
-            <span className="text-xs text-muted-foreground">Company Management</span>
-          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleSidebar}
+            className="h-8 w-8"
+            data-testid="button-toggle-sidebar"
+          >
+            {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+          </Button>
         </div>
       </SidebarHeader>
       
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Main Modules</SidebarGroupLabel>
+          {!isCollapsed && <SidebarGroupLabel>Main Modules</SidebarGroupLabel>}
           <SidebarGroupContent>
             <SidebarMenu>
               {mainMenuItems.map((item) => {
@@ -137,17 +179,33 @@ export function MainDashboardSidebar() {
                       isActive={isActive} 
                       data-testid={`nav-${item.title.toLowerCase().replace(' ', '-')}`}
                       disabled={item.comingSoon}
+                      className={cn(
+                        "justify-start",
+                        isCollapsed && "justify-center px-2",
+                        item.comingSoon && "opacity-60 cursor-not-allowed"
+                      )}
+                      size={isCollapsed ? "sm" : "default"}
                     >
                       {item.comingSoon ? (
-                        <div className="flex items-center gap-3 text-muted-foreground">
-                          <item.icon className="w-4 h-4" />
-                          <span>{item.title}</span>
-                          <span className="text-xs">(Coming Soon)</span>
+                        <div className={cn(
+                          "flex items-center gap-3 text-muted-foreground",
+                          isCollapsed && "gap-0 justify-center"
+                        )}>
+                          <item.icon className="w-4 h-4 flex-shrink-0" />
+                          {!isCollapsed && (
+                            <>
+                              <span>{item.title}</span>
+                              <span className="text-xs">(Coming Soon)</span>
+                            </>
+                          )}
                         </div>
                       ) : (
-                        <Link href={fullPath}>
-                          <item.icon className="w-4 h-4" />
-                          <span>{item.title}</span>
+                        <Link href={fullPath} className={cn(
+                          "flex items-center gap-3 w-full",
+                          isCollapsed && "justify-center gap-0"
+                        )}>
+                          <item.icon className="w-4 h-4 flex-shrink-0" />
+                          {!isCollapsed && <span>{item.title}</span>}
                         </Link>
                       )}
                     </SidebarMenuButton>
@@ -160,29 +218,37 @@ export function MainDashboardSidebar() {
       </SidebarContent>
       
       <SidebarFooter className="border-t p-4">
-        <div className="flex items-center gap-3 mb-3">
+        <div className={cn(
+          "flex items-center gap-3 mb-3",
+          isCollapsed && "justify-center"
+        )}>
           <Avatar className="w-8 h-8">
             <AvatarImage src={userData?.profileImageUrl} />
             <AvatarFallback className="text-xs">{userInitials}</AvatarFallback>
           </Avatar>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium truncate">
-              {userData?.firstName ? `${userData.firstName} ${userData.lastName || ''}`.trim() : userData?.email}
-            </p>
-            <p className="text-xs text-muted-foreground truncate">
-              {userData?.role?.replace('_', ' ')}
-            </p>
-          </div>
+          {!isCollapsed && (
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium truncate">
+                {userData?.firstName ? `${userData.firstName} ${userData.lastName || ''}`.trim() : userData?.email}
+              </p>
+              <p className="text-xs text-muted-foreground truncate">
+                {userData?.role?.replace('_', ' ')}
+              </p>
+            </div>
+          )}
         </div>
         <Button 
           variant="ghost" 
-          size="sm" 
+          size={isCollapsed ? "icon" : "sm"}
           onClick={handleLogout}
-          className="w-full justify-start"
+          className={cn(
+            "w-full",
+            isCollapsed ? "justify-center" : "justify-start"
+          )}
           data-testid="button-logout"
         >
-          <LogOut className="w-4 h-4 mr-2" />
-          Logout
+          <LogOut className="w-4 h-4" />
+          {!isCollapsed && <span className="ml-2">Logout</span>}
         </Button>
       </SidebarFooter>
     </Sidebar>
