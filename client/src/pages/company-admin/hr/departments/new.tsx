@@ -107,14 +107,15 @@ export default function NewDepartment() {
       
       return apiRequest('POST', '/api/departments', payload);
     },
-    onSuccess: (newDepartment: any) => {
+    onSuccess: async (response: Response) => {
+      const newDepartment = await response.json();
       toast({
         title: "Department Created",
         description: `Department "${newDepartment.name}" has been successfully created.`,
       });
       
       // Invalidate queries to refresh department list
-      queryClient.invalidateQueries({ queryKey: ['/api/departments', companySlug] });
+      queryClient.invalidateQueries({ queryKey: ['/api/departments'] });
       
       // Navigate back to departments list
       setLocation(departmentsListPath);

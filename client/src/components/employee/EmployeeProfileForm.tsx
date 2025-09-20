@@ -42,7 +42,7 @@ type SimplifiedEmployeeFormData = z.infer<typeof simplifiedEmployeeSchema>;
 interface EmployeeProfileFormProps {
   employee?: any;
   departments: Array<{ id: string; name: string }>;
-  employees: Array<{ id: string; personalInfo: any }>;
+  employees: Array<{ id: string; personalInfo?: any }>;
   onSubmit: (data: InsertEmployee) => void;
   onCancel: () => void;
   isLoading?: boolean;
@@ -451,20 +451,6 @@ export default function EmployeeProfileForm({
                 )}
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="reportTo">Report To</Label>
-                <Select onValueChange={(value) => form.setValue("employmentDetails.reportingManagerId", value)}>
-                  <SelectTrigger data-testid="select-report-to">
-                    <SelectValue placeholder="Select reporting manager" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="owner">Owner</SelectItem>
-                    {employees.filter(emp => emp.personalInfo?.name).map((emp) => (
-                      <SelectItem key={emp.id} value={emp.id}>{emp.personalInfo?.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
 
               <div className="space-y-2">
                 <Label htmlFor="startDate">Start Date *</Label>

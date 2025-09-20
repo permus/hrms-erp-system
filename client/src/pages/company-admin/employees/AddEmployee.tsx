@@ -15,7 +15,7 @@ export default function AddEmployee() {
   const { toast } = useToast();
 
   // Resolve company slug from user data when not in URL (fallback routes)
-  const { data: userSlugs } = useQuery({
+  const { data: userSlugs } = useQuery<{ role: string; companySlugs: string[]; employeeSlug?: string }>({
     queryKey: ['/api/resolve/me'],
     enabled: !paramSlug && !!user,
   });
@@ -71,10 +71,11 @@ export default function AddEmployee() {
       
       return apiRequest('POST', '/api/employees', payload);
     },
-    onSuccess: (newEmployee) => {
+    onSuccess: async (response) => {
+      const newEmployee = await response.json();
       toast({
         title: "Employee Created",
-        description: `Employee ${newEmployee.personalInfo?.name} has been successfully added.`,
+        description: `Employee has been successfully added.`,
       });
       
       // Invalidate queries to refresh employee list
