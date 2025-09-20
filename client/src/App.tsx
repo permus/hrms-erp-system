@@ -9,6 +9,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { MainDashboardLayout } from "@/components/MainDashboardLayout";
 import { HRModuleLayout } from "@/components/HRModuleLayout";
+import { PayrollModuleLayout } from "@/components/PayrollModuleLayout";
+import { FinanceModuleLayout } from "@/components/FinanceModuleLayout";
 import Landing from "@/pages/landing";
 import Home from "@/pages/home";
 import SuperAdminDashboard from "@/pages/super-admin/dashboard";
@@ -33,12 +35,33 @@ import SigninPage from "@/pages/auth/signin";
 import ChangePasswordPage from "@/pages/auth/change-password";
 import NotFound from "@/pages/not-found";
 
+// Payroll Module Pages
+import PayrollDashboard from "@/pages/payroll/dashboard";
+import SalaryProcessing from "@/pages/payroll/salary-processing";
+import Payslips from "@/pages/payroll/payslips";
+import TaxManagement from "@/pages/payroll/tax-management";
+
+// Finance Module Pages
+import FinanceDashboard from "@/pages/finance/dashboard";
+import Expenses from "@/pages/finance/expenses";
+import Budgets from "@/pages/finance/budgets";
+import FinanceReports from "@/pages/finance/reports";
+
 // Type for the /api/resolve/me response
 type UserSlugsResponse = {
   role: string;
   companySlugs: string[];
   employeeSlug?: string;
 };
+
+// Simple redirect component for SPA navigation
+function Redirect({ to }: { to: string }) {
+  const [, setLocation] = useLocation();
+  useEffect(() => {
+    setLocation(to);
+  }, [to, setLocation]);
+  return null;
+}
 
 function RoleBasedRedirect() {
   const { user, isAuthenticated } = useAuth();
@@ -99,30 +122,21 @@ function RoleBasedRedirect() {
 
 // Main Dashboard Routes with Main Dashboard Sidebar
 function MainDashboardRoutes() {
-  console.log('[DEBUG] MainDashboardRoutes component mounted, current location:', window.location.pathname);
-  
   return (
     <MainDashboardLayout>
       <Switch>
-        {/* Company Dashboard routes */}
+        {/* Main Dashboard routes only - no employee management */}
         <Route path="/:companySlug/dashboard" component={CompanyAdminDashboard} />
         <Route path="/:companySlug/analytics" component={Home} />
         <Route path="/:companySlug/settings" component={Home} />
-        
-        {/* Employee routes - relative to mount point */}
-        <Route path="/" component={EmployeeList} />
-        <Route path="/new" component={AddEmployee} />
-        <Route path="/:employeeSlug/edit" component={EditEmployee} />
-        <Route path="/:employeeSlug" component={EmployeeProfile} />
+        <Route path="/dashboard" component={CompanyAdminDashboard} />
+        <Route path="/analytics" component={Home} />
+        <Route path="/settings" component={Home} />
         
         {/* Fallback routes for legacy/direct paths */}
         <Route path="/company-admin/dashboard" component={CompanyAdminDashboard} />
         <Route path="/company-admin/analytics" component={Home} />
         <Route path="/company-admin/settings" component={Home} />
-        <Route path="/company-admin/employees" component={EmployeeList} />
-        <Route path="/company-admin/employees/new" component={AddEmployee} />
-        <Route path="/company-admin/employees/:employeeSlug/edit" component={EditEmployee} />
-        <Route path="/company-admin/employees/:employeeSlug" component={EmployeeProfile} />
       </Switch>
     </MainDashboardLayout>
   );
@@ -133,37 +147,46 @@ function HRRoutes() {
   return (
     <HRModuleLayout>
       <Switch>
-        {/* HR routes - relative to mount point for /hr/* */}
-        <Route path="/dashboard" component={HRDashboard} />
-        <Route path="/employees" component={EmployeeList} />
-        <Route path="/employees/new" component={AddEmployee} />
-        <Route path="/employees/:employeeSlug/edit" component={EditEmployee} />
-        <Route path="/employees/:employeeSlug" component={EmployeeProfile} />
-        <Route path="/departments" component={HRDepartments} />
-        <Route path="/documents" component={HRDocuments} />
-        <Route path="/leave" component={HRLeave} />
-        <Route path="/attendance" component={HRAttendance} />
-        <Route path="/probation" component={HRProbation} />
+        {/* HR Dashboard */}
+        <Route path="/hr/dashboard" component={HRDashboard} />
         
-        {/* HR Module Routes - company-scoped full paths */}
+        {/* Employee Management */}
+        <Route path="/hr/employees" component={EmployeeList} />
+        <Route path="/hr/employees/new" component={AddEmployee} />
+        <Route path="/hr/employees/:employeeSlug/edit" component={EditEmployee} />
+        <Route path="/hr/employees/:employeeSlug" component={EmployeeProfile} />
+        
+        {/* Department Management */}
+        <Route path="/hr/departments" component={HRDepartments} />
+        <Route path="/hr/departments/new" component={() => <div>Coming Soon: Add Department</div>} />
+        
+        {/* HR Operations */}
+        <Route path="/hr/documents" component={HRDocuments} />
+        <Route path="/hr/leave-management" component={HRLeave} />
+        <Route path="/hr/attendance" component={HRAttendance} />
+        <Route path="/hr/probation-tracking" component={HRProbation} />
+        
+        {/* Company-scoped HR routes */}
         <Route path="/:companySlug/hr/dashboard" component={HRDashboard} />
         <Route path="/:companySlug/hr/employees" component={EmployeeList} />
         <Route path="/:companySlug/hr/employees/new" component={AddEmployee} />
         <Route path="/:companySlug/hr/employees/:employeeSlug/edit" component={EditEmployee} />
         <Route path="/:companySlug/hr/employees/:employeeSlug" component={EmployeeProfile} />
         <Route path="/:companySlug/hr/departments" component={HRDepartments} />
+        <Route path="/:companySlug/hr/departments/new" component={() => <div>Coming Soon: Add Department</div>} />
         <Route path="/:companySlug/hr/documents" component={HRDocuments} />
-        <Route path="/:companySlug/hr/leave" component={HRLeave} />
+        <Route path="/:companySlug/hr/leave-management" component={HRLeave} />
         <Route path="/:companySlug/hr/attendance" component={HRAttendance} />
-        <Route path="/:companySlug/hr/probation" component={HRProbation} />
+        <Route path="/:companySlug/hr/probation-tracking" component={HRProbation} />
         
-        {/* HR Module - fallback routes */}
+        {/* Legacy fallback routes */}
         <Route path="/company-admin/hr/dashboard" component={HRDashboard} />
         <Route path="/company-admin/hr/employees" component={EmployeeList} />
         <Route path="/company-admin/hr/employees/new" component={AddEmployee} />
         <Route path="/company-admin/hr/employees/:employeeSlug/edit" component={EditEmployee} />
         <Route path="/company-admin/hr/employees/:employeeSlug" component={EmployeeProfile} />
         <Route path="/company-admin/hr/departments" component={HRDepartments} />
+        <Route path="/company-admin/hr/departments/new" component={() => <div>Coming Soon: Add Department</div>} />
         <Route path="/company-admin/hr/documents" component={HRDocuments} />
         <Route path="/company-admin/hr/leave" component={HRLeave} />
         <Route path="/company-admin/hr/attendance" component={HRAttendance} />
@@ -173,6 +196,59 @@ function HRRoutes() {
   );
 }
 
+// Payroll Module Routes with Payroll-specific sidebar
+function PayrollRoutes() {
+  return (
+    <PayrollModuleLayout>
+      <Switch>
+        {/* Payroll routes - absolute paths for proper routing */}
+        <Route path="/payroll/dashboard" component={PayrollDashboard} />
+        <Route path="/payroll/salary-processing" component={SalaryProcessing} />
+        <Route path="/payroll/payslips" component={Payslips} />
+        <Route path="/payroll/tax-management" component={TaxManagement} />
+        
+        {/* Company-scoped Payroll routes */}
+        <Route path="/:companySlug/payroll/dashboard" component={PayrollDashboard} />
+        <Route path="/:companySlug/payroll/salary-processing" component={SalaryProcessing} />
+        <Route path="/:companySlug/payroll/payslips" component={Payslips} />
+        <Route path="/:companySlug/payroll/tax-management" component={TaxManagement} />
+        
+        {/* Legacy fallback routes */}
+        <Route path="/company-admin/payroll/dashboard" component={PayrollDashboard} />
+        <Route path="/company-admin/payroll/salary-processing" component={SalaryProcessing} />
+        <Route path="/company-admin/payroll/payslips" component={Payslips} />
+        <Route path="/company-admin/payroll/tax-management" component={TaxManagement} />
+      </Switch>
+    </PayrollModuleLayout>
+  );
+}
+
+// Finance Module Routes with Finance-specific sidebar
+function FinanceRoutes() {
+  return (
+    <FinanceModuleLayout>
+      <Switch>
+        {/* Finance routes - absolute paths for proper routing */}
+        <Route path="/finance/dashboard" component={FinanceDashboard} />
+        <Route path="/finance/expenses" component={Expenses} />
+        <Route path="/finance/budgets" component={Budgets} />
+        <Route path="/finance/reports" component={FinanceReports} />
+        
+        {/* Company-scoped Finance routes */}
+        <Route path="/:companySlug/finance/dashboard" component={FinanceDashboard} />
+        <Route path="/:companySlug/finance/expenses" component={Expenses} />
+        <Route path="/:companySlug/finance/budgets" component={Budgets} />
+        <Route path="/:companySlug/finance/reports" component={FinanceReports} />
+        
+        {/* Legacy fallback routes */}
+        <Route path="/company-admin/finance/dashboard" component={FinanceDashboard} />
+        <Route path="/company-admin/finance/expenses" component={Expenses} />
+        <Route path="/company-admin/finance/budgets" component={Budgets} />
+        <Route path="/company-admin/finance/reports" component={FinanceReports} />
+      </Switch>
+    </FinanceModuleLayout>
+  );
+}
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -206,18 +282,33 @@ function Router() {
         </>
       )}
 
+      {/* Module index redirects */}
+      <Route path="/hr" component={() => <Redirect to="/hr/dashboard" />} />
+      <Route path="/payroll" component={() => <Redirect to="/payroll/dashboard" />} />
+      <Route path="/finance" component={() => <Redirect to="/finance/dashboard" />} />
+      
       {/* Top-level HR routes (must come before slug-capturing routes) */}
       <Route path="/hr/*" component={HRRoutes} />
+      
+      {/* Top-level Payroll routes */}
+      <Route path="/payroll/*" component={PayrollRoutes} />
+      
+      {/* Top-level Finance routes */}
+      <Route path="/finance/*" component={FinanceRoutes} />
       
       {/* Company routes - accessible when authenticated or redirects to login */}
       <Route path="/:companySlug/dashboard" component={MainDashboardRoutes} />
       <Route path="/:companySlug/analytics" component={MainDashboardRoutes} />
       <Route path="/:companySlug/settings" component={MainDashboardRoutes} />
-      <Route path="/:companySlug/employees" component={MainDashboardRoutes} />
-      <Route path="/:companySlug/employees/new" component={MainDashboardRoutes} />
-      <Route path="/:companySlug/employees/:employeeSlug" component={MainDashboardRoutes} />
-      <Route path="/:companySlug/employees/:employeeSlug/edit" component={MainDashboardRoutes} />
+      
+      {/* Employee routes redirect to HR module */}
+      <Route path="/:companySlug/employees" component={(params) => <Redirect to={`/${params.companySlug}/hr/employees`} />} />
+      <Route path="/:companySlug/employees/new" component={(params) => <Redirect to={`/${params.companySlug}/hr/employees/new`} />} />
+      <Route path="/:companySlug/employees/:employeeSlug" component={(params) => <Redirect to={`/${params.companySlug}/hr/employees/${params.employeeSlug}`} />} />
+      <Route path="/:companySlug/employees/:employeeSlug/edit" component={(params) => <Redirect to={`/${params.companySlug}/hr/employees/${params.employeeSlug}/edit`} />} />
       <Route path="/:companySlug/hr/*" component={HRRoutes} />
+      <Route path="/:companySlug/payroll/*" component={PayrollRoutes} />
+      <Route path="/:companySlug/finance/*" component={FinanceRoutes} />
       
       {/* Fallback routes */}
       <Route path="/company-admin/dashboard" component={MainDashboardRoutes} />
@@ -225,6 +316,8 @@ function Router() {
       <Route path="/company-admin/settings" component={MainDashboardRoutes} />
       <Route path="/company-admin/employees/*" component={MainDashboardRoutes} />
       <Route path="/company-admin/hr/*" component={HRRoutes} />
+      <Route path="/company-admin/payroll/*" component={PayrollRoutes} />
+      <Route path="/company-admin/finance/*" component={FinanceRoutes} />
 
       {/* Employee Self-Service Portal - slug-based */}
       <Route path="/:companySlug/:employeeSlug/dashboard" component={EmployeeDashboard} />
