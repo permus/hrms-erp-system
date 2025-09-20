@@ -127,6 +127,9 @@ export default function EmployeeProfileForm({
     }
   ];
 
+  // Watch form values for reactive validation
+  const watchedValues = form.watch();
+
   // Check if current step is valid
   const isCurrentStepValid = () => {
     const currentStepConfig = steps.find(step => step.id === currentStep);
@@ -134,25 +137,24 @@ export default function EmployeeProfileForm({
 
     return currentStepConfig.fields.every(field => {
       try {
-        const value = form.getValues(field as any);
+        // Get the current value from watched values
+        const value = getNestedValue(watchedValues, field);
         
         // Check if field has a meaningful value
         if (value === undefined || value === null || value === '') {
           return false;
         }
 
-        // For nested fields, check specific errors
-        if (field.includes('.')) {
-          const [section, fieldName] = field.split('.');
-          const sectionErrors = form.formState.errors?.[section as keyof typeof form.formState.errors];
-          return !sectionErrors?.[fieldName as keyof typeof sectionErrors];
-        }
-        
-        return !form.formState.errors[field as keyof typeof form.formState.errors];
+        return true;
       } catch (error) {
         return false;
       }
     });
+  };
+
+  // Helper function to get nested values
+  const getNestedValue = (obj: any, path: string) => {
+    return path.split('.').reduce((current, key) => current?.[key], obj);
   };
 
   const handleNext = async () => {
