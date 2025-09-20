@@ -133,17 +133,25 @@ export default function EmployeeProfileForm({
     if (!currentStepConfig || currentStepConfig.fields.length === 0) return true;
 
     return currentStepConfig.fields.every(field => {
-      const value = form.getValues(field as any);
-      const error = form.formState.errors;
-      
-      // Check if field has a value and no error
-      if (field.includes('.')) {
-        const [section, fieldName] = field.split('.');
-        const sectionErrors = (error as any)?.[section];
-        return value !== undefined && value !== null && value !== '' && !sectionErrors?.[fieldName];
+      try {
+        const value = form.getValues(field as any);
+        
+        // Check if field has a meaningful value
+        if (value === undefined || value === null || value === '') {
+          return false;
+        }
+
+        // For nested fields, check specific errors
+        if (field.includes('.')) {
+          const [section, fieldName] = field.split('.');
+          const sectionErrors = form.formState.errors?.[section as keyof typeof form.formState.errors];
+          return !sectionErrors?.[fieldName as keyof typeof sectionErrors];
+        }
+        
+        return !form.formState.errors[field as keyof typeof form.formState.errors];
+      } catch (error) {
+        return false;
       }
-      
-      return value !== undefined && value !== null && value !== '' && !(error as any)?.[field];
     });
   };
 
@@ -597,8 +605,8 @@ export default function EmployeeProfileForm({
   };
 
   return (
-    <div className="min-h-screen bg-background py-8">
-      <div className="container mx-auto px-4 max-w-2xl">
+    <div className="min-h-screen bg-background flex items-center justify-center py-8">
+      <div className="w-full max-w-2xl mx-auto px-4">
         {/* Progress Indicator */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
