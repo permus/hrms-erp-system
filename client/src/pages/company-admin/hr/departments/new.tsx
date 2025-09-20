@@ -1,7 +1,7 @@
 import { useParams, useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { apiRequest, apiRequestWithContext, queryClient, createQueryFnWithCompany } from "@/lib/queryClient";
+import { apiRequest, apiRequestWithContext, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -78,18 +78,12 @@ export default function NewDepartment() {
 
   // Fetch required data for the form
   const { data: departments = [], isLoading: departmentsLoading } = useQuery<Department[]>({
-    queryKey: ["/api/departments", companySlug],
-    queryFn: (user as any)?.role === 'SUPER_ADMIN' && companySlug ? 
-      createQueryFnWithCompany(companySlug) : 
-      undefined,
+    queryKey: ["/api/departments"],
     enabled: !!companySlug
   });
 
   const { data: employees = [], isLoading: employeesLoading } = useQuery<Employee[]>({
-    queryKey: ["/api/employees", companySlug],
-    queryFn: (user as any)?.role === 'SUPER_ADMIN' && companySlug ? 
-      createQueryFnWithCompany(companySlug) : 
-      undefined,
+    queryKey: ["/api/employees"],
     enabled: !!companySlug
   });
 
@@ -304,7 +298,7 @@ export default function NewDepartment() {
                         </FormControl>
                         <SelectContent>
                           <SelectItem value="none">No parent department</SelectItem>
-                          {departments.map((department) => (
+                          {departments?.map((department: Department) => (
                             <SelectItem key={department.id} value={department.id}>
                               {department.name}
                             </SelectItem>
@@ -335,7 +329,7 @@ export default function NewDepartment() {
                         </FormControl>
                         <SelectContent>
                           <SelectItem value="none">No manager assigned</SelectItem>
-                          {employees.map((employee) => (
+                          {employees?.map((employee: Employee) => (
                             <SelectItem key={employee.id} value={employee.id}>
                               {employee.personalInfo?.name || `Employee #${employee.employeeCode}`}
                             </SelectItem>

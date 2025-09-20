@@ -52,12 +52,12 @@ export default function AddEmployee() {
 
   // Fetch required data for the form
   const { data: departments = [], isLoading: departmentsLoading } = useQuery<Department[]>({
-    queryKey: ["/api/departments", companySlug],
+    queryKey: ["/api/departments"],
     enabled: !!companySlug
   });
 
   const { data: employees = [], isLoading: employeesLoading } = useQuery<Employee[]>({
-    queryKey: ["/api/employees", companySlug],
+    queryKey: ["/api/employees"],
     enabled: !!companySlug
   });
 
@@ -69,13 +69,7 @@ export default function AddEmployee() {
         companySlug: companySlug // For super admin context
       };
       
-      return apiRequest('/api/employees', {
-        method: 'POST',
-        body: JSON.stringify(payload),
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
+      return apiRequest('POST', '/api/employees', payload);
     },
     onSuccess: (newEmployee) => {
       toast({
@@ -84,7 +78,7 @@ export default function AddEmployee() {
       });
       
       // Invalidate queries to refresh employee list
-      queryClient.invalidateQueries({ queryKey: ['/api/employees', companySlug] });
+      queryClient.invalidateQueries({ queryKey: ['/api/employees'] });
       
       // Navigate to employee list (context-aware)
       setLocation(employeeListPath);
