@@ -20,6 +20,11 @@ import SuperAdminBin from "@/pages/super-admin/bin";
 import CompanyAdminDashboard from "@/pages/company-admin/dashboard";
 import EmployeeDashboard from "@/pages/employee/dashboard";
 import HRDashboard from "@/pages/company-admin/hr/dashboard";
+import HRDepartments from "@/pages/company-admin/hr/departments";
+import HRDocuments from "@/pages/company-admin/hr/documents";
+import HRLeave from "@/pages/company-admin/hr/leave";
+import HRAttendance from "@/pages/company-admin/hr/attendance";
+import HRProbation from "@/pages/company-admin/hr/probation";
 import EmployeeList from "@/pages/company-admin/employees/EmployeeList";
 import AddEmployee from "@/pages/company-admin/employees/AddEmployee";
 import EmployeeProfile from "@/pages/company-admin/employees/EmployeeProfile";
@@ -134,11 +139,11 @@ function HRRoutes() {
         <Route path="/:companySlug/hr/employees/new" component={AddEmployee} />
         <Route path="/:companySlug/hr/employees/:employeeSlug/edit" component={EditEmployee} />
         <Route path="/:companySlug/hr/employees/:employeeSlug" component={EmployeeProfile} />
-        <Route path="/:companySlug/hr/departments" component={Home} />
-        <Route path="/:companySlug/hr/documents" component={Home} />
-        <Route path="/:companySlug/hr/leave" component={Home} />
-        <Route path="/:companySlug/hr/attendance" component={Home} />
-        <Route path="/:companySlug/hr/probation" component={Home} />
+        <Route path="/:companySlug/hr/departments" component={HRDepartments} />
+        <Route path="/:companySlug/hr/documents" component={HRDocuments} />
+        <Route path="/:companySlug/hr/leave" component={HRLeave} />
+        <Route path="/:companySlug/hr/attendance" component={HRAttendance} />
+        <Route path="/:companySlug/hr/probation" component={HRProbation} />
         
         {/* HR Module - fallback routes */}
         <Route path="/company-admin/hr/dashboard" component={HRDashboard} />
@@ -146,11 +151,11 @@ function HRRoutes() {
         <Route path="/company-admin/hr/employees/new" component={AddEmployee} />
         <Route path="/company-admin/hr/employees/:employeeSlug/edit" component={EditEmployee} />
         <Route path="/company-admin/hr/employees/:employeeSlug" component={EmployeeProfile} />
-        <Route path="/company-admin/hr/departments" component={Home} />
-        <Route path="/company-admin/hr/documents" component={Home} />
-        <Route path="/company-admin/hr/leave" component={Home} />
-        <Route path="/company-admin/hr/attendance" component={Home} />
-        <Route path="/company-admin/hr/probation" component={Home} />
+        <Route path="/company-admin/hr/departments" component={HRDepartments} />
+        <Route path="/company-admin/hr/documents" component={HRDocuments} />
+        <Route path="/company-admin/hr/leave" component={HRLeave} />
+        <Route path="/company-admin/hr/attendance" component={HRAttendance} />
+        <Route path="/company-admin/hr/probation" component={HRProbation} />
       </Switch>
     </HRModuleLayout>
   );
