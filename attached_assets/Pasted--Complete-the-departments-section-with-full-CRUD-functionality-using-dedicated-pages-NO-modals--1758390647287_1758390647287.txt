@@ -1,0 +1,74 @@
+"Complete the departments section with full CRUD functionality using dedicated pages (NO modals):
+
+CURRENT STATE:
+- Database schema exists with hierarchy support (parentId, managerId)
+- Basic GET/POST API routes exist
+- Department listing page shows cards with name/description
+- Buttons exist but don't function (Add, Edit, View, Delete)
+
+IMPLEMENTATION PLAN:
+
+1. ADD NEW DEPARTMENT PAGE (/hr/departments/new):
+- Full page form with fields: Department Name, Description, Parent Department (dropdown), Manager (dropdown from employees)
+- Validation for required fields
+- Save/Cancel buttons with proper navigation
+- Success redirect to departments list
+
+2. EDIT DEPARTMENT PAGE (/hr/departments/[id]/edit):
+- Full page form pre-populated with current department data
+- Same fields as add page: name, description, parent department, manager
+- Save/Cancel buttons with navigation back to department details or list
+- PUT API endpoint for updates
+
+3. VIEW DEPARTMENT DETAILS PAGE (/hr/departments/[id]):
+- Dedicated page showing full department information
+- Real employee count (query employees table by department_id)
+- List/table of employees in this department
+- Manager information display
+- Child departments section (if any)
+- Action buttons: Edit, Delete, Assign Employees
+
+4. DELETE DEPARTMENT:
+- Confirmation notification/toast (only modals allowed)
+- Check if department has employees or child departments
+- Option to reassign employees before deletion via separate page
+- DELETE API endpoint with proper validation
+
+5. EMPLOYEE ASSIGNMENT PAGE (/hr/departments/[id]/employees):
+- Dedicated page for managing department employees
+- Two sections: Current employees + Available employees
+- Transfer interface to move employees between departments
+- Bulk selection for multiple employee transfers
+
+6. DEPARTMENT HIERARCHY PAGE (/hr/departments/hierarchy):
+- Separate page showing tree view of all departments
+- Expandable/collapsible department structure
+- Visual indicators for hierarchy levels
+- Links to individual department detail pages
+
+7. ROUTING STRUCTURE:
+- /hr/departments (main list page)
+- /hr/departments/new (add new department)
+- /hr/departments/hierarchy (tree view)
+- /hr/departments/[id] (view department details)
+- /hr/departments/[id]/edit (edit department)
+- /hr/departments/[id]/employees (manage employees)
+
+8. ENHANCED FEATURES:
+- Real employee counts on department cards
+- Search and filtering on main departments page
+- Manager assignment via dropdown on add/edit pages
+- Success/error notifications (not modals)
+- Loading states for all pages
+- Breadcrumb navigation between pages
+
+BUILD IN THIS ORDER:
+1. Add New Department page
+2. View Department Details page (with real data)
+3. Edit Department page
+4. Employee Assignment page
+5. Department Hierarchy page
+6. Delete functionality with confirmations
+7. Search and filtering on main page
+
+All interactions should use dedicated pages with proper navigation and HR sidebar context."

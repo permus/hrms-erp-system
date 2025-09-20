@@ -1124,6 +1124,317 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // GET /api/departments/:id - Get individual department
+  app.get("/api/departments/:id", requireRole('SUPER_ADMIN', 'COMPANY_ADMIN', 'HR_MANAGER', 'DEPARTMENT_MANAGER'), requireCompany, async (req, res) => {
+    try {
+      const user = req.user as any;
+      const userData = await storage.getUser(user.claims.sub);
+      const { id } = req.params;
+      
+      const department = await storage.getDepartmentById(id);
+      if (!department) {
+        return res.status(404).json({ error: "Department not found" });
+      }
+      
+      // Verify the department belongs to the user's company
+      let userCompanyId = userData?.companyId;
+      if (userData?.role === 'SUPER_ADMIN' && !userCompanyId) {
+        const companySlug = req.query.companySlug as string || req.headers['x-company-slug'] as string;
+        if (companySlug) {
+          const company = await storage.getCompanyBySlug(companySlug);
+          userCompanyId = company?.id;
+        }
+      }
+      
+      if (department.companyId !== userCompanyId) {
+        return res.status(403).json({ error: "Access denied - department belongs to different company" });
+      }
+      
+      res.json(department);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch department" });
+    }
+  });
+
+  // PUT /api/departments/:id - Update department
+  app.put("/api/departments/:id", requireRole('SUPER_ADMIN', 'COMPANY_ADMIN', 'HR_MANAGER'), requireCompany, async (req, res) => {
+    try {
+      const user = req.user as any;
+      const userData = await storage.getUser(user.claims.sub);
+      const { id } = req.params;
+      
+      // Get existing department
+      const existingDepartment = await storage.getDepartmentById(id);
+      if (!existingDepartment) {
+        return res.status(404).json({ error: "Department not found" });
+      }
+      
+      // Verify the department belongs to the user's company
+      let userCompanyId = userData?.companyId;
+      if (userData?.role === 'SUPER_ADMIN' && !userCompanyId) {
+        const companySlug = req.body.companySlug || req.query.companySlug as string;
+        if (companySlug) {
+          const company = await storage.getCompanyBySlug(companySlug);
+          userCompanyId = company?.id;
+        }
+      }
+      
+      if (existingDepartment.companyId !== userCompanyId) {
+        return res.status(403).json({ error: "Access denied - department belongs to different company" });
+      }
+      
+      // Validate update data - only allow certain fields to be updated
+      const allowedUpdates = {
+        name: req.body.name,
+        description: req.body.description,
+        parentId: req.body.parentId,
+        managerId: req.body.managerId
+      };
+      
+      // Remove undefined values
+      const updateData = Object.fromEntries(
+        Object.entries(allowedUpdates).filter(([_, value]) => value !== undefined)
+      );
+      
+      if (Object.keys(updateData).length === 0) {
+        return res.status(400).json({ error: "No valid fields to update" });
+      }
+      
+      // Validate using partial schema
+      const partialSchema = insertDepartmentSchema.omit({ companyId: true }).partial();
+      const validatedData = partialSchema.parse(updateData);
+      
+      const updatedDepartment = await storage.updateDepartment(id, validatedData);
+      if (!updatedDepartment) {
+        return res.status(404).json({ error: "Department not found" });
+      }
+      
+      res.json(updatedDepartment);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: error.errors });
+      }
+      res.status(500).json({ error: "Failed to update department" });
+    }
+  });
+
+  // DELETE /api/departments/:id - Delete department with cascade validation
+  app.delete("/api/departments/:id", requireRole('SUPER_ADMIN', 'COMPANY_ADMIN', 'HR_MANAGER'), requireCompany, async (req, res) => {
+    try {
+      const user = req.user as any;
+      const userData = await storage.getUser(user.claims.sub);
+      const { id } = req.params;
+      
+      // Get existing department
+      const existingDepartment = await storage.getDepartmentById(id);
+      if (!existingDepartment) {
+        return res.status(404).json({ error: "Department not found" });
+      }
+      
+      // Verify the department belongs to the user's company
+      let userCompanyId = userData?.companyId;
+      if (userData?.role === 'SUPER_ADMIN' && !userCompanyId) {
+        const companySlug = req.query.companySlug as string || req.headers['x-company-slug'] as string;
+        if (companySlug) {
+          const company = await storage.getCompanyBySlug(companySlug);
+          userCompanyId = company?.id;
+        }
+      }
+      
+      if (existingDepartment.companyId !== userCompanyId) {
+        return res.status(403).json({ error: "Access denied - department belongs to different company" });
+      }
+      
+      // Check for child departments
+      const childDepartments = await storage.getChildDepartments(id);
+      if (childDepartments.length > 0) {
+        return res.status(400).json({ 
+          error: "Cannot delete department with child departments", 
+          childCount: childDepartments.length,
+          children: childDepartments.map(d => ({ id: d.id, name: d.name }))
+        });
+      }
+      
+      // Check for employees assigned to this department
+      const employeeCount = await storage.getEmployeeCountByDepartment(id);
+      if (employeeCount > 0) {
+        return res.status(400).json({ 
+          error: "Cannot delete department with assigned employees", 
+          employeeCount 
+        });
+      }
+      
+      const deletedDepartment = await storage.deleteDepartment(id);
+      if (!deletedDepartment) {
+        return res.status(404).json({ error: "Department not found" });
+      }
+      
+      res.json({ message: "Department deleted successfully", department: deletedDepartment });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete department" });
+    }
+  });
+
+  // GET /api/departments/:id/employee-count - Get employee count for department
+  app.get("/api/departments/:id/employee-count", requireRole('SUPER_ADMIN', 'COMPANY_ADMIN', 'HR_MANAGER', 'DEPARTMENT_MANAGER'), requireCompany, async (req, res) => {
+    try {
+      const user = req.user as any;
+      const userData = await storage.getUser(user.claims.sub);
+      const { id } = req.params;
+      
+      // Get department to verify access
+      const department = await storage.getDepartmentById(id);
+      if (!department) {
+        return res.status(404).json({ error: "Department not found" });
+      }
+      
+      // Verify the department belongs to the user's company
+      let userCompanyId = userData?.companyId;
+      if (userData?.role === 'SUPER_ADMIN' && !userCompanyId) {
+        const companySlug = req.query.companySlug as string || req.headers['x-company-slug'] as string;
+        if (companySlug) {
+          const company = await storage.getCompanyBySlug(companySlug);
+          userCompanyId = company?.id;
+        }
+      }
+      
+      if (department.companyId !== userCompanyId) {
+        return res.status(403).json({ error: "Access denied - department belongs to different company" });
+      }
+      
+      const employeeCount = await storage.getEmployeeCountByDepartment(id);
+      res.json({ departmentId: id, employeeCount });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get employee count" });
+    }
+  });
+
+  // GET /api/departments/:id/employees - Get employees in department
+  app.get("/api/departments/:id/employees", requireRole('SUPER_ADMIN', 'COMPANY_ADMIN', 'HR_MANAGER', 'DEPARTMENT_MANAGER'), requireCompany, async (req, res) => {
+    try {
+      const user = req.user as any;
+      const userData = await storage.getUser(user.claims.sub);
+      const { id } = req.params;
+      
+      // Get department to verify access
+      const department = await storage.getDepartmentById(id);
+      if (!department) {
+        return res.status(404).json({ error: "Department not found" });
+      }
+      
+      // Verify the department belongs to the user's company
+      let userCompanyId = userData?.companyId;
+      if (userData?.role === 'SUPER_ADMIN' && !userCompanyId) {
+        const companySlug = req.query.companySlug as string || req.headers['x-company-slug'] as string;
+        if (companySlug) {
+          const company = await storage.getCompanyBySlug(companySlug);
+          userCompanyId = company?.id;
+        }
+      }
+      
+      if (department.companyId !== userCompanyId) {
+        return res.status(403).json({ error: "Access denied - department belongs to different company" });
+      }
+      
+      const employees = await storage.getEmployeesByDepartment(id);
+      res.json(employees);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get department employees" });
+    }
+  });
+
+  // PUT /api/employees/department-assignment - Bulk update employee department assignments
+  app.put("/api/employees/department-assignment", requireRole('SUPER_ADMIN', 'COMPANY_ADMIN', 'HR_MANAGER'), requireCompany, async (req, res) => {
+    try {
+      const user = req.user as any;
+      const userData = await storage.getUser(user.claims.sub);
+      
+      // Validate request body
+      const { employeeIds, departmentId } = z.object({
+        employeeIds: z.array(z.string()).min(1, "At least one employee ID is required"),
+        departmentId: z.string().nullable() // null means remove from department
+      }).parse(req.body);
+
+      let userCompanyId = userData?.companyId;
+      
+      // For super admins, get company context
+      if (userData?.role === 'SUPER_ADMIN' && !userCompanyId) {
+        const companySlug = req.query.companySlug as string || req.headers['x-company-slug'] as string;
+        if (companySlug) {
+          const company = await storage.getCompanyBySlug(companySlug);
+          userCompanyId = company?.id;
+        }
+      }
+
+      if (!userCompanyId) {
+        return res.status(400).json({ error: "Company context required" });
+      }
+
+      // If departmentId is provided, verify it exists and belongs to the company
+      if (departmentId) {
+        const department = await storage.getDepartmentById(departmentId);
+        if (!department) {
+          return res.status(404).json({ error: "Department not found" });
+        }
+        if (department.companyId !== userCompanyId) {
+          return res.status(403).json({ error: "Access denied - department belongs to different company" });
+        }
+      }
+
+      // Verify all employees exist and belong to the user's company
+      const updatePromises = [];
+      const updatedEmployees = [];
+
+      for (const employeeId of employeeIds) {
+        const employee = await storage.getEmployee(employeeId);
+        
+        if (!employee) {
+          return res.status(404).json({ error: `Employee with ID ${employeeId} not found` });
+        }
+        
+        if (employee.companyId !== userCompanyId) {
+          return res.status(403).json({ error: `Access denied - employee ${employeeId} belongs to different company` });
+        }
+
+        // Update the employee's employment details
+        const currentEmploymentDetails = employee.employmentDetails as any;
+        const updatedEmploymentDetails = {
+          ...currentEmploymentDetails,
+          departmentId: departmentId
+        };
+
+        updatePromises.push(
+          storage.updateEmployee(employeeId, {
+            employmentDetails: updatedEmploymentDetails
+          })
+        );
+      }
+
+      // Execute all updates
+      const results = await Promise.all(updatePromises);
+      
+      // Filter out any undefined results and add to updated employees
+      results.forEach(result => {
+        if (result) {
+          updatedEmployees.push(result);
+        }
+      });
+
+      res.json({
+        success: true,
+        message: `Successfully updated ${updatedEmployees.length} employee(s)`,
+        updatedEmployees,
+        departmentId
+      });
+    } catch (error) {
+      console.error('Department assignment error:', error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid request data", details: error.errors });
+      }
+      res.status(500).json({ error: "Failed to update employee department assignments" });
+    }
+  });
+
   // Position routes - Company Admins and HR only
   app.get("/api/positions", requireRole('SUPER_ADMIN', 'COMPANY_ADMIN', 'HR_MANAGER', 'DEPARTMENT_MANAGER'), requireCompany, async (req, res) => {
     try {

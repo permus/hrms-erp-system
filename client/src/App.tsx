@@ -23,6 +23,10 @@ import CompanyAdminDashboard from "@/pages/company-admin/dashboard";
 import EmployeeDashboard from "@/pages/employee/dashboard";
 import HRDashboard from "@/pages/company-admin/hr/dashboard";
 import HRDepartments from "@/pages/company-admin/hr/departments";
+import NewDepartment from "@/pages/company-admin/hr/departments/new";
+import DepartmentDetails from "@/pages/company-admin/hr/departments/[id]";
+import EditDepartment from "@/pages/company-admin/hr/departments/[id]/edit";
+import DepartmentEmployeeAssignment from "@/pages/company-admin/hr/departments/[id]/employees";
 import HRDocuments from "@/pages/company-admin/hr/documents";
 import HRLeave from "@/pages/company-admin/hr/leave";
 import HRAttendance from "@/pages/company-admin/hr/attendance";
@@ -158,7 +162,10 @@ function HRRoutes() {
         
         {/* Department Management */}
         <Route path="/hr/departments" component={HRDepartments} />
-        <Route path="/hr/departments/new" component={() => <div>Coming Soon: Add Department</div>} />
+        <Route path="/hr/departments/new" component={NewDepartment} />
+        <Route path="/hr/departments/:id/employees" component={DepartmentEmployeeAssignment} />
+        <Route path="/hr/departments/:id/edit" component={EditDepartment} />
+        <Route path="/hr/departments/:id" component={DepartmentDetails} />
         
         {/* HR Operations */}
         <Route path="/hr/documents" component={HRDocuments} />
@@ -173,7 +180,10 @@ function HRRoutes() {
         <Route path="/:companySlug/hr/employees/:employeeSlug/edit" component={EditEmployee} />
         <Route path="/:companySlug/hr/employees/:employeeSlug" component={EmployeeProfile} />
         <Route path="/:companySlug/hr/departments" component={HRDepartments} />
-        <Route path="/:companySlug/hr/departments/new" component={() => <div>Coming Soon: Add Department</div>} />
+        <Route path="/:companySlug/hr/departments/new" component={NewDepartment} />
+        <Route path="/:companySlug/hr/departments/:id/employees" component={DepartmentEmployeeAssignment} />
+        <Route path="/:companySlug/hr/departments/:id/edit" component={EditDepartment} />
+        <Route path="/:companySlug/hr/departments/:id" component={DepartmentDetails} />
         <Route path="/:companySlug/hr/documents" component={HRDocuments} />
         <Route path="/:companySlug/hr/leave-management" component={HRLeave} />
         <Route path="/:companySlug/hr/attendance" component={HRAttendance} />
@@ -186,7 +196,10 @@ function HRRoutes() {
         <Route path="/company-admin/hr/employees/:employeeSlug/edit" component={EditEmployee} />
         <Route path="/company-admin/hr/employees/:employeeSlug" component={EmployeeProfile} />
         <Route path="/company-admin/hr/departments" component={HRDepartments} />
-        <Route path="/company-admin/hr/departments/new" component={() => <div>Coming Soon: Add Department</div>} />
+        <Route path="/company-admin/hr/departments/new" component={NewDepartment} />
+        <Route path="/company-admin/hr/departments/:id/employees" component={DepartmentEmployeeAssignment} />
+        <Route path="/company-admin/hr/departments/:id/edit" component={EditDepartment} />
+        <Route path="/company-admin/hr/departments/:id" component={DepartmentDetails} />
         <Route path="/company-admin/hr/documents" component={HRDocuments} />
         <Route path="/company-admin/hr/leave" component={HRLeave} />
         <Route path="/company-admin/hr/attendance" component={HRAttendance} />

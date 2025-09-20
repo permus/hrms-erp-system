@@ -59,10 +59,18 @@ export interface IStorage {
   getEmployees(companyId: string): Promise<Employee[]>;
   getEmployee(id: string): Promise<Employee | undefined>;
   getEmployeeBySlug(companyId: string, slug: string): Promise<Employee | undefined>;
+  getEmployeesByDepartment(departmentId: string): Promise<Employee[]>;
   createEmployee(employee: Omit<Employee, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt'>): Promise<Employee>;
+  updateEmployee(id: string, updates: Partial<Omit<Employee, 'id' | 'createdAt' | 'updatedAt'>>): Promise<Employee | undefined>;
+  getEmployeeByUserId(userId: string): Promise<Employee | undefined>;
   // Department operations
   getDepartments(companyId: string): Promise<Department[]>;
+  getDepartmentById(id: string): Promise<Department | undefined>;
   createDepartment(department: Omit<Department, 'id' | 'createdAt' | 'updatedAt'>): Promise<Department>;
+  updateDepartment(id: string, data: Partial<Omit<Department, 'id' | 'createdAt' | 'updatedAt'>>): Promise<Department | undefined>;
+  deleteDepartment(id: string): Promise<Department | undefined>;
+  getEmployeeCountByDepartment(departmentId: string): Promise<number>;
+  getChildDepartments(parentId: string): Promise<Department[]>;
   // Position operations
   getPositions(companyId: string): Promise<Position[]>;
   createPosition(position: Omit<Position, 'id' | 'createdAt' | 'updatedAt'>): Promise<Position>;
@@ -259,6 +267,13 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(employees).where(eq(employees.companyId, companyId));
   }
 
+  async getEmployeesByDepartment(departmentId: string): Promise<Employee[]> {
+    return await db
+      .select()
+      .from(employees)
+      .where(eq(sql`${employees.employmentDetails}->>'departmentId'`, departmentId));
+  }
+
   async getEmployee(id: string): Promise<Employee | undefined> {
     const [employee] = await db.select().from(employees).where(eq(employees.id, id));
     return employee;
@@ -280,6 +295,20 @@ export class DatabaseStorage implements IStorage {
     return employee;
   }
 
+  async updateEmployee(id: string, updates: Partial<Omit<Employee, 'id' | 'createdAt' | 'updatedAt'>>): Promise<Employee | undefined> {
+    const [employee] = await db
+      .update(employees)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(employees.id, id))
+      .returning();
+    return employee;
+  }
+
+  async getEmployeeByUserId(userId: string): Promise<Employee | undefined> {
+    const [employee] = await db.select().from(employees).where(eq(employees.userId, userId));
+    return employee;
+  }
+
   // Department operations
   async getDepartments(companyId: string): Promise<Department[]> {
     return await db.select().from(departments).where(eq(departments.companyId, companyId));
@@ -291,6 +320,40 @@ export class DatabaseStorage implements IStorage {
       .values(departmentData)
       .returning();
     return department;
+  }
+
+  async getDepartmentById(id: string): Promise<Department | undefined> {
+    const [department] = await db.select().from(departments).where(eq(departments.id, id));
+    return department;
+  }
+
+  async updateDepartment(id: string, data: Partial<Omit<Department, 'id' | 'createdAt' | 'updatedAt'>>): Promise<Department | undefined> {
+    const [department] = await db
+      .update(departments)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(departments.id, id))
+      .returning();
+    return department;
+  }
+
+  async deleteDepartment(id: string): Promise<Department | undefined> {
+    const [department] = await db
+      .delete(departments)
+      .where(eq(departments.id, id))
+      .returning();
+    return department;
+  }
+
+  async getEmployeeCountByDepartment(departmentId: string): Promise<number> {
+    const result = await db
+      .select({ count: sql<number>`COUNT(*)` })
+      .from(employees)
+      .where(eq(sql`${employees.employmentDetails}->>'departmentId'`, departmentId));
+    return result[0]?.count || 0;
+  }
+
+  async getChildDepartments(parentId: string): Promise<Department[]> {
+    return await db.select().from(departments).where(eq(departments.parentId, parentId));
   }
 
   // Position operations
