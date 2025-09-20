@@ -155,6 +155,8 @@ export default function SuperAdminCompanies() {
   };
 
   const handleLogout = () => {
+    // Clear sidebar preference from localStorage on logout
+    localStorage.removeItem('sidebarOpen');
     window.location.href = "/api/logout";
   };
 

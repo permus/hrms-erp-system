@@ -71,6 +71,8 @@ export function AppSidebar() {
   const basePath = companySlug ? `/${companySlug}` : '/company-admin';
   
   const handleLogout = () => {
+    // Clear sidebar preference from localStorage on logout
+    localStorage.removeItem('sidebarOpen');
     window.location.href = "/api/logout";
   };
 
