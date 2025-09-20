@@ -605,80 +605,78 @@ export default function EmployeeProfileForm({
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center py-8">
-      <div className="w-full max-w-2xl mx-auto px-4">
-        {/* Progress Indicator */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <h1 className="text-3xl font-bold">Add New Employee</h1>
-            <div className="text-sm text-muted-foreground">
-              Step {currentStep} of {totalSteps}
-            </div>
-          </div>
-          
-          <div className="w-full bg-secondary rounded-full h-2">
-            <div 
-              className="bg-primary h-2 rounded-full transition-all duration-300"
-              style={{ width: `${(currentStep / totalSteps) * 100}%` }}
-            />
-          </div>
-          
-          <div className="flex justify-between mt-2">
-            {steps.map((step) => (
-              <div
-                key={step.id}
-                className={`text-xs text-center ${
-                  step.id <= currentStep ? 'text-primary font-medium' : 'text-muted-foreground'
-                }`}
-              >
-                {step.title}
-              </div>
-            ))}
+    <div className="w-full max-w-2xl mx-auto">
+      {/* Progress Indicator */}
+      <div className="mb-8">
+        <div className="flex items-center justify-between mb-4">
+          <h1 className="text-3xl font-bold">Add New Employee</h1>
+          <div className="text-sm text-muted-foreground">
+            Step {currentStep} of {totalSteps}
           </div>
         </div>
+        
+        <div className="w-full bg-secondary rounded-full h-2">
+          <div 
+            className="bg-primary h-2 rounded-full transition-all duration-300"
+            style={{ width: `${(currentStep / totalSteps) * 100}%` }}
+          />
+        </div>
+        
+        <div className="flex justify-between mt-2">
+          {steps.map((step) => (
+            <div
+              key={step.id}
+              className={`text-xs text-center ${
+                step.id <= currentStep ? 'text-primary font-medium' : 'text-muted-foreground'
+              }`}
+            >
+              {step.title}
+            </div>
+          ))}
+        </div>
+      </div>
 
-        {/* Form Content */}
-        <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-8">
-          <Card className="border-2">
-            <CardContent className="p-8">
-              {renderCurrentStep()}
-            </CardContent>
-          </Card>
+      {/* Form Content */}
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-8">
+        <Card className="border-2">
+          <CardContent className="p-6">
+            {renderCurrentStep()}
+          </CardContent>
+        </Card>
 
-          {/* Navigation Buttons */}
-          <div className="flex justify-between pt-6">
+        {/* Navigation Buttons */}
+        <div className="flex justify-between pt-6">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={currentStep === 1 ? onCancel : handlePrevious}
+            data-testid="button-previous"
+          >
+            <ChevronLeft className="w-4 h-4 mr-2" />
+            {currentStep === 1 ? 'Cancel' : 'Previous'}
+          </Button>
+
+          {currentStep < totalSteps ? (
             <Button
               type="button"
-              variant="outline"
-              onClick={currentStep === 1 ? onCancel : handlePrevious}
-              data-testid="button-previous"
+              onClick={handleNext}
+              disabled={!isCurrentStepValid()}
+              data-testid="button-next"
             >
-              <ChevronLeft className="w-4 h-4 mr-2" />
-              {currentStep === 1 ? 'Cancel' : 'Previous'}
+              Next
+              <ChevronRight className="w-4 h-4 ml-2" />
             </Button>
-
-            {currentStep < totalSteps ? (
-              <Button
-                type="button"
-                onClick={handleNext}
-                disabled={!isCurrentStepValid()}
-                data-testid="button-next"
-              >
-                Next
-                <ChevronRight className="w-4 h-4 ml-2" />
-              </Button>
-            ) : (
-              <Button
-                type="submit"
-                disabled={isLoading || !form.formState.isValid}
-                data-testid="button-submit"
-              >
-                {isLoading ? 'Creating Employee...' : 'Create Employee'}
-              </Button>
-            )}
-          </div>
-        </form>
-      </div>
+          ) : (
+            <Button
+              type="submit"
+              disabled={isLoading || !form.formState.isValid}
+              data-testid="button-submit"
+            >
+              {isLoading ? 'Creating Employee...' : 'Create Employee'}
+            </Button>
+          )}
+        </div>
+      </form>
     </div>
   );
 }

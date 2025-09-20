@@ -153,36 +153,34 @@ export default function AddEmployee() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-6 space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleBack}
-              data-testid="button-back-to-employees"
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Employees
-            </Button>
-            <div>
-              <h1 className="text-2xl font-bold" data-testid="text-page-title">Add New Employee</h1>
-              <p className="text-muted-foreground">Create a comprehensive employee profile with UAE compliance documentation</p>
-            </div>
+    <div className="min-h-screen bg-background flex flex-col">
+      {/* Header */}
+      <div className="border-b bg-background px-6 py-4">
+        <div className="flex items-center space-x-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleBack}
+            data-testid="button-back-to-employees"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Employees
+          </Button>
+          <div>
+            <h1 className="text-2xl font-bold" data-testid="text-page-title">Add New Employee</h1>
+            <p className="text-muted-foreground">Create a comprehensive employee profile with UAE compliance documentation</p>
           </div>
         </div>
+      </div>
 
-        {/* Employee Creation Form */}
-        <div className="max-w-4xl">
-          <EmployeeProfileForm
-            departments={departments}
-            employees={employees}
-            onSubmit={handleSubmit}
-            onCancel={handleCancel}
-          />
-        </div>
+      {/* Employee Creation Form - Centered Content */}
+      <div className="flex-1 flex items-center justify-center p-6">
+        <EmployeeProfileForm
+          departments={departments}
+          employees={employees}
+          onSubmit={handleSubmit}
+          onCancel={handleCancel}
+        />
       </div>
     </div>
   );
