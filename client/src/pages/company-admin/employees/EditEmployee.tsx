@@ -40,18 +40,18 @@ export default function EditEmployee() {
 
   // Fetch employee data for editing
   const { data: employee, isLoading: employeeLoading } = useQuery<Employee>({
-    queryKey: ["/api/employees", companySlug, employeeSlug],
+    queryKey: [`/api/employees/${employeeSlug}?companySlug=${companySlug}`],
     enabled: !!employeeSlug && !!companySlug
   });
 
   // Fetch required data for the form
   const { data: departments = [], isLoading: departmentsLoading } = useQuery<Department[]>({
-    queryKey: ["/api/departments", companySlug],
+    queryKey: [`/api/departments?companySlug=${companySlug}`],
     enabled: !!companySlug
   });
 
   const { data: employees = [], isLoading: employeesLoading } = useQuery<Employee[]>({
-    queryKey: ["/api/employees", companySlug],
+    queryKey: [`/api/employees?companySlug=${companySlug}`],
     enabled: !!companySlug
   });
 

@@ -101,6 +101,12 @@ function MainDashboardRoutes() {
         <Route path="/:companySlug/analytics" component={Home} />
         <Route path="/:companySlug/settings" component={Home} />
         
+        {/* Direct Employee Routes for convenience */}
+        <Route path="/:companySlug/employees" component={EmployeeList} />
+        <Route path="/:companySlug/employees/new" component={AddEmployee} />
+        <Route path="/:companySlug/employees/:employeeSlug/edit" component={EditEmployee} />
+        <Route path="/:companySlug/employees/:employeeSlug" component={EmployeeProfile} />
+        
         {/* HR Module Routes - now within main dashboard layout */}
         <Route path="/:companySlug/hr/dashboard" component={HRDashboard} />
         <Route path="/:companySlug/hr/employees" component={EmployeeList} />
@@ -117,6 +123,12 @@ function MainDashboardRoutes() {
         <Route path="/company-admin/dashboard" component={CompanyAdminDashboard} />
         <Route path="/company-admin/analytics" component={Home} />
         <Route path="/company-admin/settings" component={Home} />
+        
+        {/* Direct Employee Routes - fallback */}
+        <Route path="/company-admin/employees" component={EmployeeList} />
+        <Route path="/company-admin/employees/new" component={AddEmployee} />
+        <Route path="/company-admin/employees/:employeeSlug/edit" component={EditEmployee} />
+        <Route path="/company-admin/employees/:employeeSlug" component={EmployeeProfile} />
         
         {/* HR Module - fallback routes */}
         <Route path="/company-admin/hr/dashboard" component={HRDashboard} />
@@ -142,9 +154,15 @@ function Router() {
     <Switch>
       {/* Public auth routes */}
       <Route path="/auth/signin" component={SigninPage} />
+      <Route path="/login" component={SigninPage} />
       <Route path="/auth/change-password" component={ChangePasswordPage} />
       
-      {isLoading || !isAuthenticated ? (
+      {/* Home and authenticated routes */}
+      {isLoading ? (
+        <div className="min-h-screen flex items-center justify-center">
+          <div>Loading...</div>
+        </div>
+      ) : !isAuthenticated ? (
         <Route path="/" component={Landing} />
       ) : (
         <>
@@ -158,27 +176,29 @@ function Router() {
           <Route path="/super-admin/companies" component={SuperAdminCompanies} />
           <Route path="/super-admin/bin" component={SuperAdminBin} />
           <Route path="/super-admin/employees" component={SuperAdminEmployees} />
-          
-          {/* Main Dashboard Routes - includes all modules */}
-          <Route path="/:companySlug/dashboard" component={MainDashboardRoutes} />
-          <Route path="/:companySlug/analytics" component={MainDashboardRoutes} />
-          <Route path="/:companySlug/settings" component={MainDashboardRoutes} />
-          <Route path="/:companySlug/hr/*" component={MainDashboardRoutes} />
-          
-          {/* Fallback routes */}
-          <Route path="/company-admin/dashboard" component={MainDashboardRoutes} />
-          <Route path="/company-admin/analytics" component={MainDashboardRoutes} />
-          <Route path="/company-admin/settings" component={MainDashboardRoutes} />
-          <Route path="/company-admin/hr/*" component={MainDashboardRoutes} />
-
-          {/* Employee Self-Service Portal - slug-based */}
-          <Route path="/:companySlug/:employeeSlug/dashboard" component={EmployeeDashboard} />
-          <Route path="/:companySlug/:employeeSlug/attendance" component={EmployeeDashboard} />
-          <Route path="/:companySlug/:employeeSlug/documents" component={EmployeeDashboard} />
-          <Route path="/:companySlug/:employeeSlug/leave" component={EmployeeDashboard} />
-          <Route path="/:companySlug/:employeeSlug/*" component={EmployeeDashboard} />
         </>
       )}
+
+      {/* Company routes - accessible when authenticated or redirects to login */}
+      <Route path="/:companySlug/dashboard" component={MainDashboardRoutes} />
+      <Route path="/:companySlug/analytics" component={MainDashboardRoutes} />
+      <Route path="/:companySlug/settings" component={MainDashboardRoutes} />
+      <Route path="/:companySlug/employees/*" component={MainDashboardRoutes} />
+      <Route path="/:companySlug/hr/*" component={MainDashboardRoutes} />
+      
+      {/* Fallback routes */}
+      <Route path="/company-admin/dashboard" component={MainDashboardRoutes} />
+      <Route path="/company-admin/analytics" component={MainDashboardRoutes} />
+      <Route path="/company-admin/settings" component={MainDashboardRoutes} />
+      <Route path="/company-admin/employees/*" component={MainDashboardRoutes} />
+      <Route path="/company-admin/hr/*" component={MainDashboardRoutes} />
+
+      {/* Employee Self-Service Portal - slug-based */}
+      <Route path="/:companySlug/:employeeSlug/dashboard" component={EmployeeDashboard} />
+      <Route path="/:companySlug/:employeeSlug/attendance" component={EmployeeDashboard} />
+      <Route path="/:companySlug/:employeeSlug/documents" component={EmployeeDashboard} />
+      <Route path="/:companySlug/:employeeSlug/leave" component={EmployeeDashboard} />
+      <Route path="/:companySlug/:employeeSlug/*" component={EmployeeDashboard} />
       <Route component={NotFound} />
     </Switch>
   );

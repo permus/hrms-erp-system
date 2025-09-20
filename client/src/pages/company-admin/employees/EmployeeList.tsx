@@ -56,12 +56,12 @@ export default function EmployeeList() {
 
   // Fetch employees with enhanced Phase 2 data
   const { data: employees = [], isLoading: employeesLoading } = useQuery<Employee[]>({
-    queryKey: ["/api/employees", companyContext],
+    queryKey: [`/api/employees?companySlug=${companyContext}`],
     enabled: !!user && ['SUPER_ADMIN', 'COMPANY_ADMIN', 'HR_MANAGER'].includes(user?.role || '')
   });
 
   const { data: departments = [] } = useQuery<Department[]>({
-    queryKey: ["/api/departments", companyContext],
+    queryKey: [`/api/departments?companySlug=${companyContext}`],
     enabled: !!user && ['SUPER_ADMIN', 'COMPANY_ADMIN', 'HR_MANAGER'].includes(user?.role || '')
   });
 

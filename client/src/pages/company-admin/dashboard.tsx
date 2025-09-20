@@ -31,17 +31,17 @@ export default function CompanyAdminDashboard() {
 
   // Fetch company data with cache isolation per company
   const { data: employees = [] } = useQuery<Employee[]>({
-    queryKey: ["/api/employees", companyContext],
+    queryKey: [`/api/employees?companySlug=${companyContext}`],
     enabled: !!user && ['COMPANY_ADMIN', 'HR_MANAGER'].includes(user?.role || '')
   });
 
   const { data: departments = [] } = useQuery<Department[]>({
-    queryKey: ["/api/departments", companyContext],
+    queryKey: [`/api/departments?companySlug=${companyContext}`],
     enabled: !!user && ['COMPANY_ADMIN', 'HR_MANAGER'].includes(user?.role || '')
   });
 
   const { data: positions = [] } = useQuery<Position[]>({
-    queryKey: ["/api/positions", companyContext],
+    queryKey: [`/api/positions?companySlug=${companyContext}`],
     enabled: !!user && ['COMPANY_ADMIN', 'HR_MANAGER'].includes(user?.role || '')
   });
 
