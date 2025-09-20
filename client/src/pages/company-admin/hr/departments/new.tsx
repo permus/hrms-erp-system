@@ -131,6 +131,11 @@ export default function NewDepartment() {
   });
 
   const onSubmit = (data: FormData) => {
+    console.log('🚀 Form submission triggered!');
+    console.log('📝 Form data received:', data);
+    console.log('👤 User context:', { user: user?.id, companyId: user?.companyId, role: (user as any)?.role });
+    console.log('🏢 Company slug:', companySlug);
+    
     // Prepare data for submission
     const submitData: InsertDepartment = {
       companyId: user?.companyId || "", // Will be overridden server-side
@@ -140,6 +145,7 @@ export default function NewDepartment() {
       managerId: data.managerId && data.managerId !== "none" ? data.managerId : null,
     };
     
+    console.log('📦 Prepared submit data:', submitData);
     createDepartmentMutation.mutate(submitData);
   };
 
@@ -240,7 +246,10 @@ export default function NewDepartment() {
           </CardHeader>
           <CardContent>
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <form onSubmit={form.handleSubmit(onSubmit, (errors) => {
+                console.log('❌ Form validation errors:', errors);
+                console.log('📊 Form state:', form.formState);
+              })} className="space-y-6">
                 {/* Department Name */}
                 <FormField
                   control={form.control}
