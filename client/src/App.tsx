@@ -7,10 +7,7 @@ import { ThemeProvider } from "next-themes";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/AppSidebar";
-import { CompanyAdminLayout } from "@/components/CompanyAdminLayout";
-import { MainDashboardLayout } from "@/components/MainDashboardLayout";
+import { CleanDashboardLayout } from "@/components/CleanDashboardLayout";
 import { HRModuleLayout } from "@/components/HRModuleLayout";
 import Landing from "@/pages/landing";
 import Home from "@/pages/home";
@@ -95,10 +92,10 @@ function RoleBasedRedirect() {
   );
 }
 
-// Main Dashboard Routes with Main Dashboard Sidebar
+// Main Dashboard Routes with Clean Layout (No Sidebar)
 function MainDashboardRoutes() {
   return (
-    <MainDashboardLayout>
+    <CleanDashboardLayout>
       <Switch>
         {/* Main Company Dashboard - slug-based */}
         <Route path="/:companySlug/dashboard" component={CompanyAdminDashboard} />
@@ -110,7 +107,7 @@ function MainDashboardRoutes() {
         <Route path="/company-admin/analytics" component={Home} />
         <Route path="/company-admin/settings" component={Home} />
       </Switch>
-    </MainDashboardLayout>
+    </CleanDashboardLayout>
   );
 }
 
