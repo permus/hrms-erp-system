@@ -114,13 +114,13 @@ export default function HRDepartments() {
 
   // Fetch departments data
   const { data: departments = [], isLoading } = useQuery<Department[]>({
-    queryKey: ["/api/departments", resolvedCompanySlug || 'default'],
+    queryKey: ["/api/departments"],
     enabled: !!user
   });
   
   // TODO: Fetch employee data to calculate employee counts per department
   const { data: employees = [] } = useQuery<any[]>({
-    queryKey: ["/api/employees", resolvedCompanySlug || 'default'],
+    queryKey: ["/api/employees"],
     enabled: !!user
   });
   
