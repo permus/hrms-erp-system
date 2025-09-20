@@ -23,7 +23,7 @@ const formSchema = insertDepartmentSchema.extend({
   description: z.string().optional(),
   parentId: z.string().optional(),
   managerId: z.string().optional(),
-});
+}).partial({ companyId: true }); // Make companyId optional since it's set server-side
 
 type FormData = z.infer<typeof formSchema>;
 
