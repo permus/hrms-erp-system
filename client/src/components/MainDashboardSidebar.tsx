@@ -1,4 +1,16 @@
-import { Building2, BarChart3, Users, Settings, FileText, CreditCard, LogOut, PieChart } from "lucide-react";
+import { 
+  Building2, 
+  BarChart3, 
+  Users, 
+  Settings, 
+  FileText, 
+  CreditCard, 
+  LogOut, 
+  PieChart,
+  DollarSign,
+  FolderOpen,
+  UserCheck
+} from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
@@ -23,6 +35,41 @@ const mainMenuItems = [
     title: "Dashboard",
     icon: BarChart3,
     url: "/dashboard",
+  },
+  {
+    title: "Human Resources",
+    icon: Users,
+    url: "/hr/dashboard",
+  },
+  {
+    title: "Payroll",
+    icon: DollarSign,
+    url: "/payroll/dashboard",
+    comingSoon: true,
+  },
+  {
+    title: "Finance",
+    icon: CreditCard,
+    url: "/finance/dashboard", 
+    comingSoon: true,
+  },
+  {
+    title: "CRM",
+    icon: UserCheck,
+    url: "/crm/dashboard",
+    comingSoon: true,
+  },
+  {
+    title: "Projects",
+    icon: FolderOpen,
+    url: "/projects/dashboard",
+    comingSoon: true,
+  },
+  {
+    title: "Reports",
+    icon: FileText,
+    url: "/reports/dashboard",
+    comingSoon: true,
   },
   {
     title: "Analytics", 
@@ -81,15 +128,28 @@ export function MainDashboardSidebar() {
             <SidebarMenu>
               {mainMenuItems.map((item) => {
                 const fullPath = `${basePath}${item.url}`;
-                const isActive = location === fullPath;
+                const isActive = location === fullPath || (item.url === '/hr/dashboard' && location.includes('/hr'));
                 
                 return (
                   <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild isActive={isActive} data-testid={`nav-${item.title.toLowerCase().replace(' ', '-')}`}>
-                      <Link href={fullPath}>
-                        <item.icon className="w-4 h-4" />
-                        <span>{item.title}</span>
-                      </Link>
+                    <SidebarMenuButton 
+                      asChild={!item.comingSoon} 
+                      isActive={isActive} 
+                      data-testid={`nav-${item.title.toLowerCase().replace(' ', '-')}`}
+                      disabled={item.comingSoon}
+                    >
+                      {item.comingSoon ? (
+                        <div className="flex items-center gap-3 text-muted-foreground">
+                          <item.icon className="w-4 h-4" />
+                          <span>{item.title}</span>
+                          <span className="text-xs">(Coming Soon)</span>
+                        </div>
+                      ) : (
+                        <Link href={fullPath}>
+                          <item.icon className="w-4 h-4" />
+                          <span>{item.title}</span>
+                        </Link>
+                      )}
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 );
