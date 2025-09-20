@@ -90,15 +90,11 @@ export default function NewDepartment() {
   // Create department mutation
   const createDepartmentMutation = useMutation({
     mutationFn: async (departmentData: InsertDepartment) => {
-      console.log('Creating department with context:', { companySlug, userRole: (user as any)?.role });
-      
       const payload = {
         ...departmentData,
         companyId: user?.companyId, // Will be resolved server-side for company admins
         companySlug: companySlug // For super admin context
       };
-      
-      console.log('Department creation payload:', payload);
       
       // Use enhanced API request for super admin context
       if ((user as any)?.role === 'SUPER_ADMIN' && companySlug) {
@@ -121,7 +117,6 @@ export default function NewDepartment() {
       setLocation(departmentsListPath);
     },
     onError: (error: any) => {
-      console.error('Failed to create department:', error);
       toast({
         title: "Error Creating Department",
         description: error.message || "Failed to create department. Please try again.",
@@ -131,11 +126,6 @@ export default function NewDepartment() {
   });
 
   const onSubmit = (data: FormData) => {
-    console.log('🚀 Form submission triggered!');
-    console.log('📝 Form data received:', data);
-    console.log('👤 User context:', { user: user?.id, companyId: user?.companyId, role: (user as any)?.role });
-    console.log('🏢 Company slug:', companySlug);
-    
     // Prepare data for submission
     const submitData: InsertDepartment = {
       companyId: user?.companyId || "", // Will be overridden server-side
@@ -145,7 +135,6 @@ export default function NewDepartment() {
       managerId: data.managerId && data.managerId !== "none" ? data.managerId : null,
     };
     
-    console.log('📦 Prepared submit data:', submitData);
     createDepartmentMutation.mutate(submitData);
   };
 
@@ -246,10 +235,7 @@ export default function NewDepartment() {
           </CardHeader>
           <CardContent>
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit, (errors) => {
-                console.log('❌ Form validation errors:', errors);
-                console.log('📊 Form state:', form.formState);
-              })} className="space-y-6">
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                 {/* Department Name */}
                 <FormField
                   control={form.control}
