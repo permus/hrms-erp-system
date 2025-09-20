@@ -1047,7 +1047,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Company context required" });
       }
       
-      const departments = await storage.getDepartments(companyId);
+      let departments = await storage.getDepartments(companyId);
+      
+      // Auto-create sample departments if none exist
+      if (departments.length === 0) {
+        const sampleDepartments = [
+          { name: "Engineering", description: "Software development and technical operations" },
+          { name: "Product Management", description: "Product strategy and development oversight" },
+          { name: "Quality Assurance", description: "Software testing and quality control" },
+          { name: "DevOps", description: "Infrastructure and deployment management" },
+          { name: "UI/UX Design", description: "User interface and experience design" },
+          { name: "Sales", description: "Business development and client acquisition" },
+          { name: "Marketing", description: "Digital marketing and brand management" },
+          { name: "Human Resources", description: "Employee relations and talent management" },
+          { name: "Finance", description: "Financial planning and accounting" },
+          { name: "Customer Support", description: "Client support and success management" }
+        ];
+
+        for (const dept of sampleDepartments) {
+          await storage.createDepartment({
+            companyId,
+            name: dept.name,
+            description: dept.description,
+            parentId: null,
+            managerId: null
+          });
+        }
+        
+        // Fetch departments again after creation
+        departments = await storage.getDepartments(companyId);
+      }
+      
       res.json(departments);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch departments" });

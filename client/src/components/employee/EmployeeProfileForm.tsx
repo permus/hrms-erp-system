@@ -452,6 +452,21 @@ export default function EmployeeProfileForm({
               </div>
 
               <div className="space-y-2">
+                <Label htmlFor="reportTo">Report To</Label>
+                <Select onValueChange={(value) => form.setValue("employmentDetails.reportingManagerId", value)}>
+                  <SelectTrigger data-testid="select-report-to">
+                    <SelectValue placeholder="Select reporting manager" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="owner">Owner</SelectItem>
+                    {employees.filter(emp => emp.personalInfo?.name).map((emp) => (
+                      <SelectItem key={emp.id} value={emp.id}>{emp.personalInfo?.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
                 <Label htmlFor="startDate">Start Date *</Label>
                 <div className="space-y-2">
                   <Input
@@ -639,15 +654,15 @@ export default function EmployeeProfileForm({
       </div>
 
       {/* Form Content */}
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-8">
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
         <Card className="border-2">
-          <CardContent className="p-6">
+          <CardContent className="p-6 max-h-96 overflow-y-auto">
             {renderCurrentStep()}
           </CardContent>
         </Card>
 
         {/* Navigation Buttons */}
-        <div className="flex justify-between pt-6">
+        <div className="flex justify-between pt-4">
           <Button
             type="button"
             variant="outline"
