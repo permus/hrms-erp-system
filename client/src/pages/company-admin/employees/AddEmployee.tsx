@@ -10,7 +10,7 @@ import type { Department, Employee, InsertEmployee } from "@shared/schema";
 
 export default function AddEmployee() {
   const { companySlug: paramSlug } = useParams<{ companySlug?: string }>();
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -21,6 +21,11 @@ export default function AddEmployee() {
   });
   
   const companySlug = paramSlug || userSlugs?.companySlugs?.[0];
+  
+  // Detect HR context for context-aware navigation
+  const isHR = location.includes("/hr/");
+  const base = companySlug ? `/${companySlug}` : "/company-admin";
+  const employeeListPath = isHR ? `${base}/hr/employees` : `${base}/employees`;
 
   const handleLogout = () => {
     window.location.href = "/api/logout";
@@ -42,11 +47,7 @@ export default function AddEmployee() {
   }
 
   const handleBack = () => {
-    if (companySlug) {
-      setLocation(`/${companySlug}/employees`);
-    } else {
-      setLocation('/company-admin/employees');
-    }
+    setLocation(employeeListPath);
   };
 
   // Fetch required data for the form
@@ -85,12 +86,8 @@ export default function AddEmployee() {
       // Invalidate queries to refresh employee list
       queryClient.invalidateQueries({ queryKey: ['/api/employees', companySlug] });
       
-      // Navigate to employee list
-      if (companySlug) {
-        setLocation(`/${companySlug}/employees`);
-      } else {
-        setLocation('/company-admin/employees');
-      }
+      // Navigate to employee list (context-aware)
+      setLocation(employeeListPath);
     },
     onError: (error: any) => {
       console.error('Failed to create employee:', error);
@@ -107,11 +104,7 @@ export default function AddEmployee() {
   };
 
   const handleCancel = () => {
-    if (companySlug) {
-      setLocation(`/${companySlug}/employees`);
-    } else {
-      setLocation('/company-admin/employees');
-    }
+    setLocation(employeeListPath);
   };
 
   // Show loading while resolving company slug

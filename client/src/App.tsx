@@ -99,26 +99,26 @@ function RoleBasedRedirect() {
 
 // Main Dashboard Routes with Main Dashboard Sidebar
 function MainDashboardRoutes() {
+  console.log('[DEBUG] MainDashboardRoutes component mounted, current location:', window.location.pathname);
+  
   return (
     <MainDashboardLayout>
       <Switch>
-        {/* Main Company Dashboard - slug-based */}
+        {/* Company Dashboard routes */}
         <Route path="/:companySlug/dashboard" component={CompanyAdminDashboard} />
         <Route path="/:companySlug/analytics" component={Home} />
         <Route path="/:companySlug/settings" component={Home} />
         
-        {/* Direct Employee Routes for convenience */}
-        <Route path="/:companySlug/employees" component={EmployeeList} />
-        <Route path="/:companySlug/employees/new" component={AddEmployee} />
-        <Route path="/:companySlug/employees/:employeeSlug/edit" component={EditEmployee} />
-        <Route path="/:companySlug/employees/:employeeSlug" component={EmployeeProfile} />
+        {/* Employee routes - relative to mount point */}
+        <Route path="/" component={EmployeeList} />
+        <Route path="/new" component={AddEmployee} />
+        <Route path="/:employeeSlug/edit" component={EditEmployee} />
+        <Route path="/:employeeSlug" component={EmployeeProfile} />
         
-        {/* Main Company Dashboard - fallback routes */}
+        {/* Fallback routes for legacy/direct paths */}
         <Route path="/company-admin/dashboard" component={CompanyAdminDashboard} />
         <Route path="/company-admin/analytics" component={Home} />
         <Route path="/company-admin/settings" component={Home} />
-        
-        {/* Direct Employee Routes - fallback */}
         <Route path="/company-admin/employees" component={EmployeeList} />
         <Route path="/company-admin/employees/new" component={AddEmployee} />
         <Route path="/company-admin/employees/:employeeSlug/edit" component={EditEmployee} />
@@ -133,7 +133,19 @@ function HRRoutes() {
   return (
     <HRModuleLayout>
       <Switch>
-        {/* HR Module Routes - slug-based */}
+        {/* HR routes - relative to mount point for /hr/* */}
+        <Route path="/dashboard" component={HRDashboard} />
+        <Route path="/employees" component={EmployeeList} />
+        <Route path="/employees/new" component={AddEmployee} />
+        <Route path="/employees/:employeeSlug/edit" component={EditEmployee} />
+        <Route path="/employees/:employeeSlug" component={EmployeeProfile} />
+        <Route path="/departments" component={HRDepartments} />
+        <Route path="/documents" component={HRDocuments} />
+        <Route path="/leave" component={HRLeave} />
+        <Route path="/attendance" component={HRAttendance} />
+        <Route path="/probation" component={HRProbation} />
+        
+        {/* HR Module Routes - company-scoped full paths */}
         <Route path="/:companySlug/hr/dashboard" component={HRDashboard} />
         <Route path="/:companySlug/hr/employees" component={EmployeeList} />
         <Route path="/:companySlug/hr/employees/new" component={AddEmployee} />
@@ -194,11 +206,17 @@ function Router() {
         </>
       )}
 
+      {/* Top-level HR routes (must come before slug-capturing routes) */}
+      <Route path="/hr/*" component={HRRoutes} />
+      
       {/* Company routes - accessible when authenticated or redirects to login */}
       <Route path="/:companySlug/dashboard" component={MainDashboardRoutes} />
       <Route path="/:companySlug/analytics" component={MainDashboardRoutes} />
       <Route path="/:companySlug/settings" component={MainDashboardRoutes} />
-      <Route path="/:companySlug/employees/*" component={MainDashboardRoutes} />
+      <Route path="/:companySlug/employees" component={MainDashboardRoutes} />
+      <Route path="/:companySlug/employees/new" component={MainDashboardRoutes} />
+      <Route path="/:companySlug/employees/:employeeSlug" component={MainDashboardRoutes} />
+      <Route path="/:companySlug/employees/:employeeSlug/edit" component={MainDashboardRoutes} />
       <Route path="/:companySlug/hr/*" component={HRRoutes} />
       
       {/* Fallback routes */}

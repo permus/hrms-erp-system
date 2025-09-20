@@ -23,10 +23,10 @@ export function HRModuleLayout({ children }: HRModuleLayoutProps) {
   const companySlug = userSlugs?.companySlugs?.[0];
   const mainDashboardPath = companySlug ? `/${companySlug}/dashboard` : '/company-admin/dashboard';
 
-  // Custom sidebar width for HR module
+  // Custom sidebar width for HR module (240px standard)
   const style = {
-    "--sidebar-width": "20rem",       // 320px for HR content
-    "--sidebar-width-icon": "4rem",   // default icon width
+    "--sidebar-width": "15rem",       // 240px for consistency
+    "--sidebar-width-icon": "3rem",   // standard icon width
   };
 
   return (
