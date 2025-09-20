@@ -1,7 +1,7 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { useParams, useLocation } from "wouter";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { apiRequest, apiRequestWithContext, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -107,7 +107,12 @@ export default function DepartmentDetails() {
   // Delete department mutation
   const deleteDepartmentMutation = useMutation({
     mutationFn: async (departmentId: string) => {
-      return apiRequest(`/api/departments/${departmentId}`, 'DELETE');
+      // Use enhanced API request for super admin context
+      if ((user as any)?.role === 'SUPER_ADMIN' && companySlug) {
+        return apiRequestWithContext('DELETE', `/api/departments/${departmentId}`, undefined, { companySlug });
+      }
+      
+      return apiRequest('DELETE', `/api/departments/${departmentId}`);
     },
     onSuccess: () => {
       toast({

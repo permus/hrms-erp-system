@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { useParams, useLocation } from "wouter";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { apiRequest, apiRequestWithContext, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -173,10 +173,18 @@ export default function DepartmentEmployeeAssignment() {
   // Transfer employees mutation
   const transferEmployeesMutation = useMutation({
     mutationFn: async ({ employeeIds, departmentId }: { employeeIds: string[]; departmentId: string | null }) => {
-      return apiRequest('/api/employees/department-assignment', 'PUT', {
+      const payload = {
         employeeIds,
-        departmentId
-      });
+        departmentId,
+        companySlug: companySlug // For super admin context
+      };
+      
+      // Use enhanced API request for super admin context
+      if ((user as any)?.role === 'SUPER_ADMIN' && companySlug) {
+        return apiRequestWithContext('PUT', '/api/employees/department-assignment', payload, { companySlug });
+      }
+      
+      return apiRequest('PUT', '/api/employees/department-assignment', payload);
     },
     onSuccess: (data, variables) => {
       const action = variables.departmentId ? 'assigned to' : 'removed from';

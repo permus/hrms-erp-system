@@ -1,7 +1,7 @@
 import { useParams, useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { apiRequest, apiRequestWithContext, queryClient, createQueryFnWithCompany } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -79,11 +79,17 @@ export default function NewDepartment() {
   // Fetch required data for the form
   const { data: departments = [], isLoading: departmentsLoading } = useQuery<Department[]>({
     queryKey: ["/api/departments", companySlug],
+    queryFn: (user as any)?.role === 'SUPER_ADMIN' && companySlug ? 
+      createQueryFnWithCompany(companySlug) : 
+      undefined,
     enabled: !!companySlug
   });
 
   const { data: employees = [], isLoading: employeesLoading } = useQuery<Employee[]>({
     queryKey: ["/api/employees", companySlug],
+    queryFn: (user as any)?.role === 'SUPER_ADMIN' && companySlug ? 
+      createQueryFnWithCompany(companySlug) : 
+      undefined,
     enabled: !!companySlug
   });
 
@@ -99,7 +105,13 @@ export default function NewDepartment() {
       };
       
       console.log('Department creation payload:', payload);
-      return apiRequest('/api/departments', 'POST', payload);
+      
+      // Use enhanced API request for super admin context
+      if ((user as any)?.role === 'SUPER_ADMIN' && companySlug) {
+        return apiRequestWithContext('POST', '/api/departments', payload, { companySlug });
+      }
+      
+      return apiRequest('POST', '/api/departments', payload);
     },
     onSuccess: (newDepartment: any) => {
       toast({

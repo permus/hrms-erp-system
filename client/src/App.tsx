@@ -24,6 +24,7 @@ import EmployeeDashboard from "@/pages/employee/dashboard";
 import HRDashboard from "@/pages/company-admin/hr/dashboard";
 import HRDepartments from "@/pages/company-admin/hr/departments";
 import NewDepartment from "@/pages/company-admin/hr/departments/new";
+import DepartmentHierarchy from "@/pages/company-admin/hr/departments/hierarchy";
 import DepartmentDetails from "@/pages/company-admin/hr/departments/[id]";
 import EditDepartment from "@/pages/company-admin/hr/departments/[id]/edit";
 import DepartmentEmployeeAssignment from "@/pages/company-admin/hr/departments/[id]/employees";
@@ -181,6 +182,7 @@ function HRRoutes() {
         <Route path="/:companySlug/hr/employees/:employeeSlug" component={EmployeeProfile} />
         <Route path="/:companySlug/hr/departments" component={HRDepartments} />
         <Route path="/:companySlug/hr/departments/new" component={NewDepartment} />
+        <Route path="/:companySlug/hr/departments/hierarchy" component={DepartmentHierarchy} />
         <Route path="/:companySlug/hr/departments/:id/employees" component={DepartmentEmployeeAssignment} />
         <Route path="/:companySlug/hr/departments/:id/edit" component={EditDepartment} />
         <Route path="/:companySlug/hr/departments/:id" component={DepartmentDetails} />
@@ -197,6 +199,7 @@ function HRRoutes() {
         <Route path="/company-admin/hr/employees/:employeeSlug" component={EmployeeProfile} />
         <Route path="/company-admin/hr/departments" component={HRDepartments} />
         <Route path="/company-admin/hr/departments/new" component={NewDepartment} />
+        <Route path="/company-admin/hr/departments/hierarchy" component={DepartmentHierarchy} />
         <Route path="/company-admin/hr/departments/:id/employees" component={DepartmentEmployeeAssignment} />
         <Route path="/company-admin/hr/departments/:id/edit" component={EditDepartment} />
         <Route path="/company-admin/hr/departments/:id" component={DepartmentDetails} />

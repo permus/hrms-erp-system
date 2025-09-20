@@ -988,9 +988,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       let companyId = userData?.companyId;
       
-      // For super admins, try to get company from request body or query
+      // For super admins, try to get company from headers, body, or query
       if (userData?.role === 'SUPER_ADMIN' && !companyId) {
-        const companySlug = req.body.companySlug || req.query.companySlug as string;
+        const companySlug = req.headers['x-company-slug'] as string || req.body.companySlug || req.query.companySlug as string;
         if (companySlug) {
           const company = await storage.getCompanyBySlug(companySlug);
           companyId = company?.id;
@@ -1091,9 +1091,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       let companyId = userData?.companyId;
       
-      // For super admins, try to get company from request body or query
+      // For super admins, try to get company from headers, body, or query
       if (userData?.role === 'SUPER_ADMIN' && !companyId) {
-        const companySlug = req.body.companySlug || req.query.companySlug as string;
+        const companySlug = req.headers['x-company-slug'] as string || req.body.companySlug || req.query.companySlug as string;
         if (companySlug) {
           const company = await storage.getCompanyBySlug(companySlug);
           companyId = company?.id;
@@ -1172,7 +1172,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Verify the department belongs to the user's company
       let userCompanyId = userData?.companyId;
       if (userData?.role === 'SUPER_ADMIN' && !userCompanyId) {
-        const companySlug = req.body.companySlug || req.query.companySlug as string;
+        const companySlug = req.headers['x-company-slug'] as string || req.body.companySlug || req.query.companySlug as string;
         if (companySlug) {
           const company = await storage.getCompanyBySlug(companySlug);
           userCompanyId = company?.id;
@@ -1357,9 +1357,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       let userCompanyId = userData?.companyId;
       
-      // For super admins, get company context
+      // For super admins, get company context from headers, body, or query
       if (userData?.role === 'SUPER_ADMIN' && !userCompanyId) {
-        const companySlug = req.query.companySlug as string || req.headers['x-company-slug'] as string;
+        const companySlug = req.headers['x-company-slug'] as string || req.body.companySlug || req.query.companySlug as string;
         if (companySlug) {
           const company = await storage.getCompanyBySlug(companySlug);
           userCompanyId = company?.id;
@@ -1470,9 +1470,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       let companyId = userData?.companyId;
       
-      // For super admins, try to get company from request body or query
+      // For super admins, try to get company from headers, body, or query
       if (userData?.role === 'SUPER_ADMIN' && !companyId) {
-        const companySlug = req.body.companySlug || req.query.companySlug as string;
+        const companySlug = req.headers['x-company-slug'] as string || req.body.companySlug || req.query.companySlug as string;
         if (companySlug) {
           const company = await storage.getCompanyBySlug(companySlug);
           companyId = company?.id;

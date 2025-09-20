@@ -23,13 +23,51 @@ export async function apiRequest(
   return res;
 }
 
+// Enhanced API request function with company context support
+export async function apiRequestWithContext(
+  method: string,
+  url: string,
+  data?: unknown | undefined,
+  options?: { companySlug?: string }
+): Promise<Response> {
+  const headers: Record<string, string> = {};
+  
+  if (data) {
+    headers["Content-Type"] = "application/json";
+  }
+  
+  // Add company slug header for super admin context
+  if (options?.companySlug) {
+    headers["X-Company-Slug"] = options.companySlug;
+  }
+  
+  const res = await fetch(url, {
+    method,
+    headers,
+    body: data ? JSON.stringify(data) : undefined,
+    credentials: "include",
+  });
+
+  await throwIfResNotOk(res);
+  return res;
+}
+
 type UnauthorizedBehavior = "returnNull" | "throw";
 export const getQueryFn: <T>(options: {
   on401: UnauthorizedBehavior;
+  companySlug?: string;
 }) => QueryFunction<T> =
-  ({ on401: unauthorizedBehavior }) =>
+  ({ on401: unauthorizedBehavior, companySlug }) =>
   async ({ queryKey }) => {
+    const headers: Record<string, string> = {};
+    
+    // Add company slug header for super admin context
+    if (companySlug) {
+      headers["X-Company-Slug"] = companySlug;
+    }
+    
     const res = await fetch(queryKey.join("/") as string, {
+      headers,
       credentials: "include",
     });
 
@@ -55,3 +93,7 @@ export const queryClient = new QueryClient({
     },
   },
 });
+
+// Helper function to create query function with company context
+export const createQueryFnWithCompany = (companySlug?: string) => 
+  getQueryFn({ on401: "throw", companySlug });

@@ -1,7 +1,7 @@
 import { useParams, useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { apiRequest, apiRequestWithContext, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -157,7 +157,12 @@ export default function EditDepartment() {
         companySlug: companySlug // For super admin context
       };
       
-      return apiRequest(`/api/departments/${id}`, 'PUT', payload);
+      // Use enhanced API request for super admin context
+      if ((user as any)?.role === 'SUPER_ADMIN' && companySlug) {
+        return apiRequestWithContext('PUT', `/api/departments/${id}`, payload, { companySlug });
+      }
+      
+      return apiRequest('PUT', `/api/departments/${id}`, payload);
     },
     onSuccess: (updatedDepartment: any) => {
       toast({
