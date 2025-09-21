@@ -302,7 +302,7 @@ export default function EmployeeProfileForm({
     const [basicSalary, housingAllowance, transportAllowance, otherAllowance] = watchedSalaryComponents;
     const total = (basicSalary || 0) + (housingAllowance || 0) + (transportAllowance || 0) + (otherAllowance || 0);
     form.setValue("compensation.totalSalary", total);
-  }, [watchedSalaryComponents, form]);
+  }, [watchedSalaryComponents]);
 
   // Auto-calculate probation end date when start date or probation months change
   useEffect(() => {
@@ -312,7 +312,7 @@ export default function EmployeeProfileForm({
       endDate.setMonth(endDate.getMonth() + probationMonths);
       form.setValue("employmentDetails.probationEndDate", endDate);
     }
-  }, [watchedEmploymentFields, form]);
+  }, [watchedEmploymentFields]);
 
   // Check if current step is valid
   const isCurrentStepValid = () => {
