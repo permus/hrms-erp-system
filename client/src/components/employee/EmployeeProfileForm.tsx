@@ -1094,21 +1094,48 @@ export default function EmployeeProfileForm({
 
                 <div className="space-y-2">
                   <Label htmlFor="reportingManager">Reporting Manager</Label>
-                  <Select onValueChange={(value) => form.setValue("employmentDetails.reportingManagerId", value)}>
+                  <Select 
+                    onValueChange={(value) => form.setValue("employmentDetails.reportingManagerId", value === "none" ? "" : value)}
+                    defaultValue={form.getValues("employmentDetails.reportingManagerId") || "none"}
+                  >
                     <SelectTrigger data-testid="select-reporting-manager">
                       <SelectValue placeholder="Select reporting manager" />
                     </SelectTrigger>
                     <SelectContent>
-                      {employees.map((emp) => (
-                        <SelectItem key={emp.id} value={emp.id}>
-                          {emp.personalInfo?.name || "Unknown Employee"}
-                        </SelectItem>
-                      ))}
+                      <SelectItem value="none">
+                        <div className="flex items-center gap-2">
+                          <Users className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-muted-foreground">None (No reporting manager)</span>
+                        </div>
+                      </SelectItem>
+                      {employees.length > 0 && (
+                        <>
+                          <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground border-b">
+                            Available Employees
+                          </div>
+                          {employees.map((emp) => (
+                            <SelectItem key={emp.id} value={emp.id}>
+                              <div className="flex items-center gap-2">
+                                <User className="h-4 w-4" />
+                                <span>{emp.personalInfo?.name || "Unknown Employee"}</span>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </>
+                      )}
+                      {employees.length === 0 && (
+                        <div className="px-2 py-1.5 text-xs text-muted-foreground">
+                          No other employees found
+                        </div>
+                      )}
                     </SelectContent>
                   </Select>
                   {form.formState.errors.employmentDetails?.reportingManagerId && (
                     <p className="text-sm text-destructive">{form.formState.errors.employmentDetails.reportingManagerId.message}</p>
                   )}
+                  <p className="text-xs text-muted-foreground">
+                    Select a direct supervisor for this employee, or choose "None" for senior positions.
+                  </p>
                 </div>
 
                 <div className="space-y-2">
