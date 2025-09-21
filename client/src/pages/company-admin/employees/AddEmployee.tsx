@@ -4,7 +4,6 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { SidebarTrigger } from "@/components/ui/sidebar";
 import { ArrowLeft } from "lucide-react";
 import EmployeeProfileForm from "@/components/employee/EmployeeProfileForm";
 import type { Department, Employee, InsertEmployee } from "@shared/schema";
@@ -142,11 +141,10 @@ export default function AddEmployee() {
   }
 
   return (
-    <div className="bg-background">
-      {/* Header */}
-      <div className="border-b bg-background px-6 py-4">
-        <div className="flex items-center space-x-4">
-          <SidebarTrigger data-testid="button-sidebar-toggle" />
+    <div className="p-6">
+      {/* Page Header with Back Navigation */}
+      <div className="mb-6">
+        <div className="flex items-center space-x-4 mb-4">
           <Button
             variant="ghost"
             size="sm"
@@ -156,23 +154,21 @@ export default function AddEmployee() {
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Employees
           </Button>
-          <div>
-            <h1 className="text-2xl font-bold" data-testid="text-page-title">Add New Employee | HR Module</h1>
-            <p className="text-muted-foreground">Create a comprehensive employee profile with UAE compliance documentation</p>
-          </div>
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold" data-testid="text-page-title">Add New Employee</h1>
+          <p className="text-muted-foreground">Create a comprehensive employee profile with UAE compliance documentation</p>
         </div>
       </div>
 
       {/* Employee Creation Form - Natural Height Content */}
-      <div className="bg-muted/20 p-6">
-        <div className="max-w-4xl mx-auto">
-          <EmployeeProfileForm
-            departments={departments}
-            employees={employees}
-            onSubmit={handleSubmit}
-            onCancel={handleCancel}
-          />
-        </div>
+      <div className="max-w-4xl mx-auto">
+        <EmployeeProfileForm
+          departments={departments}
+          employees={employees}
+          onSubmit={handleSubmit}
+          onCancel={handleCancel}
+        />
       </div>
     </div>
   );

@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { SidebarTrigger } from "@/components/ui/sidebar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -44,8 +45,9 @@ export default function Header({ user, onLogout, pendingNotifications = 0 }: Hea
 
   return (
     <header className="h-16 bg-background border-b border-border flex items-center justify-between px-6">
-      {/* Search */}
+      {/* Left Section - Sidebar Trigger and Search */}
       <div className="flex items-center gap-4 flex-1 max-w-md">
+        <SidebarTrigger data-testid="button-sidebar-toggle" />
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
