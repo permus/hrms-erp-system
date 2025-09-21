@@ -7,6 +7,7 @@ import {
   availableModules,
   companyModules,
   companyLicenses,
+  employeeDocuments,
   type User,
   type UpsertUser,
   type Company,
@@ -16,6 +17,8 @@ import {
   type AvailableModule,
   type CompanyModule,
   type CompanyLicense,
+  type EmployeeDocument,
+  type InsertEmployeeDocument,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, inArray, sql } from "drizzle-orm";
@@ -74,6 +77,13 @@ export interface IStorage {
   // Position operations
   getPositions(companyId: string): Promise<Position[]>;
   createPosition(position: Omit<Position, 'id' | 'createdAt' | 'updatedAt'>): Promise<Position>;
+  
+  // Employee Document operations
+  getEmployeeDocument(id: string): Promise<EmployeeDocument | undefined>;
+  getEmployeeDocuments(employeeId: string): Promise<EmployeeDocument[]>;
+  createEmployeeDocument(document: Omit<EmployeeDocument, 'id' | 'uploadDate'>): Promise<EmployeeDocument>;
+  updateEmployeeDocument(id: string, updates: Partial<Omit<EmployeeDocument, 'id' | 'uploadDate'>>): Promise<EmployeeDocument | undefined>;
+  deleteEmployeeDocument(id: string): Promise<EmployeeDocument | undefined>;
   
   // Module operations
   getAvailableModules(): Promise<AvailableModule[]>;
@@ -535,6 +545,41 @@ export class DatabaseStorage implements IStorage {
     
     // Return user with the temp password for the response
     return { ...user, tempPassword };
+  }
+
+  // Employee Document operations
+  async getEmployeeDocument(id: string): Promise<EmployeeDocument | undefined> {
+    const [document] = await db.select().from(employeeDocuments).where(eq(employeeDocuments.id, id));
+    return document;
+  }
+
+  async getEmployeeDocuments(employeeId: string): Promise<EmployeeDocument[]> {
+    return await db.select().from(employeeDocuments).where(eq(employeeDocuments.employeeId, employeeId));
+  }
+
+  async createEmployeeDocument(document: Omit<EmployeeDocument, 'id' | 'uploadDate'>): Promise<EmployeeDocument> {
+    const [newDocument] = await db
+      .insert(employeeDocuments)
+      .values(document)
+      .returning();
+    return newDocument;
+  }
+
+  async updateEmployeeDocument(id: string, updates: Partial<Omit<EmployeeDocument, 'id' | 'uploadDate'>>): Promise<EmployeeDocument | undefined> {
+    const [document] = await db
+      .update(employeeDocuments)
+      .set(updates)
+      .where(eq(employeeDocuments.id, id))
+      .returning();
+    return document;
+  }
+
+  async deleteEmployeeDocument(id: string): Promise<EmployeeDocument | undefined> {
+    const [document] = await db
+      .delete(employeeDocuments)
+      .where(eq(employeeDocuments.id, id))
+      .returning();
+    return document;
   }
 }
 
