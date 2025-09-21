@@ -385,11 +385,7 @@ export default function EmployeeProfileForm({
       icon: Users,
       description: "Personal details and contact information",
       fields: [
-        "personalInfo.firstName", "personalInfo.lastName", "personalInfo.fatherName", 
-        "personalInfo.motherName", "personalInfo.dob", "personalInfo.nationality", 
-        "personalInfo.religion", "personalInfo.maritalStatus",
-        "contactInfo.personalEmail", "contactInfo.uaePhone", "contactInfo.homeCountryPhone",
-        "contactInfo.uaeAddress", "contactInfo.homeCountryAddress"
+        "personalInfo.firstName", "personalInfo.lastName", "contactInfo.uaePhone"
       ]
     },
     {
