@@ -334,7 +334,7 @@ function Router() {
       <Route path="/company-admin/dashboard" component={MainDashboardRoutes} />
       <Route path="/company-admin/analytics" component={MainDashboardRoutes} />
       <Route path="/company-admin/settings" component={MainDashboardRoutes} />
-      <Route path="/company-admin/employees/*" component={MainDashboardRoutes} />
+      <Route path="/company-admin/employees/*" component={HRRoutes} />
       <Route path="/company-admin/hr/*" component={HRRoutes} />
       <Route path="/company-admin/payroll/*" component={PayrollRoutes} />
       <Route path="/company-admin/finance/*" component={FinanceRoutes} />
