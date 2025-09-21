@@ -145,23 +145,6 @@ export default function EmployeeProfileForm({
     setEmployeeId(generateEmployeeId());
   }, []);
 
-  // Auto-calculate total salary when components change
-  useEffect(() => {
-    const [basicSalary, housingAllowance, transportAllowance, otherAllowance] = watchedSalaryComponents;
-    const total = (basicSalary || 0) + (housingAllowance || 0) + (transportAllowance || 0) + (otherAllowance || 0);
-    form.setValue("compensation.totalSalary", total);
-  }, [watchedSalaryComponents, form]);
-
-  // Auto-calculate probation end date when start date or probation months change
-  useEffect(() => {
-    const [startDate, probationMonths] = watchedEmploymentFields;
-    if (startDate && probationMonths) {
-      const endDate = new Date(startDate);
-      endDate.setMonth(endDate.getMonth() + probationMonths);
-      form.setValue("employmentDetails.probationEndDate", endDate);
-    }
-  }, [watchedEmploymentFields, form]);
-
   const form = useForm<EnhancedEmployeeFormData>({
     resolver: zodResolver(enhancedEmployeeSchema),
     mode: "onChange",
@@ -313,6 +296,23 @@ export default function EmployeeProfileForm({
     "employmentDetails.startDate",
     "employmentDetails.probationMonths"
   ]);
+
+  // Auto-calculate total salary when components change
+  useEffect(() => {
+    const [basicSalary, housingAllowance, transportAllowance, otherAllowance] = watchedSalaryComponents;
+    const total = (basicSalary || 0) + (housingAllowance || 0) + (transportAllowance || 0) + (otherAllowance || 0);
+    form.setValue("compensation.totalSalary", total);
+  }, [watchedSalaryComponents, form]);
+
+  // Auto-calculate probation end date when start date or probation months change
+  useEffect(() => {
+    const [startDate, probationMonths] = watchedEmploymentFields;
+    if (startDate && probationMonths) {
+      const endDate = new Date(startDate);
+      endDate.setMonth(endDate.getMonth() + probationMonths);
+      form.setValue("employmentDetails.probationEndDate", endDate);
+    }
+  }, [watchedEmploymentFields, form]);
 
   // Check if current step is valid
   const isCurrentStepValid = () => {
