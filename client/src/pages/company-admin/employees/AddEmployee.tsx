@@ -161,14 +161,18 @@ export default function AddEmployee() {
         </div>
       </div>
 
-      {/* Employee Creation Form - Centered Content */}
-      <div className="flex-1 flex items-center justify-center p-6">
-        <EmployeeProfileForm
-          departments={departments}
-          employees={employees}
-          onSubmit={handleSubmit}
-          onCancel={handleCancel}
-        />
+      {/* Employee Creation Form - Scrollable Content */}
+      <div className="flex-1 overflow-hidden">
+        <div className="h-full overflow-y-auto p-6">
+          <div className="max-w-4xl mx-auto">
+            <EmployeeProfileForm
+              departments={departments}
+              employees={employees}
+              onSubmit={handleSubmit}
+              onCancel={handleCancel}
+            />
+          </div>
+        </div>
       </div>
     </div>
   );

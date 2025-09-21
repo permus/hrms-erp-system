@@ -302,7 +302,7 @@ export default function EmployeeProfileForm({
     const [basicSalary, housingAllowance, transportAllowance, otherAllowance] = watchedSalaryComponents;
     const total = (basicSalary || 0) + (housingAllowance || 0) + (transportAllowance || 0) + (otherAllowance || 0);
     form.setValue("compensation.totalSalary", total);
-  }, [watchedSalaryComponents, form]);
+  }, [watchedSalaryComponents]);
 
   // Auto-calculate probation end date when start date or probation months change
   useEffect(() => {
@@ -312,7 +312,7 @@ export default function EmployeeProfileForm({
       endDate.setMonth(endDate.getMonth() + probationMonths);
       form.setValue("employmentDetails.probationEndDate", endDate);
     }
-  }, [watchedEmploymentFields, form]);
+  }, [watchedEmploymentFields]);
 
   // Check if current step is valid
   const isCurrentStepValid = () => {
@@ -924,10 +924,10 @@ export default function EmployeeProfileForm({
                   <Label htmlFor="probationEndDate">Probation End Date</Label>
                   <Input
                     id="probationEndDate"
-                    value={form.watch("employmentDetails.probationEndDate") ? 
-                      format(form.watch("employmentDetails.probationEndDate"), "dd/MM/yyyy") : 
-                      "Auto-calculated"
-                    }
+                    value={(() => {
+                      const endDate = form.watch("employmentDetails.probationEndDate");
+                      return endDate ? format(endDate, "dd/MM/yyyy") : "Auto-calculated";
+                    })()}
                     disabled
                     className="bg-muted font-medium"
                     data-testid="input-probation-end-date"
@@ -1132,7 +1132,7 @@ export default function EmployeeProfileForm({
                       data-testid="input-visa-type"
                     />
                     {form.formState.errors.documents?.visaInfo?.type && (
-                      <p className="text-sm text-destructive">{form.formState.errors.documents.visaInfo.type.message}</p>
+                      <p className="text-sm text-destructive">{(form.formState.errors.documents.visaInfo.type as any)?.message}</p>
                     )}
                   </div>
                   <div className="space-y-2">
