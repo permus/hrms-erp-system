@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { CalendarIcon, Upload, User, Briefcase, CreditCard, ChevronLeft, ChevronRight, FileText, Users, Phone, Globe, ChevronsUpDown, Check } from "lucide-react";
+import { CalendarIcon, Upload, User, Briefcase, CreditCard, ChevronLeft, ChevronRight, FileText, Users, Phone, Globe, ChevronsUpDown, Check, CalendarDays } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
@@ -16,6 +16,133 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Textarea } from "@/components/ui/textarea";
 import DocumentUpload from "./DocumentUpload";
 import { insertEmployeeSchema, type InsertEmployee } from "@shared/schema";
+
+// Enhanced Date of Birth Field Component
+const DateOfBirthField = ({ value, onChange, error }: { value?: string, onChange: (value: string) => void, error?: string }) => {
+  const [showCalendar, setShowCalendar] = useState(false);
+  const [inputValue, setInputValue] = useState(value || '');
+
+  // Update input value when value prop changes
+  useEffect(() => {
+    if (value !== inputValue) {
+      setInputValue(formatDate(value) || '');
+    }
+  }, [value]);
+
+  // Format date as dd/mm/yyyy
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return '';
+    try {
+      const date = new Date(dateString);
+      const day = date.getDate().toString().padStart(2, '0');
+      const month = (date.getMonth() + 1).toString().padStart(2, '0');
+      const year = date.getFullYear();
+      return `${day}/${month}/${year}`;
+    } catch {
+      return dateString;
+    }
+  };
+
+  // Parse dd/mm/yyyy to ISO date
+  const parseDate = (ddmmyyyy: string) => {
+    const parts = ddmmyyyy.split('/');
+    if (parts.length === 3) {
+      const [day, month, year] = parts;
+      if (day && month && year && year.length === 4) {
+        return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+      }
+    }
+    return '';
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let value = e.target.value;
+    
+    // Auto-format as user types
+    value = value.replace(/\D/g, ''); // Remove non-digits
+    if (value.length >= 3) {
+      value = value.slice(0, 2) + '/' + value.slice(2);
+    }
+    if (value.length >= 6) {
+      value = value.slice(0, 5) + '/' + value.slice(5, 9);
+    }
+    
+    setInputValue(value);
+    
+    // Parse and validate
+    if (value.length === 10) {
+      const isoDate = parseDate(value);
+      if (isoDate) {
+        onChange(isoDate);
+      }
+    } else {
+      onChange(value); // Pass raw value for partial input
+    }
+  };
+
+  const handleCalendarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const isoDate = e.target.value;
+    setInputValue(formatDate(isoDate));
+    onChange(isoDate);
+    setShowCalendar(false);
+  };
+
+  return (
+    <div className="space-y-2">
+      <Label htmlFor="dob">Date of Birth</Label>
+      
+      <div className="relative">
+        <Input
+          id="dob"
+          type="text"
+          placeholder="DD/MM/YYYY (optional)"
+          value={inputValue}
+          onChange={handleInputChange}
+          maxLength={10}
+          data-testid="input-dob"
+          className={error ? "border-destructive" : ""}
+        />
+        
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          onClick={() => setShowCalendar(!showCalendar)}
+          className="absolute right-1 top-1/2 transform -translate-y-1/2 h-8 w-8"
+        >
+          <CalendarDays className="h-4 w-4" />
+        </Button>
+        
+        {showCalendar && (
+          <div className="absolute top-full left-0 mt-1 bg-background border border-border rounded-md shadow-lg z-50 p-3">
+            <Input
+              type="date"
+              onChange={handleCalendarChange}
+              className="w-full"
+              max={new Date().toISOString().split('T')[0]} // Prevent future dates
+            />
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setShowCalendar(false)}
+              className="mt-2 w-full text-sm"
+            >
+              Close
+            </Button>
+          </div>
+        )}
+      </div>
+      
+      {error && (
+        <p className="text-sm text-destructive">{error}</p>
+      )}
+      
+      <p className="text-xs text-muted-foreground">
+        Enter as DD/MM/YYYY or use calendar picker
+      </p>
+    </div>
+  );
+};
 
 // List of countries for nationality dropdown
 const countries = [
@@ -438,13 +565,16 @@ export default function EmployeeProfileForm({
         preferredName: "",
         fatherName: data.personalInfo.fatherName || "",
         motherName: data.personalInfo.motherName || "",
-        dob: data.personalInfo.dob?.toISOString() || new Date().toISOString(),
+        dob: data.personalInfo.dob ? (typeof data.personalInfo.dob === 'string' ? data.personalInfo.dob : new Date(data.personalInfo.dob).toISOString()) : new Date().toISOString(),
         nationality: data.personalInfo.nationality || "",
         languages: ["English"],
         religion: data.personalInfo.religion || "",
         maritalStatus: data.personalInfo.maritalStatus || "single",
         profilePhotoUrl: profilePhoto || "",
-        age: data.personalInfo.dob ? new Date().getFullYear() - data.personalInfo.dob.getFullYear() : 0,
+        age: data.personalInfo.dob ? (() => {
+          const dateObj = typeof data.personalInfo.dob === 'string' ? new Date(data.personalInfo.dob) : data.personalInfo.dob;
+          return new Date().getFullYear() - dateObj.getFullYear();
+        })() : 0,
         emergencyContact: {
           name: "",
           relation: "",
@@ -655,18 +785,11 @@ export default function EmployeeProfileForm({
                     )}
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="dob">Date of Birth</Label>
-                    <Input
-                      id="dob"
-                      {...form.register("personalInfo.dob")}
-                      placeholder="DD/MM/YYYY (optional)"
-                      data-testid="input-dob"
-                    />
-                    {form.formState.errors.personalInfo?.dob && (
-                      <p className="text-sm text-destructive">{form.formState.errors.personalInfo.dob.message}</p>
-                    )}
-                  </div>
+                  <DateOfBirthField
+                    value={form.watch("personalInfo.dob")}
+                    onChange={(value) => form.setValue("personalInfo.dob", value)}
+                    error={form.formState.errors.personalInfo?.dob?.message}
+                  />
 
                   <div className="space-y-2">
                     <Label htmlFor="nationality">Nationality</Label>

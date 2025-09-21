@@ -1,0 +1,120 @@
+Fix the Date of Birth field in the Add New Employee form to have proper date input with both manual typing and calendar picker:
+
+REPLACE the current date input with this enhanced date component:
+```tsx
+import { useState } from 'react';
+import { Calendar, CalendarDays } from 'lucide-react';
+
+const DateOfBirthField = ({ value, onChange, error }) => {
+  const [showCalendar, setShowCalendar] = useState(false);
+  const [inputValue, setInputValue] = useState(value || '');
+
+  // Format date as dd/mm/yyyy
+  const formatDate = (dateString) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+  };
+
+  // Parse dd/mm/yyyy to ISO date
+  const parseDate = (ddmmyyyy) => {
+    const parts = ddmmyyyy.split('/');
+    if (parts.length === 3) {
+      const [day, month, year] = parts;
+      if (day && month && year && year.length === 4) {
+        return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+      }
+    }
+    return '';
+  };
+
+  const handleInputChange = (e) => {
+    let value = e.target.value;
+    
+    // Auto-format as user types
+    value = value.replace(/\D/g, ''); // Remove non-digits
+    if (value.length >= 3) {
+      value = value.slice(0, 2) + '/' + value.slice(2);
+    }
+    if (value.length >= 6) {
+      value = value.slice(0, 5) + '/' + value.slice(5, 9);
+    }
+    
+    setInputValue(value);
+    
+    // Parse and validate
+    if (value.length === 10) {
+      const isoDate = parseDate(value);
+      if (isoDate) {
+        onChange(isoDate);
+      }
+    }
+  };
+
+  const handleCalendarChange = (e) => {
+    const isoDate = e.target.value;
+    setInputValue(formatDate(isoDate));
+    onChange(isoDate);
+    setShowCalendar(false);
+  };
+
+  return (
+    <div className="form-group">
+      <label className="block text-sm font-medium text-gray-700 mb-1">
+        Date of Birth *
+      </label>
+      
+      <div className="relative">
+        <input
+          type="text"
+          placeholder="DD/MM/YYYY"
+          value={inputValue}
+          onChange={handleInputChange}
+          maxLength="10"
+          className={`
+            w-full px-3 py-2 pr-10 border rounded-md shadow-sm 
+            focus:ring-2 focus:ring-primary focus:border-primary
+            ${error ? 'border-red-500' : 'border-gray-300'}
+          `}
+        />
+        
+        <button
+          type="button"
+          onClick={() => setShowCalendar(!showCalendar)}
+          className="absolute right-2 top-1/2 transform -translate-y-1/2 p-1 text-gray-500 hover:text-primary"
+        >
+          <CalendarDays className="h-5 w-5" />
+        </button>
+        
+        {showCalendar && (
+          <div className="absolute top-full left-0 mt-1 bg-white border border-gray-300 rounded-md shadow-lg z-50 p-3">
+            <input
+              type="date"
+              onChange={handleCalendarChange}
+              className="w-full border border-gray-300 rounded px-2 py-1"
+              max={new Date().toISOString().split('T')[0]} // Prevent future dates
+            />
+            <button
+              type="button"
+              onClick={() => setShowCalendar(false)}
+              className="mt-2 w-full text-sm text-gray-500 hover:text-gray-700"
+            >
+              Close
+            </button>
+          </div>
+        )}
+      </div>
+      
+      {error && (
+        <p className="mt-1 text-sm text-red-600">{error}</p>
+      )}
+      
+      <p className="mt-1 text-xs text-gray-500">
+        Enter as DD/MM/YYYY or use calendar picker
+      </p>
+    </div>
+  );
+};
