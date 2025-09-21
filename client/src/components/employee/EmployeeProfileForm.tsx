@@ -637,7 +637,7 @@ export default function EmployeeProfileForm({
     return {
       companyId: "",
       employeeCode: employeeId,
-      slug: "",
+      slug: `${data.personalInfo.firstName?.toLowerCase().replace(/\s+/g, '-') || 'employee'}-${data.personalInfo.lastName?.toLowerCase().replace(/\s+/g, '-') || 'user'}-${Date.now()}`.replace(/[^a-z0-9-]/g, ''),
       personalInfo: {
         name: `${data.personalInfo.firstName} ${data.personalInfo.lastName}`,
         preferredName: "",
