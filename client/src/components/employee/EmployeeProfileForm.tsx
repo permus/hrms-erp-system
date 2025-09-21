@@ -15,6 +15,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Textarea } from "@/components/ui/textarea";
 import DocumentUpload from "./DocumentUpload";
+import { DateInput } from "@/components/ui/date-input";
 import { insertEmployeeSchema, type InsertEmployee } from "@shared/schema";
 
 // Enhanced Date of Birth Field Component
@@ -1307,46 +1308,13 @@ export default function EmployeeProfileForm({
 
                 <div className="space-y-2 md:col-span-2">
                   <Label htmlFor="startDate">Start Date *</Label>
-                  <div className="space-y-2">
-                    <Input
-                      id="manualStartDate"
-                      value={manualDateInput}
-                      onChange={(e) => handleManualDateChange(e.target.value)}
-                      placeholder="DD/MM/YYYY"
-                      data-testid="input-start-date-manual"
-                    />
-                    <div className="text-center text-sm text-muted-foreground">or</div>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className="w-full justify-start text-left font-normal"
-                          data-testid="button-start-date"
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {form.watch("employmentDetails.startDate") ? 
-                            format(form.watch("employmentDetails.startDate"), "dd/MM/yyyy") : 
-                            "Pick start date"
-                          }
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0">
-                        <Calendar
-                          mode="single"
-                          selected={form.watch("employmentDetails.startDate")}
-                          onSelect={(date) => {
-                            if (date) {
-                              form.setValue("employmentDetails.startDate", date);
-                              setManualDateInput(format(date, "dd/MM/yyyy"));
-                            }
-                          }}
-                          fromYear={1960}
-                          toYear={2030}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
+                  <DateInput
+                    value={form.watch("employmentDetails.startDate")}
+                    onChange={(date) => form.setValue("employmentDetails.startDate", date)}
+                    placeholder="DD/MM/YYYY"
+                    data-testid="input-start-date"
+                    error={!!form.formState.errors.employmentDetails?.startDate}
+                  />
                   {form.formState.errors.employmentDetails?.startDate && (
                     <p className="text-sm text-destructive">{form.formState.errors.employmentDetails.startDate.message}</p>
                   )}
@@ -1398,35 +1366,13 @@ export default function EmployeeProfileForm({
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="passportExpiry">Passport Expiry Date *</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className="w-full justify-start text-left font-normal"
-                          data-testid="button-passport-expiry"
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {form.watch("documents.passportInfo.expiryDate") ? 
-                            format(form.watch("documents.passportInfo.expiryDate")!, "dd/MM/yyyy") : 
-                            "Pick expiry date"
-                          }
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0">
-                        <Calendar
-                          mode="single"
-                          selected={form.watch("documents.passportInfo.expiryDate")}
-                          onSelect={(date) => {
-                            if (date) {
-                              form.setValue("documents.passportInfo.expiryDate", date);
-                            }
-                          }}
-                          fromYear={2024}
-                          toYear={2050}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
+                    <DateInput
+                      value={form.watch("documents.passportInfo.expiryDate")}
+                      onChange={(date) => form.setValue("documents.passportInfo.expiryDate", date)}
+                      placeholder="DD/MM/YYYY"
+                      data-testid="input-passport-expiry"
+                      error={!!form.formState.errors.documents?.passportInfo?.expiryDate}
+                    />
                     {form.formState.errors.documents?.passportInfo?.expiryDate && (
                       <p className="text-sm text-destructive">{form.formState.errors.documents.passportInfo.expiryDate.message}</p>
                     )}
