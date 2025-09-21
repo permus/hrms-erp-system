@@ -203,8 +203,9 @@ export default function HRDepartments() {
   }
 
   return (
-    <div className="p-6">
-      <div className="flex items-center justify-between mb-6">
+    <div className="h-full overflow-y-auto">
+      <div className="p-6">
+        <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-2xl font-bold text-foreground">Departments</h2>
           <p className="text-muted-foreground">
@@ -491,6 +492,7 @@ export default function HRDepartments() {
           </div>
         </>
       )}
+      </div>
     </div>
   );
 }
