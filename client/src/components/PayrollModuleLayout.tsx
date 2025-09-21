@@ -23,9 +23,9 @@ export function PayrollModuleLayout({ children }: PayrollModuleLayoutProps) {
   const companySlug = userSlugs?.companySlugs?.[0];
   const mainDashboardPath = companySlug ? `/${companySlug}/dashboard` : '/company-admin/dashboard';
 
-  // Custom sidebar width for Payroll module (240px standard)
+  // Custom sidebar width for Payroll module (280px for more room)
   const style = {
-    "--sidebar-width": "15rem",       // 240px for consistency
+    "--sidebar-width": "17.5rem",     // 280px for more room
     "--sidebar-width-icon": "3rem",   // standard icon width
   };
 

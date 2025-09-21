@@ -7,9 +7,9 @@ interface MainDashboardLayoutProps {
 }
 
 export function MainDashboardLayout({ children }: MainDashboardLayoutProps) {
-  // Custom sidebar width for main dashboard (240px standard)
+  // Custom sidebar width for main dashboard (280px for more room)
   const style = {
-    "--sidebar-width": "15rem",       // 240px for consistency
+    "--sidebar-width": "17.5rem",     // 280px for more room
     "--sidebar-width-icon": "3rem",   // standard icon width
   };
 
