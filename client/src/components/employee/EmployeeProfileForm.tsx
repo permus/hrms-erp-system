@@ -199,6 +199,7 @@ const enhancedEmployeeSchema = z.object({
     }),
   }),
   documents: z.object({
+    // Passport is required for all employees
     passportInfo: z.object({
       number: z.string().min(1, "Passport number is required"),
       nationality: z.string().min(1, "Passport nationality is required"),
@@ -206,30 +207,31 @@ const enhancedEmployeeSchema = z.object({
       placeOfIssue: z.string().min(1, "Place of issue is required"),
       documentUrl: z.string().optional(),
     }),
+    // All other documents are optional for initial onboarding
     visaInfo: z.object({
-      type: z.string().min(1, "Visa type is required"),
-      number: z.string().min(1, "Visa number is required"),
-      expiryDate: z.date({ required_error: "Visa expiry date is required" }),
-      sponsor: z.string().min(1, "Sponsor is required"),
+      type: z.string().optional(),
+      number: z.string().optional(),
+      expiryDate: z.date().optional(),
+      sponsor: z.string().optional(),
       documentUrl: z.string().optional(),
-    }),
+    }).optional(),
     emiratesIdInfo: z.object({
-      idNumber: z.string().min(15, "Emirates ID must be 15 digits").max(15),
-      expiryDate: z.date({ required_error: "Emirates ID expiry date is required" }),
+      idNumber: z.string().optional(),
+      expiryDate: z.date().optional(),
       documentUrl: z.string().optional(),
-    }),
+    }).optional(),
     workPermitInfo: z.object({
-      number: z.string().min(1, "Work permit number is required"),
-      expiryDate: z.date({ required_error: "Work permit expiry date is required" }),
+      number: z.string().optional(),
+      expiryDate: z.date().optional(),
       restrictions: z.string().optional(),
       documentUrl: z.string().optional(),
-    }),
+    }).optional(),
     laborCardInfo: z.object({
-      number: z.string().min(1, "Labor card number is required"),
-      expiryDate: z.date({ required_error: "Labor card expiry date is required" }),
-      profession: z.string().min(1, "Profession is required"),
+      number: z.string().optional(),
+      expiryDate: z.date().optional(),
+      profession: z.string().optional(),
       documentUrl: z.string().optional(),
-    }),
+    }).optional(),
   }),
   compensation: z.object({
     basicSalary: z.coerce.number().min(1, "Basic salary must be positive"),
@@ -1409,7 +1411,7 @@ export default function EmployeeProfileForm({
                         >
                           <CalendarIcon className="mr-2 h-4 w-4" />
                           {form.watch("documents.visaInfo.expiryDate") ? 
-                            format(form.watch("documents.visaInfo.expiryDate"), "dd/MM/yyyy") : 
+                            format(form.watch("documents.visaInfo.expiryDate")!, "dd/MM/yyyy") : 
                             "Pick expiry date"
                           }
                         </Button>
@@ -1484,7 +1486,7 @@ export default function EmployeeProfileForm({
                         >
                           <CalendarIcon className="mr-2 h-4 w-4" />
                           {form.watch("documents.emiratesIdInfo.expiryDate") ? 
-                            format(form.watch("documents.emiratesIdInfo.expiryDate"), "dd/MM/yyyy") : 
+                            format(form.watch("documents.emiratesIdInfo.expiryDate")!, "dd/MM/yyyy") : 
                             "Pick expiry date"
                           }
                         </Button>
@@ -1547,7 +1549,7 @@ export default function EmployeeProfileForm({
                         >
                           <CalendarIcon className="mr-2 h-4 w-4" />
                           {form.watch("documents.workPermitInfo.expiryDate") ? 
-                            format(form.watch("documents.workPermitInfo.expiryDate"), "dd/MM/yyyy") : 
+                            format(form.watch("documents.workPermitInfo.expiryDate")!, "dd/MM/yyyy") : 
                             "Pick expiry date"
                           }
                         </Button>
@@ -1634,7 +1636,7 @@ export default function EmployeeProfileForm({
                         >
                           <CalendarIcon className="mr-2 h-4 w-4" />
                           {form.watch("documents.laborCardInfo.expiryDate") ? 
-                            format(form.watch("documents.laborCardInfo.expiryDate"), "dd/MM/yyyy") : 
+                            format(form.watch("documents.laborCardInfo.expiryDate")!, "dd/MM/yyyy") : 
                             "Pick expiry date"
                           }
                         </Button>
