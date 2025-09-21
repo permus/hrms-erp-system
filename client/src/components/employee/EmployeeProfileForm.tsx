@@ -544,7 +544,7 @@ export default function EmployeeProfileForm({
     switch (currentStep) {
       case 1:
         return (
-          <div className="space-y-4">
+          <div className="space-y-6 mb-12">
             <div className="text-center space-y-2">
               <h2 className="text-xl font-semibold">Profile Photo</h2>
               <p className="text-sm text-muted-foreground">Upload a professional photo for the employee profile</p>
@@ -577,15 +577,15 @@ export default function EmployeeProfileForm({
 
       case 2:
         return (
-          <div className="space-y-6">
+          <div className="space-y-6 mb-12">
             <div className="text-center space-y-4">
               <h2 className="text-2xl font-semibold">Personal & Contact Information</h2>
               <p className="text-muted-foreground">Complete personal details and contact information</p>
             </div>
 
-            <div className="space-y-6">
+            <div className="space-y-12">
               {/* Personal Information Section */}
-              <div className="space-y-4">
+              <div className="space-y-6 mb-12">
                 <h3 className="text-lg font-medium border-b pb-2">Personal Details</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
@@ -723,7 +723,7 @@ export default function EmployeeProfileForm({
               </div>
 
               {/* Contact Information Section */}
-              <div className="space-y-4">
+              <div className="space-y-6 mb-12">
                 <h3 className="text-lg font-medium border-b pb-2">Contact Information</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
@@ -1607,9 +1607,9 @@ export default function EmployeeProfileForm({
   };
 
   return (
-    <div className="w-full max-w-2xl mx-auto">
-      {/* Progress Indicator */}
-      <div className="p-6 bg-background border-b">
+    <div className="w-full">
+      {/* Progress Steps - Sticky at Top */}
+      <div className="sticky top-0 bg-background border-b p-6 mb-8 z-40">
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-3xl font-bold">Add New Employee</h1>
           <div className="text-sm text-muted-foreground">
@@ -1638,20 +1638,20 @@ export default function EmployeeProfileForm({
         </div>
       </div>
 
-      {/* Form Content - Naturally Scrollable */}
+      {/* Form Content */}
       <form onSubmit={form.handleSubmit(handleSubmit)}>
-        <Card className="border-0 border-t-2 rounded-none">
-          <CardContent className="p-6">
-            <div className="space-y-6 pb-32">
+        <Card className="border-0 rounded-none">
+          <CardContent className="p-0">
+            <div className="mb-12">
               {renderCurrentStep()}
             </div>
           </CardContent>
         </Card>
       </form>
 
-      {/* Navigation Buttons - Always Visible at Bottom */}
-      <div className="fixed bottom-0 left-0 right-0 bg-background border-t p-6 z-50">
-        <div className="max-w-2xl mx-auto flex justify-between">
+      {/* Navigation Buttons - Fixed at Bottom */}
+      <div className="fixed bottom-0 left-0 right-0 bg-background border-t shadow-lg z-50">
+        <div className="max-w-4xl mx-auto p-6 flex justify-between">
           <Button
             type="button"
             variant="outline"

@@ -141,34 +141,39 @@ export default function AddEmployee() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      {/* Header */}
-      <div className="border-b bg-background px-6 py-4">
-        <div className="flex items-center space-x-4">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleBack}
-            data-testid="button-back-to-employees"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Employees
-          </Button>
-          <div>
-            <h1 className="text-2xl font-bold" data-testid="text-page-title">Add New Employee</h1>
-            <p className="text-muted-foreground">Create a comprehensive employee profile with UAE compliance documentation</p>
+    <div className="h-screen flex overflow-hidden">
+      {/* Content Area */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Header */}
+        <div className="border-b bg-background px-6 py-4 flex-shrink-0">
+          <div className="flex items-center space-x-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleBack}
+              data-testid="button-back-to-employees"
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Employees
+            </Button>
+            <div>
+              <h1 className="text-2xl font-bold" data-testid="text-page-title">Add New Employee</h1>
+              <p className="text-muted-foreground">Create a comprehensive employee profile with UAE compliance documentation</p>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Employee Creation Form - Centered Content */}
-      <div className="flex-1 flex items-center justify-center p-6">
-        <EmployeeProfileForm
-          departments={departments}
-          employees={employees}
-          onSubmit={handleSubmit}
-          onCancel={handleCancel}
-        />
+        {/* Form Container with Proper Scrolling */}
+        <div className="flex-1 overflow-y-auto">
+          <div className="max-w-4xl mx-auto p-6 pb-32">
+            <EmployeeProfileForm
+              departments={departments}
+              employees={employees}
+              onSubmit={handleSubmit}
+              onCancel={handleCancel}
+            />
+          </div>
+        </div>
       </div>
     </div>
   );
