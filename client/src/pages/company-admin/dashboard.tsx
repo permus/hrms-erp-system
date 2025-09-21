@@ -17,7 +17,6 @@ import {
   Target,
   PieChart
 } from "lucide-react";
-import Header from "@/components/Header";
 import { Link } from "wouter";
 import type { Employee, Department, Position } from "@shared/schema";
 
@@ -77,20 +76,8 @@ export default function CompanyAdminDashboard() {
   }
 
   return (
-    <div className="h-screen bg-background flex flex-col">
-      <Header 
-        user={{
-          name: (user?.firstName || '') + ' ' + (user?.lastName || ''),
-          email: user?.email || '',
-          role: user?.role || 'COMPANY_ADMIN',
-          companyName: companySlug || 'Unknown Company'
-        }}
-        onLogout={handleLogout}
-        pendingNotifications={stats.pendingApprovals}
-      />
-
-      <main className="flex-1 overflow-auto p-6">
-          <div className="mb-8">
+    <div className="p-6">
+      <div className="mb-8">
             <h1 className="text-3xl font-bold text-foreground">Company Dashboard</h1>
             <p className="text-muted-foreground">
               Overview of {companySlug || 'your company'} operations
@@ -320,8 +307,7 @@ export default function CompanyAdminDashboard() {
                 </div>
               </CardContent>
             </Card>
-          </div>
-        </main>
+      </div>
     </div>
   );
 }

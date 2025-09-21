@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { useParams } from "wouter";
-import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
 import Dashboard from "@/components/Dashboard";
 import EmployeeCard from "@/components/EmployeeCard";
@@ -149,51 +148,20 @@ export default function Home() {
 
   if (showEmployeeForm) {
     return (
-      <div className="h-screen bg-background">
-        <Header 
-          user={{
-            name: (user.firstName || '') + ' ' + (user.lastName || ''),
-            email: user.email || '',
-            role: user.role || 'EMPLOYEE',
-            companyName: 'Acme Corporation'
-          }}
-          onLogout={handleLogout}
-          pendingNotifications={5}
+      <div className="p-6">
+        <EmployeeForm
+          departments={departmentOptions}
+          positions={positionOptions}
+          managers={mockManagers}
+          onSubmit={handleEmployeeSubmit}
+          onCancel={handleEmployeeCancel}
         />
-        <main className="h-[calc(100vh-4rem)] overflow-auto p-6">
-          <EmployeeForm
-            departments={departmentOptions}
-            positions={positionOptions}
-            managers={mockManagers}
-            onSubmit={handleEmployeeSubmit}
-            onCancel={handleEmployeeCancel}
-          />
-        </main>
       </div>
     );
   }
 
   return (
-    <div className="h-screen bg-background flex">
-      <Sidebar 
-        userRole={companySlug && user.role === 'SUPER_ADMIN' ? 'COMPANY_ADMIN' : (user.role || 'EMPLOYEE')}
-        companyName={companySlug ? `Company: ${companySlug}` : "Acme Corporation"}
-        companySlug={companySlug}
-      />
-      
-      <div className="flex-1 flex flex-col">
-        <Header 
-          user={{
-            name: (user.firstName || '') + ' ' + (user.lastName || ''),
-            email: user.email || '',
-            role: user.role || 'EMPLOYEE',
-            companyName: 'Acme Corporation'
-          }}
-          onLogout={handleLogout}
-          pendingNotifications={5}
-        />
-        
-        <main className="flex-1 overflow-auto p-6">
+    <div className="p-6">
           <Tabs value={activeView} onValueChange={setActiveView}>
             <TabsList className="mb-6">
               <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
@@ -316,8 +284,6 @@ export default function Home() {
               </Card>
             </TabsContent>
           </Tabs>
-        </main>
-      </div>
     </div>
   );
 }
