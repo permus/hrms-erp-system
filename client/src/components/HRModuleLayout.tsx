@@ -54,7 +54,7 @@ export function HRModuleLayout({ children }: HRModuleLayoutProps) {
               {/* Theme toggle placeholder - can be added later */}
             </div>
           </header>
-          <main className="flex-1 overflow-hidden">
+          <main className="flex-1 overflow-y-auto">
             {children}
           </main>
         </div>
