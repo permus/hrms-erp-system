@@ -38,10 +38,18 @@ export default function EditEmployee() {
     );
   }
 
-  // Fetch employee data for editing
-  const { data: employee, isLoading: employeeLoading } = useQuery<Employee>({
-    queryKey: [`/api/employees/${employeeSlug}?companySlug=${companySlug}`],
+  // Fetch employee data for editing - First resolve slug to ID, then fetch employee
+  const { data: employeeData, isLoading: employeeDataLoading } = useQuery<{id: string, slug: string, companyId: string}>({
+    queryKey: ["/api/employees/by-slug", companySlug, employeeSlug],
+    queryFn: () => fetch(`/api/employees/by-slug/${companySlug}/${employeeSlug}`).then(r => r.json()),
     enabled: !!employeeSlug && !!companySlug
+  });
+
+  // Fetch full employee details once we have the ID
+  const { data: employee, isLoading: employeeLoading } = useQuery<Employee>({
+    queryKey: ["/api/employees", employeeData?.id],
+    queryFn: () => fetch(`/api/employees/${employeeData?.id}`).then(r => r.json()),
+    enabled: !!employeeData?.id
   });
 
   // Fetch required data for the form
@@ -82,7 +90,7 @@ export default function EditEmployee() {
     }
   };
 
-  if (employeeLoading || departmentsLoading || employeesLoading) {
+  if (employeeDataLoading || employeeLoading || departmentsLoading || employeesLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center space-y-4">
