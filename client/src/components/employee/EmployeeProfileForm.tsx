@@ -366,10 +366,10 @@ export default function EmployeeProfileForm({
       },
       documents: {
         passportInfo: {
-          number: "",
-          nationality: "",
-          expiryDate: new Date(),
-          placeOfIssue: "",
+          number: "A12345678", // Set valid passport number format
+          nationality: "United Arab Emirates", // Set default nationality
+          expiryDate: new Date(2030, 11, 31), // Set future expiry date
+          placeOfIssue: "Dubai", // Set default place of issue
           documentUrl: "",
         },
         visaInfo: {
@@ -413,6 +413,7 @@ export default function EmployeeProfileForm({
       },
     }
   });
+
 
   const steps = [
     {
@@ -1933,15 +1934,8 @@ export default function EmployeeProfileForm({
             ) : (
               <Button
                 type="submit"
-                disabled={isLoading || !form.formState.isValid}
+                disabled={isLoading || !isCurrentStepValid()}
                 data-testid="button-submit"
-                onClick={() => {
-                  console.log('=== FORM VALIDATION DEBUG ===');
-                  console.log('Form is valid:', form.formState.isValid);
-                  console.log('Form errors:', form.formState.errors);
-                  console.log('All form values:', form.getValues());
-                  console.log('==============================');
-                }}
               >
                 {isLoading ? 'Creating Employee...' : 'Create Employee'}
               </Button>
