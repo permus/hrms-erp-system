@@ -100,7 +100,7 @@ export function AppSidebar() {
       <SidebarContent>
         <SidebarGroup>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild data-testid="button-back-to-main" className="border border-border rounded-md mb-2">
+            <SidebarMenuButton asChild data-testid="button-back-to-main" className="border border-orange-500 rounded-md mb-2">
               <Link href={mainDashboardPath}>
                 <ArrowLeft className="w-4 h-4" />
                 <span>Back to Main Dashboard</span>
