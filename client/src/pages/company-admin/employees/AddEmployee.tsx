@@ -141,7 +141,7 @@ export default function AddEmployee() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="bg-background">
       {/* Header */}
       <div className="border-b bg-background px-6 py-4">
         <div className="flex items-center space-x-4">
@@ -161,8 +161,8 @@ export default function AddEmployee() {
         </div>
       </div>
 
-      {/* Employee Creation Form - Scrollable Content */}
-      <div className="flex-1 overflow-y-auto bg-muted/20 p-6">
+      {/* Employee Creation Form - Natural Height Content */}
+      <div className="bg-muted/20 p-6">
         <div className="max-w-4xl mx-auto">
           <EmployeeProfileForm
             departments={departments}
