@@ -219,6 +219,7 @@ export default function EmployeeList() {
   };
 
   return (
+    <>
     <div className="p-6">
           {/* Page Header with Actions */}
           <div className="flex items-center justify-between mb-6">
@@ -470,5 +471,37 @@ export default function EmployeeList() {
             </div>
           )}
     </div>
+
+    {/* Delete Confirmation Dialog */}
+    <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Delete Employee</AlertDialogTitle>
+          <AlertDialogDescription>
+            Are you sure you want to delete{" "}
+            <strong>{employeeToDelete?.personalInfo?.name}</strong>? This action
+            cannot be undone and will permanently remove all employee data,
+            including employment history, documents, and records.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel 
+            onClick={handleDeleteCancel}
+            data-testid="button-cancel-delete"
+          >
+            Cancel
+          </AlertDialogCancel>
+          <AlertDialogAction
+            onClick={handleDeleteConfirm}
+            disabled={deleteEmployeeMutation.isPending}
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            data-testid="button-confirm-delete"
+          >
+            {deleteEmployeeMutation.isPending ? "Deleting..." : "Delete Employee"}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }

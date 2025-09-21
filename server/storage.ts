@@ -65,6 +65,7 @@ export interface IStorage {
   getEmployeesByDepartment(departmentId: string): Promise<Employee[]>;
   createEmployee(employee: Omit<Employee, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt'>): Promise<Employee>;
   updateEmployee(id: string, updates: Partial<Omit<Employee, 'id' | 'createdAt' | 'updatedAt'>>): Promise<Employee | undefined>;
+  deleteEmployee(id: string): Promise<Employee | undefined>;
   getEmployeeByUserId(userId: string): Promise<Employee | undefined>;
   generateNextEmployeeId(companyId: string): Promise<string>;
   isEmployeeCodeAvailable(companyId: string, employeeCode: string): Promise<boolean>;
@@ -311,6 +312,14 @@ export class DatabaseStorage implements IStorage {
     const [employee] = await db
       .update(employees)
       .set({ ...updates, updatedAt: new Date() })
+      .where(eq(employees.id, id))
+      .returning();
+    return employee;
+  }
+
+  async deleteEmployee(id: string): Promise<Employee | undefined> {
+    const [employee] = await db
+      .delete(employees)
       .where(eq(employees.id, id))
       .returning();
     return employee;

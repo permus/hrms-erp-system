@@ -1512,6 +1512,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // DELETE /api/employees/:id - Delete employee
+  app.delete("/api/employees/:id", requireRole('SUPER_ADMIN', 'COMPANY_ADMIN', 'HR_MANAGER'), requireCompany, async (req, res) => {
+    try {
+      const user = req.user as any;
+      const userData = await storage.getUser(user.claims.sub);
+      const { id } = req.params;
+      
+      let userCompanyId = userData?.companyId;
+      
+      // For super admins, get company context from headers, body, or query
+      if (userData?.role === 'SUPER_ADMIN' && !userCompanyId) {
+        const companySlug = req.headers['x-company-slug'] as string || req.query.companySlug as string;
+        if (companySlug) {
+          const company = await storage.getCompanyBySlug(companySlug);
+          userCompanyId = company?.id;
+        }
+      }
+
+      if (!userCompanyId) {
+        return res.status(400).json({ error: "Company context required" });
+      }
+
+      // Verify employee exists and belongs to the user's company
+      const employee = await storage.getEmployee(id);
+      if (!employee) {
+        return res.status(404).json({ error: "Employee not found" });
+      }
+      
+      if (employee.companyId !== userCompanyId) {
+        return res.status(403).json({ error: "Access denied - employee belongs to different company" });
+      }
+
+      // Delete the employee
+      const deletedEmployee = await storage.deleteEmployee(id);
+      if (!deletedEmployee) {
+        return res.status(404).json({ error: "Employee not found" });
+      }
+      
+      res.json({ message: "Employee deleted successfully", employee: deletedEmployee });
+    } catch (error) {
+      console.error('Delete employee error:', error);
+      res.status(500).json({ error: "Failed to delete employee" });
+    }
+  });
+
   // Position routes - Company Admins and HR only
   app.get("/api/positions", requireRole('SUPER_ADMIN', 'COMPANY_ADMIN', 'HR_MANAGER', 'DEPARTMENT_MANAGER'), requireCompany, async (req, res) => {
     try {
