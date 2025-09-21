@@ -199,14 +199,14 @@ const enhancedEmployeeSchema = z.object({
     }),
   }),
   documents: z.object({
-    // Passport is required for all employees
+    // All documents are optional for initial onboarding
     passportInfo: z.object({
-      number: z.string().min(1, "Passport number is required"),
-      nationality: z.string().min(1, "Passport nationality is required"),
-      expiryDate: z.date({ required_error: "Passport expiry date is required" }),
-      placeOfIssue: z.string().min(1, "Place of issue is required"),
+      number: z.string().optional(),
+      nationality: z.string().optional(),
+      expiryDate: z.date().optional(),
+      placeOfIssue: z.string().optional(),
       documentUrl: z.string().optional(),
-    }),
+    }).optional(),
     // All other documents are optional for initial onboarding
     visaInfo: z.object({
       type: z.string().optional(),
@@ -366,10 +366,10 @@ export default function EmployeeProfileForm({
       },
       documents: {
         passportInfo: {
-          number: "A12345678", // Set valid passport number format
-          nationality: "United Arab Emirates", // Set default nationality
-          expiryDate: new Date(2030, 11, 31), // Set future expiry date
-          placeOfIssue: "Dubai", // Set default place of issue
+          number: "",
+          nationality: "",
+          expiryDate: undefined,
+          placeOfIssue: "",
           documentUrl: "",
         },
         visaInfo: {
@@ -506,21 +506,38 @@ export default function EmployeeProfileForm({
     }
   }, [watchedEmploymentFields, form]);
 
-  // Check if current step is valid
-  const isCurrentStepValid = () => {
+  // Check if current step is valid using proper form validation
+  const isCurrentStepValid = async () => {
     const currentStepConfig = steps.find(step => step.id === currentStep);
+    
+    // Step 1 (profile photo) and step 4 (documents) are always valid since they're optional
     if (!currentStepConfig || currentStepConfig.fields.length === 0) return true;
+    if (currentStep === 1 || currentStep === 4) return true;
+    
+    // For other steps, trigger validation on current step fields only
+    try {
+      const isValid = await form.trigger(currentStepConfig.fields as any);
+      return isValid;
+    } catch (error) {
+      return false;
+    }
+  };
 
+  // Synchronous version for UI state (optimistic check)
+  const isCurrentStepValidSync = () => {
+    const currentStepConfig = steps.find(step => step.id === currentStep);
+    
+    // Step 1 (profile photo) and step 4 (documents) are always valid since they're optional
+    if (!currentStepConfig || currentStepConfig.fields.length === 0) return true;
+    if (currentStep === 1 || currentStep === 4) return true;
+    
+    // For other steps, check if required fields have values (optimistic check)
     return currentStepConfig.fields.every(field => {
       try {
-        // Get the current value from watched values
         const value = getNestedValue(watchedValues, field);
-        
-        // Check if field has a meaningful value
         if (value === undefined || value === null || value === '') {
           return false;
         }
-
         return true;
       } catch (error) {
         return false;
@@ -604,8 +621,19 @@ export default function EmployeeProfileForm({
     }
   };
 
-  // Transform form data to backend format
+  // Transform form data to backend format with proper date normalization
   const transformFormDataToBackend = (data: EnhancedEmployeeFormData): InsertEmployee => {
+    // Helper function to safely convert dates to ISO strings
+    const toISOString = (date: Date | string | null | undefined): string => {
+      if (!date) return new Date().toISOString();
+      if (typeof date === 'string') {
+        // Handle string dates that might be in different formats
+        const parsedDate = new Date(date);
+        return isNaN(parsedDate.getTime()) ? new Date().toISOString() : parsedDate.toISOString();
+      }
+      return date.toISOString();
+    };
+
     return {
       companyId: "",
       employeeCode: employeeId,
@@ -615,7 +643,7 @@ export default function EmployeeProfileForm({
         preferredName: "",
         fatherName: data.personalInfo.fatherName || "",
         motherName: data.personalInfo.motherName || "",
-        dob: data.personalInfo.dob ? (typeof data.personalInfo.dob === 'string' ? data.personalInfo.dob : new Date(data.personalInfo.dob).toISOString()) : new Date().toISOString(),
+        dob: data.personalInfo.dob ? toISOString(data.personalInfo.dob) : new Date().toISOString(),
         nationality: data.personalInfo.nationality || "",
         languages: ["English"],
         religion: data.personalInfo.religion || "",
@@ -655,12 +683,12 @@ export default function EmployeeProfileForm({
         position: data.employmentDetails.position || "",
         departmentId: data.employmentDetails.departmentId || "",
         reportingManagerId: data.employmentDetails.reportingManagerId || "",
-        startDate: data.employmentDetails.startDate?.toISOString() || new Date().toISOString(),
+        startDate: toISOString(data.employmentDetails.startDate),
         employmentStatus: data.employmentDetails.employmentStatus || "probation",
         employmentType: "full-time",
         workLocation: data.employmentDetails.workLocation || "office",
         probationMonths: data.employmentDetails.probationMonths || 6,
-        probationEndDate: data.employmentDetails.probationEndDate?.toISOString() || new Date().toISOString(),
+        probationEndDate: toISOString(data.employmentDetails.probationEndDate),
         tenure: 0
       },
       compensation: {
@@ -683,7 +711,7 @@ export default function EmployeeProfileForm({
       },
       emiratesIdInfo: {
         idNumber: data.documents.emiratesIdInfo?.idNumber || "",
-        expiryDate: data.documents.emiratesIdInfo?.expiryDate?.toISOString() || new Date().toISOString(),
+        expiryDate: toISOString(data.documents.emiratesIdInfo?.expiryDate),
         status: "pending_renewal",
         documents: {
           frontUrl: data.documents.emiratesIdInfo?.documentUrl || "",
@@ -693,7 +721,7 @@ export default function EmployeeProfileForm({
       visaInfo: {
         type: data.documents.visaInfo?.type || "",
         number: data.documents.visaInfo?.number || "",
-        expiryDate: data.documents.visaInfo?.expiryDate?.toISOString() || new Date().toISOString(),
+        expiryDate: toISOString(data.documents.visaInfo?.expiryDate),
         sponsor: data.documents.visaInfo?.sponsor || "",
         status: "pending_renewal",
         documents: {
@@ -704,7 +732,7 @@ export default function EmployeeProfileForm({
       passportInfo: {
         number: data.documents.passportInfo?.number || "",
         nationality: data.documents.passportInfo?.nationality || "",
-        expiryDate: data.documents.passportInfo?.expiryDate?.toISOString() || new Date().toISOString(),
+        expiryDate: toISOString(data.documents.passportInfo?.expiryDate),
         placeOfIssue: data.documents.passportInfo?.placeOfIssue || "",
         documents: {
           biodataPageUrl: data.documents.passportInfo?.documentUrl || "",
@@ -713,7 +741,7 @@ export default function EmployeeProfileForm({
       },
       workPermitInfo: {
         number: data.documents.workPermitInfo?.number || "",
-        expiryDate: data.documents.workPermitInfo?.expiryDate?.toISOString() || new Date().toISOString(),
+        expiryDate: toISOString(data.documents.workPermitInfo?.expiryDate),
         restrictions: data.documents.workPermitInfo?.restrictions || "",
         documents: {
           workPermitUrl: data.documents.workPermitInfo?.documentUrl || ""
@@ -721,7 +749,7 @@ export default function EmployeeProfileForm({
       },
       laborCardInfo: {
         number: data.documents.laborCardInfo?.number || "",
-        expiryDate: data.documents.laborCardInfo?.expiryDate?.toISOString() || new Date().toISOString(),
+        expiryDate: toISOString(data.documents.laborCardInfo?.expiryDate),
         profession: data.documents.laborCardInfo?.profession || "",
         documents: {
           laborCardUrl: data.documents.laborCardInfo?.documentUrl || ""
@@ -730,9 +758,54 @@ export default function EmployeeProfileForm({
     };
   };
 
-  const handleSubmit = (data: EnhancedEmployeeFormData) => {
+  // Custom submit handler that bypasses global form validation
+  const handleSubmit = async (data: EnhancedEmployeeFormData) => {
+    // First validate the current step (compensation)
+    const currentStepConfig = steps.find(step => step.id === currentStep);
+    if (currentStepConfig && currentStepConfig.fields.length > 0) {
+      const isValid = await form.trigger(currentStepConfig.fields as any);
+      if (!isValid) {
+        toast({
+          title: "Validation Error",
+          description: "Please fill in all required fields in the compensation section.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
+    // Transform and submit data
     const backendData = transformFormDataToBackend(data);
     onSubmit(backendData);
+  };
+
+  // Custom submit handler that only validates current step and bypasses global resolver
+  const handleCustomSubmit = async () => {
+    // Validate only the current step fields
+    const currentStepConfig = steps.find(step => step.id === currentStep);
+    
+    if (currentStepConfig && currentStepConfig.fields.length > 0) {
+      const isValid = await form.trigger(currentStepConfig.fields as any);
+      if (!isValid) {
+        toast({
+          title: "Validation Error",
+          description: "Please fill in all required fields before submitting.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
+    // Get raw form values and submit directly
+    const formData = form.getValues();
+    const backendData = transformFormDataToBackend(formData);
+    onSubmit(backendData);
+  };
+
+  // Remove the old form submit handler
+  const handleFormSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    // Prevent default form submission
   };
 
   const renderCurrentStep = () => {
@@ -1335,7 +1408,7 @@ export default function EmployeeProfileForm({
                         >
                           <CalendarIcon className="mr-2 h-4 w-4" />
                           {form.watch("documents.passportInfo.expiryDate") ? 
-                            format(form.watch("documents.passportInfo.expiryDate"), "dd/MM/yyyy") : 
+                            format(form.watch("documents.passportInfo.expiryDate")!, "dd/MM/yyyy") : 
                             "Pick expiry date"
                           }
                         </Button>
@@ -1903,7 +1976,7 @@ export default function EmployeeProfileForm({
       </div>
 
       {/* Form Content - Full Height */}
-      <form onSubmit={form.handleSubmit(handleSubmit)}>
+      <form onSubmit={handleFormSubmit}>
         <div className="p-6 bg-muted/30">
           {renderCurrentStep()}
         </div>
@@ -1925,7 +1998,7 @@ export default function EmployeeProfileForm({
               <Button
                 type="button"
                 onClick={handleNext}
-                disabled={!isCurrentStepValid()}
+                disabled={!isCurrentStepValidSync()}
                 data-testid="button-next"
               >
                 Next
@@ -1933,8 +2006,9 @@ export default function EmployeeProfileForm({
               </Button>
             ) : (
               <Button
-                type="submit"
-                disabled={isLoading || !isCurrentStepValid()}
+                type="button"
+                onClick={handleCustomSubmit}
+                disabled={isLoading || !isCurrentStepValidSync()}
                 data-testid="button-submit"
               >
                 {isLoading ? 'Creating Employee...' : 'Create Employee'}

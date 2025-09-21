@@ -328,8 +328,68 @@ export const insertUserSchema = createInsertSchema(users).omit({ id: true, creat
 export const insertCompanySchema = createInsertSchema(companies).omit({ id: true, createdAt: true, updatedAt: true }).extend({
   slug: z.string().min(1).max(100).regex(/^[a-z0-9-]+$/, "Slug must contain only lowercase letters, numbers, and hyphens")
 });
+// Document validation schemas
+const passportInfoSchema = z.object({
+  number: z.string().optional(),
+  nationality: z.string().optional(),
+  expiryDate: z.string().optional(),
+  placeOfIssue: z.string().optional(),
+  documents: z.object({
+    biodataPageUrl: z.string().optional(),
+    visaPagesUrls: z.array(z.string()).optional(),
+  }).optional(),
+}).optional();
+
+const visaInfoSchema = z.object({
+  type: z.string().optional(),
+  number: z.string().optional(),
+  expiryDate: z.string().optional(),
+  sponsor: z.string().optional(),
+  status: z.string().optional(),
+  currentStatus: z.string().optional(),
+  passportPlaceOfIssue: z.string().optional(),
+  documents: z.object({
+    visaPageUrl: z.string().optional(),
+    entryStampUrl: z.string().optional(),
+  }).optional(),
+}).optional();
+
+const emiratesIdInfoSchema = z.object({
+  status: z.string().optional(),
+  idNumber: z.string().optional(),
+  expiryDate: z.string().optional(),
+  documents: z.object({
+    frontUrl: z.string().optional(),
+    backUrl: z.string().optional(),
+  }).optional(),
+}).optional();
+
+const workPermitInfoSchema = z.object({
+  number: z.string().optional(),
+  expiryDate: z.string().optional(),
+  restrictions: z.string().optional(),
+  documents: z.object({
+    workPermitUrl: z.string().optional(),
+  }).optional(),
+}).optional();
+
+const laborCardInfoSchema = z.object({
+  number: z.string().optional(),
+  expiryDate: z.string().optional(),
+  profession: z.string().optional(),
+  documents: z.object({
+    laborCardUrl: z.string().optional(),
+  }).optional(),
+}).optional();
+
 export const insertEmployeeSchema = createInsertSchema(employees).omit({ id: true, createdAt: true, updatedAt: true, deletedAt: true }).extend({
-  slug: z.string().min(1).max(100).regex(/^[a-z0-9-]+$/, "Slug must contain only lowercase letters, numbers, and hyphens")
+  slug: z.string().min(1).max(100).regex(/^[a-z0-9-]+$/, "Slug must contain only lowercase letters, numbers, and hyphens"),
+  // Use proper validation schemas instead of z.any()
+  visaInfo: visaInfoSchema,
+  emiratesIdInfo: emiratesIdInfoSchema,
+  passportInfo: passportInfoSchema,
+  workPermitInfo: workPermitInfoSchema,
+  laborCardInfo: laborCardInfoSchema,
 });
 export const insertDepartmentSchema = createInsertSchema(departments).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertPositionSchema = createInsertSchema(positions).omit({ id: true, createdAt: true, updatedAt: true });
