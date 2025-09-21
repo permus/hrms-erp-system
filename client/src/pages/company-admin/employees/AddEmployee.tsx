@@ -122,9 +122,12 @@ export default function AddEmployee() {
         description: `Employee has been successfully added with documents.`,
       });
       
-      // Invalidate queries to refresh employee list and documents
-      queryClient.invalidateQueries({ queryKey: ['/api/employees'] });
+      // Invalidate queries to refresh employee list and documents with proper company context
+      queryClient.invalidateQueries({ queryKey: [`/api/employees?companySlug=${companySlug || 'default'}`] });
       queryClient.invalidateQueries({ queryKey: ['/api/employee-documents'] });
+      // Also invalidate alternative query key formats used in other components
+      queryClient.invalidateQueries({ queryKey: ['/api/employees'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/employees', companySlug || 'default'] });
       
       // Navigate to employee list (context-aware)
       setLocation(employeeListPath);

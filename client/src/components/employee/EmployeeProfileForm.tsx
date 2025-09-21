@@ -689,7 +689,7 @@ export default function EmployeeProfileForm({
         workLocation: data.employmentDetails.workLocation || "office",
         probationMonths: data.employmentDetails.probationMonths || 6,
         probationEndDate: toISOString(data.employmentDetails.probationEndDate),
-        tenure: 0
+        tenure: "0"
       },
       compensation: {
         basicSalary: data.compensation.basicSalary || 0,
@@ -699,8 +699,7 @@ export default function EmployeeProfileForm({
         totalSalary: data.compensation.totalSalary || 0,
         benefits: {
           medicalInsurance: data.compensation.medicalInsurance === "basic" || data.compensation.medicalInsurance === "comprehensive" || data.compensation.medicalInsurance === "family",
-          lifeInsurance: false,
-          annualFlightAllowance: data.compensation.annualFlightAllowance || false
+          lifeInsurance: false
         },
         bankDetails: {
           bankName: data.compensation.bankDetails?.bankName || "",
