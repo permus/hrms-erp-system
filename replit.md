@@ -8,6 +8,8 @@ This is a comprehensive multi-tenant ERP/HRMS system designed for UAE compliance
 
 Preferred communication style: Simple, everyday language.
 
+**Layout & Scrolling Behavior**: All screens should use natural page scrolling rather than constrained internal scrolling. Layout components (HRModuleLayout, MainDashboardLayout, etc.) should use `overflow-y-auto` instead of `overflow-hidden` to allow full-page content scrolling without compression. Forms and content should expand to their natural height and be accessible through browser-level scrolling.
+
 ## System Architecture
 
 ### Frontend Architecture
