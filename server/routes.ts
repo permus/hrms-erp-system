@@ -195,6 +195,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Delete employee document endpoint
+  app.delete("/api/employee-documents/:documentId", requireRole('SUPER_ADMIN', 'COMPANY_ADMIN', 'HR_MANAGER', 'DEPARTMENT_MANAGER'), async (req, res) => {
+    try {
+      const user = req.user as any;
+      const userData = await storage.getUser(user.claims.sub);
+      const { documentId } = req.params;
+      
+      if (!userData) {
+        return res.status(401).json({ error: "User not authenticated" });
+      }
+
+      if (!userData.companyId) {
+        return res.status(400).json({ error: "User not associated with a company" });
+      }
+
+      // Get the document to verify it belongs to the user's company
+      const document = await storage.getEmployeeDocument(documentId);
+      if (!document) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+
+      // Verify the document's employee belongs to the user's company
+      const employee = await storage.getEmployee(document.employeeId);
+      if (!employee || employee.companyId !== userData.companyId) {
+        return res.status(403).json({ error: "Access denied - document belongs to different company" });
+      }
+
+      // Delete the document
+      const deletedDocument = await storage.deleteEmployeeDocument(documentId);
+      if (!deletedDocument) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+
+      res.json({ message: "Document deleted successfully", document: deletedDocument });
+    } catch (error) {
+      console.error("Error deleting employee document:", error);
+      res.status(500).json({ error: "Failed to delete employee document" });
+    }
+  });
+
   // Employee document upload completion endpoint
   app.put("/api/employee-documents", isAuthenticated, async (req, res) => {
     try {

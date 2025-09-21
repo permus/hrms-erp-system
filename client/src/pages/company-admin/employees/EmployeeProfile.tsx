@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, Edit, FileText, User, Briefcase, Phone, MapPin, CreditCard, Calendar } from "lucide-react";
-import DocumentUpload from "@/components/employee/DocumentUpload";
+import DocumentManagement from "@/components/employee/DocumentManagement";
 import type { Employee, Department, Position } from "@shared/schema";
 
 export default function EmployeeProfile() {
@@ -60,12 +60,6 @@ export default function EmployeeProfile() {
     enabled: !!companySlug
   });
 
-  // Fetch employee documents (securely filtered by employee ID)
-  const { data: employeeDocuments = [] } = useQuery({
-    queryKey: ["/api/employee-documents", employee?.id],
-    queryFn: () => fetch(`/api/employee-documents?employeeId=${employee?.id}`).then(r => r.json()),
-    enabled: !!employee?.id
-  });
 
   const handleBack = () => {
     setLocation(`/${companySlug}/employees`);
@@ -123,12 +117,6 @@ export default function EmployeeProfile() {
     return type.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
   };
 
-  // Helper function to get documents by type (with double-safety filtering)
-  const getDocumentsByType = (documentType: string) => {
-    return employeeDocuments.filter((doc: any) => 
-      doc.documentType === documentType && doc.employeeId === employee?.id
-    );
-  };
 
   const getStatusBadgeVariant = (status: string) => {
     switch (status.toLowerCase()) {
@@ -372,31 +360,6 @@ export default function EmployeeProfile() {
                     <p className="text-sm" data-testid="text-emirates-id-expiry">{formatDate(employee.emiratesIdInfo?.expiryDate)}</p>
                   </div>
                 </div>
-                
-                {/* Uploaded Documents */}
-                {getDocumentsByType('emirates-id').length > 0 && (
-                  <div className="mt-4 pt-4 border-t">
-                    <h4 className="text-sm font-medium text-muted-foreground mb-2">Uploaded Documents</h4>
-                    <div className="space-y-2">
-                      {getDocumentsByType('emirates-id').map((doc: any) => (
-                        <div key={doc.id} className="flex items-center justify-between p-2 bg-muted rounded">
-                          <div className="flex items-center space-x-2">
-                            <FileText className="w-4 h-4" />
-                            <span className="text-sm">{doc.fileName}</span>
-                          </div>
-                          <a 
-                            href={doc.fileUrl} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="text-primary hover:underline text-sm"
-                          >
-                            View
-                          </a>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </CardContent>
             </Card>
 
@@ -424,31 +387,6 @@ export default function EmployeeProfile() {
                     <p className="text-sm" data-testid="text-passport-expiry">{formatDate(employee.passportInfo?.expiryDate)}</p>
                   </div>
                 </div>
-                
-                {/* Uploaded Documents */}
-                {getDocumentsByType('passport').length > 0 && (
-                  <div className="mt-4 pt-4 border-t">
-                    <h4 className="text-sm font-medium text-muted-foreground mb-2">Uploaded Documents</h4>
-                    <div className="space-y-2">
-                      {getDocumentsByType('passport').map((doc: any) => (
-                        <div key={doc.id} className="flex items-center justify-between p-2 bg-muted rounded">
-                          <div className="flex items-center space-x-2">
-                            <FileText className="w-4 h-4" />
-                            <span className="text-sm">{doc.fileName}</span>
-                          </div>
-                          <a 
-                            href={doc.fileUrl} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="text-primary hover:underline text-sm"
-                          >
-                            View
-                          </a>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </CardContent>
             </Card>
 
@@ -476,48 +414,16 @@ export default function EmployeeProfile() {
                     <p className="text-sm" data-testid="text-visa-expiry">{formatDate(employee.visaInfo?.expiryDate)}</p>
                   </div>
                 </div>
-                
-                {/* Uploaded Documents */}
-                {getDocumentsByType('visa').length > 0 && (
-                  <div className="mt-4 pt-4 border-t">
-                    <h4 className="text-sm font-medium text-muted-foreground mb-2">Uploaded Documents</h4>
-                    <div className="space-y-2">
-                      {getDocumentsByType('visa').map((doc: any) => (
-                        <div key={doc.id} className="flex items-center justify-between p-2 bg-muted rounded">
-                          <div className="flex items-center space-x-2">
-                            <FileText className="w-4 h-4" />
-                            <span className="text-sm">{doc.fileName}</span>
-                          </div>
-                          <a 
-                            href={doc.fileUrl} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="text-primary hover:underline text-sm"
-                          >
-                            View
-                          </a>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </CardContent>
             </Card>
           </TabsContent>
 
           {/* Documents */}
           <TabsContent value="documents" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Document Management</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <DocumentUpload 
-                  employeeId={employee.id}
-                  companySlug={companySlug || ''}
-                />
-              </CardContent>
-            </Card>
+            <DocumentManagement 
+              employeeId={employee.id}
+              companySlug={companySlug || ''}
+            />
           </TabsContent>
         </Tabs>
       </div>
