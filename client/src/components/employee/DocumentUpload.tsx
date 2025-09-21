@@ -85,26 +85,54 @@ export default function DocumentUpload({
 
     try {
       const uploadPromises = files.map(async (file) => {
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('category', category);
-        
-        // CRITICAL: Include employeeId to link documents properly
-        if (employeeId) {
-          formData.append('employeeId', employeeId);
-        }
-
-        const response = await fetch('/api/upload', {
+        // Step 1: Get upload URL from object storage service
+        const uploadUrlResponse = await fetch('/api/objects/upload', {
           method: 'POST',
-          body: formData,
+          headers: {
+            'Content-Type': 'application/json',
+          },
         });
 
-        if (!response.ok) {
+        if (!uploadUrlResponse.ok) {
+          throw new Error(`Failed to get upload URL for ${file.name}`);
+        }
+
+        const { uploadURL } = await uploadUrlResponse.json();
+
+        // Step 2: Upload file directly to object storage
+        const uploadResponse = await fetch(uploadURL, {
+          method: 'PUT',
+          body: file,
+          headers: {
+            'Content-Type': file.type,
+          },
+        });
+
+        if (!uploadResponse.ok) {
           throw new Error(`Upload failed for ${file.name}`);
         }
 
-        const result = await response.json();
-        return result.url;
+        // Step 3: Complete upload and save metadata
+        const completeResponse = await fetch('/api/employee-documents', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            documentURL: uploadURL.split('?')[0], // Remove query parameters
+            employeeId: employeeId || null,
+            category: category,
+            fileName: file.name,
+            fileSize: file.size,
+          }),
+        });
+
+        if (!completeResponse.ok) {
+          throw new Error(`Failed to save metadata for ${file.name}`);
+        }
+
+        const result = await completeResponse.json();
+        return result.url || uploadURL.split('?')[0];
       });
 
       // Simulate progress for better UX

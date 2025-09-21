@@ -482,8 +482,13 @@ export default function EmployeeProfileForm({
   useEffect(() => {
     const [basicSalary, housingAllowance, transportAllowance, otherAllowance] = watchedSalaryComponents;
     const total = (basicSalary || 0) + (housingAllowance || 0) + (transportAllowance || 0) + (otherAllowance || 0);
-    form.setValue("compensation.totalSalary", total);
-  }, [watchedSalaryComponents]);
+    const currentTotal = form.getValues("compensation.totalSalary");
+    
+    // Only update if the total has actually changed to prevent infinite loops
+    if (currentTotal !== total) {
+      form.setValue("compensation.totalSalary", total, { shouldValidate: false });
+    }
+  }, [watchedSalaryComponents, form]);
 
   // Auto-calculate probation end date when start date or probation months change
   useEffect(() => {
@@ -491,9 +496,14 @@ export default function EmployeeProfileForm({
     if (startDate && probationMonths) {
       const endDate = new Date(startDate);
       endDate.setMonth(endDate.getMonth() + probationMonths);
-      form.setValue("employmentDetails.probationEndDate", endDate);
+      const currentEndDate = form.getValues("employmentDetails.probationEndDate");
+      
+      // Only update if the end date has actually changed to prevent infinite loops
+      if (!currentEndDate || new Date(currentEndDate).getTime() !== endDate.getTime()) {
+        form.setValue("employmentDetails.probationEndDate", endDate, { shouldValidate: false });
+      }
     }
-  }, [watchedEmploymentFields]);
+  }, [watchedEmploymentFields, form]);
 
   // Check if current step is valid
   const isCurrentStepValid = () => {
