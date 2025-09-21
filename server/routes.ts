@@ -157,11 +157,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get all employee documents for centralized document management
+  // Get employee documents by specific employee ID (secure filtering)
   app.get("/api/employee-documents", requireRole('SUPER_ADMIN', 'COMPANY_ADMIN', 'HR_MANAGER', 'DEPARTMENT_MANAGER'), async (req, res) => {
     try {
       const user = req.user as any;
       const userData = await storage.getUser(user.claims.sub);
+      const { employeeId } = req.query;
       
       if (!userData) {
         return res.status(401).json({ error: "User not authenticated" });
@@ -171,7 +172,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "User not associated with a company" });
       }
 
-      const documents = await storage.getAllEmployeeDocuments(userData.companyId);
+      if (!employeeId) {
+        return res.status(400).json({ error: "Employee ID is required" });
+      }
+
+      // Verify the employee belongs to the user's company for security
+      const employee = await storage.getEmployee(employeeId as string);
+      if (!employee) {
+        return res.status(404).json({ error: "Employee not found" });
+      }
+
+      if (employee.companyId !== userData.companyId) {
+        return res.status(403).json({ error: "Access denied - employee belongs to different company" });
+      }
+
+      // Get documents for the specific employee only
+      const documents = await storage.getEmployeeDocuments(employeeId as string);
       res.json(documents);
     } catch (error) {
       console.error("Error fetching employee documents:", error);

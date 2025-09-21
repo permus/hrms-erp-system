@@ -8,7 +8,7 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, Edit, FileText, User, Briefcase, Phone, MapPin, CreditCard, Calendar } from "lucide-react";
 import DocumentUpload from "@/components/employee/DocumentUpload";
-import type { Employee } from "@shared/schema";
+import type { Employee, Department, Position } from "@shared/schema";
 
 export default function EmployeeProfile() {
   const { companySlug, employeeSlug } = useParams<{ companySlug: string; employeeSlug: string }>();
@@ -48,6 +48,25 @@ export default function EmployeeProfile() {
     enabled: !!employeeData?.id
   });
 
+  // Fetch departments to resolve department ID to name
+  const { data: departments = [] } = useQuery<Department[]>({
+    queryKey: ["/api/departments", companySlug],
+    enabled: !!companySlug
+  });
+
+  // Fetch positions to resolve position ID to name
+  const { data: positions = [] } = useQuery<Position[]>({
+    queryKey: ["/api/positions", companySlug],
+    enabled: !!companySlug
+  });
+
+  // Fetch employee documents (securely filtered by employee ID)
+  const { data: employeeDocuments = [] } = useQuery({
+    queryKey: ["/api/employee-documents", employee?.id],
+    queryFn: () => fetch(`/api/employee-documents?employeeId=${employee?.id}`).then(r => r.json()),
+    enabled: !!employee?.id
+  });
+
   const handleBack = () => {
     setLocation(`/${companySlug}/employees`);
   };
@@ -84,6 +103,31 @@ export default function EmployeeProfile() {
   const formatDate = (dateString: string | undefined) => {
     if (!dateString) return "Not specified";
     return new Date(dateString).toLocaleDateString();
+  };
+
+  // Helper functions to resolve IDs to names
+  const getDepartmentName = (departmentId?: string) => {
+    if (!departmentId) return 'Not assigned';
+    const department = departments.find(d => d.id === departmentId);
+    return department ? department.name : 'Department not found';
+  };
+
+  const getPositionName = (positionId?: string) => {
+    if (!positionId) return 'Not assigned';
+    const position = positions.find(p => p.id === positionId);
+    return position ? position.title : 'Position not found';
+  };
+
+  const formatEmploymentType = (type?: string) => {
+    if (!type) return 'Not specified';
+    return type.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+  };
+
+  // Helper function to get documents by type (with double-safety filtering)
+  const getDocumentsByType = (documentType: string) => {
+    return employeeDocuments.filter((doc: any) => 
+      doc.documentType === documentType && doc.employeeId === employee?.id
+    );
   };
 
   const getStatusBadgeVariant = (status: string) => {
@@ -203,11 +247,11 @@ export default function EmployeeProfile() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="text-sm font-medium text-muted-foreground">Department</label>
-                    <p className="text-sm" data-testid="text-department">{employee.employmentDetails?.departmentId || 'Not assigned'}</p>
+                    <p className="text-sm" data-testid="text-department">{getDepartmentName(employee.employmentDetails?.departmentId)}</p>
                   </div>
                   <div>
                     <label className="text-sm font-medium text-muted-foreground">Position</label>
-                    <p className="text-sm" data-testid="text-position">{employee.employmentDetails?.positionId || 'Not assigned'}</p>
+                    <p className="text-sm" data-testid="text-position">{getPositionName(employee.employmentDetails?.positionId)}</p>
                   </div>
                   <div>
                     <label className="text-sm font-medium text-muted-foreground">Start Date</label>
@@ -215,7 +259,7 @@ export default function EmployeeProfile() {
                   </div>
                   <div>
                     <label className="text-sm font-medium text-muted-foreground">Employment Type</label>
-                    <p className="text-sm" data-testid="text-employment-type">{employee.employmentDetails?.employmentType || 'Not specified'}</p>
+                    <p className="text-sm" data-testid="text-employment-type">{formatEmploymentType(employee.employmentDetails?.employmentType)}</p>
                   </div>
                   <div>
                     <label className="text-sm font-medium text-muted-foreground">Manager</label>
@@ -248,6 +292,18 @@ export default function EmployeeProfile() {
                       {employee.compensation?.housingAllowance ? `AED ${employee.compensation.housingAllowance.toLocaleString()}` : 'Not specified'}
                     </p>
                   </div>
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Transport Allowance</label>
+                    <p className="text-sm" data-testid="text-transport-allowance">
+                      {employee.compensation?.transportAllowance ? `AED ${employee.compensation.transportAllowance.toLocaleString()}` : 'Not specified'}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Total Salary</label>
+                    <p className="text-sm font-semibold" data-testid="text-total-salary">
+                      {employee.compensation?.totalSalary ? `AED ${employee.compensation.totalSalary.toLocaleString()}` : 'Not specified'}
+                    </p>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -266,20 +322,32 @@ export default function EmployeeProfile() {
                     <p className="text-sm" data-testid="text-personal-email">{employee.contactInfo?.personalEmail || 'Not specified'}</p>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-muted-foreground">Work Email</label>
-                    <p className="text-sm" data-testid="text-work-email">{employee.contactInfo?.workEmail || 'Not specified'}</p>
+                    <label className="text-sm font-medium text-muted-foreground">Company Email</label>
+                    <p className="text-sm" data-testid="text-company-email">{employee.contactInfo?.companyEmail || 'Not specified'}</p>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-muted-foreground">Mobile Number</label>
-                    <p className="text-sm" data-testid="text-mobile-number">{employee.contactInfo?.mobileNumber || 'Not specified'}</p>
+                    <label className="text-sm font-medium text-muted-foreground">UAE Phone</label>
+                    <p className="text-sm" data-testid="text-uae-phone">{employee.contactInfo?.uaePhone || 'Not specified'}</p>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-muted-foreground">Emergency Contact</label>
-                    <p className="text-sm" data-testid="text-emergency-contact">{employee.contactInfo?.emergencyContactNumber || 'Not specified'}</p>
+                    <label className="text-sm font-medium text-muted-foreground">Home Country Phone</label>
+                    <p className="text-sm" data-testid="text-home-phone">{employee.contactInfo?.homeCountryPhone || 'Not specified'}</p>
                   </div>
                   <div className="col-span-2">
-                    <label className="text-sm font-medium text-muted-foreground">Address</label>
-                    <p className="text-sm" data-testid="text-address">{employee.contactInfo?.address || 'Not specified'}</p>
+                    <label className="text-sm font-medium text-muted-foreground">UAE Address</label>
+                    <p className="text-sm" data-testid="text-uae-address">
+                      {employee.contactInfo?.uaeAddress ? 
+                        `${employee.contactInfo.uaeAddress.street || ''}, ${employee.contactInfo.uaeAddress.city || ''}, ${employee.contactInfo.uaeAddress.emirate || ''} ${employee.contactInfo.uaeAddress.poBox || ''}`.replace(/^[, ]+|[, ]+$/g, '').replace(/[, ]+/g, ', ') || 'Not specified'
+                        : 'Not specified'}
+                    </p>
+                  </div>
+                  <div className="col-span-2">
+                    <label className="text-sm font-medium text-muted-foreground">Home Country Address</label>
+                    <p className="text-sm" data-testid="text-home-address">
+                      {employee.contactInfo?.homeCountryAddress ? 
+                        `${employee.contactInfo.homeCountryAddress.street || ''}, ${employee.contactInfo.homeCountryAddress.city || ''}, ${employee.contactInfo.homeCountryAddress.state || ''}, ${employee.contactInfo.homeCountryAddress.country || ''} ${employee.contactInfo.homeCountryAddress.postalCode || ''}`.replace(/^[, ]+|[, ]+$/g, '').replace(/[, ]+/g, ', ') || 'Not specified'
+                        : 'Not specified'}
+                    </p>
                   </div>
                 </div>
               </CardContent>
@@ -304,6 +372,31 @@ export default function EmployeeProfile() {
                     <p className="text-sm" data-testid="text-emirates-id-expiry">{formatDate(employee.emiratesIdInfo?.expiryDate)}</p>
                   </div>
                 </div>
+                
+                {/* Uploaded Documents */}
+                {getDocumentsByType('emirates-id').length > 0 && (
+                  <div className="mt-4 pt-4 border-t">
+                    <h4 className="text-sm font-medium text-muted-foreground mb-2">Uploaded Documents</h4>
+                    <div className="space-y-2">
+                      {getDocumentsByType('emirates-id').map((doc: any) => (
+                        <div key={doc.id} className="flex items-center justify-between p-2 bg-muted rounded">
+                          <div className="flex items-center space-x-2">
+                            <FileText className="w-4 h-4" />
+                            <span className="text-sm">{doc.fileName}</span>
+                          </div>
+                          <a 
+                            href={doc.fileUrl} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-primary hover:underline text-sm"
+                          >
+                            View
+                          </a>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -331,6 +424,31 @@ export default function EmployeeProfile() {
                     <p className="text-sm" data-testid="text-passport-expiry">{formatDate(employee.passportInfo?.expiryDate)}</p>
                   </div>
                 </div>
+                
+                {/* Uploaded Documents */}
+                {getDocumentsByType('passport').length > 0 && (
+                  <div className="mt-4 pt-4 border-t">
+                    <h4 className="text-sm font-medium text-muted-foreground mb-2">Uploaded Documents</h4>
+                    <div className="space-y-2">
+                      {getDocumentsByType('passport').map((doc: any) => (
+                        <div key={doc.id} className="flex items-center justify-between p-2 bg-muted rounded">
+                          <div className="flex items-center space-x-2">
+                            <FileText className="w-4 h-4" />
+                            <span className="text-sm">{doc.fileName}</span>
+                          </div>
+                          <a 
+                            href={doc.fileUrl} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-primary hover:underline text-sm"
+                          >
+                            View
+                          </a>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -358,6 +476,31 @@ export default function EmployeeProfile() {
                     <p className="text-sm" data-testid="text-visa-expiry">{formatDate(employee.visaInfo?.expiryDate)}</p>
                   </div>
                 </div>
+                
+                {/* Uploaded Documents */}
+                {getDocumentsByType('visa').length > 0 && (
+                  <div className="mt-4 pt-4 border-t">
+                    <h4 className="text-sm font-medium text-muted-foreground mb-2">Uploaded Documents</h4>
+                    <div className="space-y-2">
+                      {getDocumentsByType('visa').map((doc: any) => (
+                        <div key={doc.id} className="flex items-center justify-between p-2 bg-muted rounded">
+                          <div className="flex items-center space-x-2">
+                            <FileText className="w-4 h-4" />
+                            <span className="text-sm">{doc.fileName}</span>
+                          </div>
+                          <a 
+                            href={doc.fileUrl} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-primary hover:underline text-sm"
+                          >
+                            View
+                          </a>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
