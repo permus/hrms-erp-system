@@ -195,6 +195,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const { category = 'general', employeeId, fileName, fileSize } = req.body;
       
+      // Validate required fields
+      if (!employeeId) {
+        return res.status(400).json({ error: "employeeId is required for document upload" });
+      }
+      
+      if (!fileName) {
+        return res.status(400).json({ error: "fileName is required for document upload" });
+      }
+      
       // Set object ACL policy for document
       const objectStorageService = new ObjectStorageService();
       const objectPath = await objectStorageService.trySetObjectEntityAclPolicy(
@@ -207,10 +216,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Store document metadata in database
       const documentData = {
-        employeeId: employeeId || null,
+        employeeId: employeeId,
         documentType: category,
         category: 'Employee Documents',
-        fileName: fileName || 'document',
+        fileName: fileName,
         filePath: objectPath,
         fileSize: fileSize || 0,
         uploadedBy: userId,

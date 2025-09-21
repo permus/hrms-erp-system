@@ -113,26 +113,33 @@ export default function DocumentUpload({
         }
 
         // Step 3: Complete upload and save metadata
-        const completeResponse = await fetch('/api/employee-documents', {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            documentURL: uploadURL.split('?')[0], // Remove query parameters
-            employeeId: employeeId || null,
-            category: category,
-            fileName: file.name,
-            fileSize: file.size,
-          }),
-        });
+        // For now, skip metadata saving if no employeeId (during employee creation)
+        // The document URL will be saved as part of the employee record
+        if (employeeId) {
+          const completeResponse = await fetch('/api/employee-documents', {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              documentURL: uploadURL.split('?')[0], // Remove query parameters
+              employeeId: employeeId,
+              category: category,
+              fileName: file.name,
+              fileSize: file.size,
+            }),
+          });
 
-        if (!completeResponse.ok) {
-          throw new Error(`Failed to save metadata for ${file.name}`);
+          if (!completeResponse.ok) {
+            throw new Error(`Failed to save metadata for ${file.name}`);
+          }
+
+          const result = await completeResponse.json();
+          return result.url || uploadURL.split('?')[0];
         }
 
-        const result = await completeResponse.json();
-        return result.url || uploadURL.split('?')[0];
+        // If no employeeId, just return the uploaded URL
+        return uploadURL.split('?')[0];
       });
 
       // Simulate progress for better UX

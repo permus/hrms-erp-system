@@ -303,6 +303,10 @@ function Router() {
       <Route path="/payroll" component={() => <Redirect to="/payroll/dashboard" />} />
       <Route path="/finance" component={() => <Redirect to="/finance/dashboard" />} />
       
+      {/* Convenience redirects for common employee management routes */}
+      <Route path="/add-employee" component={() => <Redirect to="/hr/employees/new" />} />
+      <Route path="/employees" component={() => <Redirect to="/hr/employees" />} />
+      
       {/* Top-level HR routes (must come before slug-capturing routes) */}
       <Route path="/hr/*" component={HRRoutes} />
       
@@ -318,10 +322,10 @@ function Router() {
       <Route path="/:companySlug/settings" component={MainDashboardRoutes} />
       
       {/* Employee routes redirect to HR module */}
-      <Route path="/:companySlug/employees" component={(params) => <Redirect to={`/${params.companySlug}/hr/employees`} />} />
-      <Route path="/:companySlug/employees/new" component={(params) => <Redirect to={`/${params.companySlug}/hr/employees/new`} />} />
-      <Route path="/:companySlug/employees/:employeeSlug" component={(params) => <Redirect to={`/${params.companySlug}/hr/employees/${params.employeeSlug}`} />} />
-      <Route path="/:companySlug/employees/:employeeSlug/edit" component={(params) => <Redirect to={`/${params.companySlug}/hr/employees/${params.employeeSlug}/edit`} />} />
+      <Route path="/:companySlug/employees" component={({ params }) => <Redirect to={`/${params.companySlug}/hr/employees`} />} />
+      <Route path="/:companySlug/employees/new" component={({ params }) => <Redirect to={`/${params.companySlug}/hr/employees/new`} />} />
+      <Route path="/:companySlug/employees/:employeeSlug" component={({ params }) => <Redirect to={`/${params.companySlug}/hr/employees/${params.employeeSlug}`} />} />
+      <Route path="/:companySlug/employees/:employeeSlug/edit" component={({ params }) => <Redirect to={`/${params.companySlug}/hr/employees/${params.employeeSlug}/edit`} />} />
       <Route path="/:companySlug/hr/*" component={HRRoutes} />
       <Route path="/:companySlug/payroll/*" component={PayrollRoutes} />
       <Route path="/:companySlug/finance/*" component={FinanceRoutes} />

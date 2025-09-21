@@ -1,0 +1,245 @@
+Fix the document upload functionality in the employee module. The current error shows "Failed to save metadata" which indicates issues with file handling and database operations.
+
+BACKEND FIXES NEEDED:
+
+1. UPDATE FILE UPLOAD ROUTE (server/routes/documents.js or similar):
+```javascript
+import multer from 'multer';
+import path from 'path';
+import { v4 as uuidv4 } from 'uuid';
+import fs from 'fs/promises';
+
+// Configure multer for file upload
+const storage = multer.diskStorage({
+  destination: async (req, file, cb) => {
+    const uploadDir = 'uploads/documents';
+    try {
+      await fs.mkdir(uploadDir, { recursive: true });
+      cb(null, uploadDir);
+    } catch (error) {
+      cb(error);
+    }
+  },
+  filename: (req, file, cb) => {
+    const uniqueId = uuidv4();
+    const extension = path.extname(file.originalname);
+    const filename = `${uniqueId}${extension}`;
+    cb(null, filename);
+  }
+});
+
+const upload = multer({
+  storage,
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = ['.pdf', '.jpg', '.jpeg', '.png', '.doc', '.docx'];
+    const extension = path.extname(file.originalname).toLowerCase();
+    
+    if (allowedTypes.includes(extension)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Invalid file type. Only PDF, images, and documents allowed.'));
+    }
+  }
+});
+
+// Upload endpoint
+router.post('/upload', upload.single('document'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    const { employeeId, documentType, expiryDate } = req.body;
+    
+    // Save document metadata to database
+    const document = await prisma.document.create({
+      data: {
+        employeeId,
+        documentType,
+        fileName: req.file.filename,
+        originalName: req.file.originalname,
+        fileUrl: `/uploads/documents/${req.file.filename}`,
+        fileSize: req.file.size,
+        mimeType: req.file.mimetype,
+        expiryDate: expiryDate ? new Date(expiryDate) : null,
+        companyId: req.user.companyId, // From auth middleware
+      }
+    });
+
+    res.status(201).json({
+      success: true,
+      document,
+      message: 'Document uploaded successfully'
+    });
+
+  } catch (error) {
+    console.error('Upload error:', error);
+    
+    // Clean up uploaded file if database save failed
+    if (req.file) {
+      try {
+        await fs.unlink(req.file.path);
+      } catch (unlinkError) {
+        console.error('Failed to clean up file:', unlinkError);
+      }
+    }
+    
+    res.status(500).json({ 
+      error: 'Failed to upload document',
+      details: error.message 
+    });
+  }
+});
+
+UPDATE DATABASE SCHEMA (if needed):
+
+prismamodel Document {
+  id           String       @id @default(cuid())
+  companyId    String
+  employeeId   String?
+  documentType DocumentType
+  fileName     String       // Stored filename
+  originalName String       // Original filename
+  fileUrl      String       // Path to file
+  fileSize     Int          // File size in bytes
+  mimeType     String       // MIME type
+  uploadDate   DateTime     @default(now())
+  expiryDate   DateTime?
+  status       DocumentStatus @default(ACTIVE)
+  
+  company  Company   @relation(fields: [companyId], references: [id])
+  employee Employee? @relation(fields: [employeeId], references: [id])
+  
+  @@map("documents")
+}
+
+enum DocumentType {
+  PASSPORT
+  EMIRATES_ID_FRONT
+  EMIRATES_ID_BACK
+  VISA
+  EMPLOYMENT_CONTRACT
+  DEGREE
+  OTHER
+}
+
+enum DocumentStatus {
+  ACTIVE
+  EXPIRED
+  REPLACED
+  DELETED
+}
+
+FRONTEND UPLOAD COMPONENT FIX:
+
+tsxconst DocumentUpload = ({ documentType, employeeId, onUploadSuccess }) => {
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleFileUpload = async (file) => {
+    if (!file) return;
+
+    setUploading(true);
+    setError('');
+
+    const formData = new FormData();
+    formData.append('document', file);
+    formData.append('employeeId', employeeId);
+    formData.append('documentType', documentType);
+
+    try {
+      const response = await fetch('/api/documents/upload', {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Upload failed');
+      }
+
+      onUploadSuccess(result.document);
+      
+    } catch (error) {
+      console.error('Upload error:', error);
+      setError(error.message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return (
+    <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 hover:border-primary transition-colors">
+      <input
+        type="file"
+        id={`upload-${documentType}`}
+        className="hidden"
+        accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+        onChange={(e) => handleFileUpload(e.target.files[0])}
+        disabled={uploading}
+      />
+      
+      <label
+        htmlFor={`upload-${documentType}`}
+        className="cursor-pointer flex flex-col items-center space-y-2"
+      >
+        <div className="text-4xl text-gray-400">📄</div>
+        <div className="text-center">
+          <p className="text-sm font-medium text-gray-700">
+            {uploading ? 'Uploading...' : 'Click to upload or drag and drop'}
+          </p>
+          <p className="text-xs text-gray-500">
+            PDF, JPG, PNG, DOC up to 10MB
+          </p>
+        </div>
+      </label>
+      
+      {error && (
+        <div className="mt-2 text-sm text-red-600 bg-red-50 p-2 rounded">
+          {error}
+        </div>
+      )}
+      
+      {uploading && (
+        <div className="mt-2 w-full bg-gray-200 rounded-full h-2">
+          <div className="bg-primary h-2 rounded-full animate-pulse w-full"></div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+ENSURE UPLOADS DIRECTORY EXISTS:
+Add this to your server startup:
+
+javascriptimport fs from 'fs/promises';
+
+// Create uploads directory on startup
+async function ensureUploadsDir() {
+  try {
+    await fs.mkdir('uploads/documents', { recursive: true });
+    console.log('Uploads directory ready');
+  } catch (error) {
+    console.error('Failed to create uploads directory:', error);
+  }
+}
+
+ensureUploadsDir();
+
+SERVE STATIC FILES:
+In your main server file:
+
+javascriptimport express from 'express';
+import path from 'path';
+
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+This should resolve the document upload issues you're experiencing.
+
+Apply these fixes to resolve the document upload functionality in your employee module.
