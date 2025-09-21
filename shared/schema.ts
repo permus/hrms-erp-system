@@ -328,7 +328,93 @@ export const insertUserSchema = createInsertSchema(users).omit({ id: true, creat
 export const insertCompanySchema = createInsertSchema(companies).omit({ id: true, createdAt: true, updatedAt: true }).extend({
   slug: z.string().min(1).max(100).regex(/^[a-z0-9-]+$/, "Slug must contain only lowercase letters, numbers, and hyphens")
 });
-// Document validation schemas
+// Flexible JSONB validation schemas for required fields
+const personalInfoSchema = z.object({
+  name: z.string().optional(),
+  preferredName: z.string().optional(),
+  fatherName: z.string().optional(),
+  motherName: z.string().optional(),
+  dob: z.string().optional(),
+  age: z.number().optional(),
+  nationality: z.string().optional(),
+  languages: z.array(z.string()).optional(),
+  religion: z.string().optional(),
+  maritalStatus: z.string().optional(),
+  profilePhotoUrl: z.string().optional(),
+  profileThumbnails: z.object({
+    small: z.string().optional(),
+    medium: z.string().optional(),
+    large: z.string().optional(),
+  }).optional(),
+  emergencyContact: z.object({
+    name: z.string().optional(),
+    relation: z.string().optional(),
+    phone: z.string().optional(),
+    email: z.string().optional(),
+  }).optional(),
+}).default({});
+
+const contactInfoSchema = z.object({
+  personalEmail: z.string().optional(),
+  companyEmail: z.string().optional(),
+  uaePhone: z.string().optional(),
+  homeCountryPhone: z.string().optional(),
+  uaeAddress: z.object({
+    street: z.string().optional(),
+    city: z.string().optional(),
+    emirate: z.string().optional(),
+    poBox: z.string().optional(),
+  }).optional(),
+  homeCountryAddress: z.object({
+    street: z.string().optional(),
+    city: z.string().optional(),
+    state: z.string().optional(),
+    country: z.string().optional(),
+    postalCode: z.string().optional(),
+  }).optional(),
+}).default({});
+
+const employmentDetailsSchema = z.object({
+  position: z.string().optional(),
+  departmentId: z.string().optional(),
+  reportingManagerId: z.string().optional(),
+  startDate: z.string().optional(),
+  tenure: z.string().optional(),
+  employmentStatus: z.string().optional(),
+  probationEndDate: z.string().optional(),
+  employmentType: z.enum(['full-time', 'part-time', 'contract']).optional(),
+  workLocation: z.enum(['office', 'remote', 'hybrid']).optional(),
+  probationMonths: z.number().optional(),
+}).default({});
+
+const compensationSchema = z.object({
+  basicSalary: z.number().optional(),
+  housingAllowance: z.number().optional(),
+  transportAllowance: z.number().optional(),
+  otherAllowance: z.number().optional(),
+  totalSalary: z.number().optional(),
+  benefits: z.object({
+    medicalInsurance: z.boolean().optional(),
+    lifeInsurance: z.boolean().optional(),
+  }).optional(),
+  bankDetails: z.object({
+    bankName: z.string().optional(),
+    accountNumber: z.string().optional(),
+    iban: z.string().optional(),
+  }).optional(),
+  endOfServiceGratuity: z.number().optional(),
+}).default({});
+
+const probationInfoSchema = z.object({
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
+  status: z.string().optional(),
+  evaluationScores: z.record(z.any()).optional(),
+  confirmationDate: z.string().optional(),
+  extensionDetails: z.record(z.any()).optional(),
+}).optional();
+
+// Document validation schemas (optional)
 const passportInfoSchema = z.object({
   number: z.string().optional(),
   nationality: z.string().optional(),
@@ -382,9 +468,26 @@ const laborCardInfoSchema = z.object({
   }).optional(),
 }).optional();
 
-export const insertEmployeeSchema = createInsertSchema(employees).omit({ id: true, createdAt: true, updatedAt: true, deletedAt: true }).extend({
+export const insertEmployeeSchema = createInsertSchema(employees).omit({ 
+  id: true, 
+  createdAt: true, 
+  updatedAt: true, 
+  deletedAt: true,
+  // Omit the auto-generated JSONB fields so we can use our custom schemas
+  personalInfo: true,
+  contactInfo: true, 
+  employmentDetails: true,
+  compensation: true,
+  probationInfo: true
+}).extend({
   slug: z.string().min(1).max(100).regex(/^[a-z0-9-]+$/, "Slug must contain only lowercase letters, numbers, and hyphens"),
-  // Use proper validation schemas instead of z.any()
+  // Use flexible custom validation schemas for required JSONB fields
+  personalInfo: personalInfoSchema,
+  contactInfo: contactInfoSchema,
+  employmentDetails: employmentDetailsSchema,
+  compensation: compensationSchema,
+  probationInfo: probationInfoSchema,
+  // Use optional validation schemas for document fields
   visaInfo: visaInfoSchema,
   emiratesIdInfo: emiratesIdInfoSchema,
   passportInfo: passportInfoSchema,
