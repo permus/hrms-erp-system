@@ -1607,8 +1607,8 @@ export default function EmployeeProfileForm({
   };
 
   return (
-    <div className="w-full max-w-2xl mx-auto bg-background rounded-lg border shadow">
-      {/* Progress Indicator - Fixed Header */}
+    <div className="w-full max-w-2xl mx-auto bg-muted/30 rounded-lg border shadow">
+      {/* Progress Indicator - Header */}
       <div className="p-6 bg-background border-b rounded-t-lg">
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-3xl font-bold">Add New Employee</h1>
@@ -1638,15 +1638,13 @@ export default function EmployeeProfileForm({
         </div>
       </div>
 
-      {/* Form Content - Scrollable Area */}
+      {/* Form Content - Full Height */}
       <form onSubmit={form.handleSubmit(handleSubmit)}>
-        <div className="max-h-[60vh] overflow-y-auto">
-          <div className="p-6">
-            {renderCurrentStep()}
-          </div>
+        <div className="p-6 bg-muted/30">
+          {renderCurrentStep()}
         </div>
 
-        {/* Navigation Buttons - Always Visible Footer */}
+        {/* Navigation Buttons - Footer */}
         <div className="border-t bg-background p-6 rounded-b-lg">
           <div className="flex justify-between">
             <Button

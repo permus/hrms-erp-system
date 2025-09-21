@@ -162,16 +162,14 @@ export default function AddEmployee() {
       </div>
 
       {/* Employee Creation Form - Scrollable Content */}
-      <div className="flex-1 overflow-hidden">
-        <div className="h-full overflow-y-auto p-6">
-          <div className="max-w-4xl mx-auto">
-            <EmployeeProfileForm
-              departments={departments}
-              employees={employees}
-              onSubmit={handleSubmit}
-              onCancel={handleCancel}
-            />
-          </div>
+      <div className="flex-1 overflow-y-auto bg-muted/20 p-6">
+        <div className="max-w-4xl mx-auto">
+          <EmployeeProfileForm
+            departments={departments}
+            employees={employees}
+            onSubmit={handleSubmit}
+            onCancel={handleCancel}
+          />
         </div>
       </div>
     </div>
