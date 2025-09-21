@@ -1935,6 +1935,13 @@ export default function EmployeeProfileForm({
                 type="submit"
                 disabled={isLoading || !form.formState.isValid}
                 data-testid="button-submit"
+                onClick={() => {
+                  console.log('=== FORM VALIDATION DEBUG ===');
+                  console.log('Form is valid:', form.formState.isValid);
+                  console.log('Form errors:', form.formState.errors);
+                  console.log('All form values:', form.getValues());
+                  console.log('==============================');
+                }}
               >
                 {isLoading ? 'Creating Employee...' : 'Create Employee'}
               </Button>
