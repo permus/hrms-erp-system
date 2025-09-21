@@ -6,38 +6,108 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CalendarIcon, Upload, User, Briefcase, CreditCard, ChevronLeft, ChevronRight } from "lucide-react";
+import { CalendarIcon, Upload, User, Briefcase, CreditCard, ChevronLeft, ChevronRight, FileText, Users, Phone, Globe } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Textarea } from "@/components/ui/textarea";
+import DocumentUpload from "./DocumentUpload";
 import { insertEmployeeSchema, type InsertEmployee } from "@shared/schema";
 
-// Simplified form schema with only required fields
-const simplifiedEmployeeSchema = z.object({
+// Enhanced form schema with comprehensive validation
+const enhancedEmployeeSchema = z.object({
   personalInfo: z.object({
     firstName: z.string().min(1, "First name is required"),
     lastName: z.string().min(1, "Last name is required"),
+    fatherName: z.string().min(1, "Father's name is required"),
+    motherName: z.string().min(1, "Mother's name is required"),
+    dob: z.date({ required_error: "Date of birth is required" }),
+    nationality: z.string().min(1, "Nationality is required"),
+    religion: z.string().min(1, "Religion is required"),
+    maritalStatus: z.enum(["single", "married", "divorced", "widowed"], {
+      required_error: "Marital status is required"
+    }),
     profilePhotoUrl: z.string().optional(),
+  }),
+  contactInfo: z.object({
+    personalEmail: z.string().email("Invalid email format").min(1, "Personal email is required"),
+    companyEmail: z.string().email("Invalid email format").optional(),
+    uaePhone: z.string().regex(/^\+971[0-9]{8,9}$/, "UAE phone must be in format +971XXXXXXXX"),
+    homeCountryPhone: z.string().min(1, "Home country phone is required"),
+    uaeAddress: z.string().min(10, "UAE address must be at least 10 characters"),
+    homeCountryAddress: z.string().min(10, "Home country address must be at least 10 characters"),
   }),
   employmentDetails: z.object({
     position: z.string().min(1, "Position/Job Title is required"),
-    startDate: z.date(),
+    startDate: z.date({ required_error: "Start date is required" }),
     departmentId: z.string().min(1, "Department is required"),
+    reportingManagerId: z.string().optional(),
+    employmentStatus: z.enum(["probation", "confirmed", "permanent"], {
+      required_error: "Employment status is required"
+    }),
+    probationMonths: z.coerce.number().min(1).max(12, "Probation period must be between 1-12 months"),
+    probationEndDate: z.date().optional(),
+    contractType: z.enum(["permanent", "fixed-term", "temporary"], {
+      required_error: "Contract type is required"
+    }),
+    workLocation: z.enum(["office", "remote", "hybrid"], {
+      required_error: "Work location is required"
+    }),
   }),
-  contactInfo: z.object({
-    uaePhone: z.string().min(1, "Phone number is required"),
-  }),
-  passportInfo: z.object({
-    number: z.string().min(1, "Passport number is required"),
+  documents: z.object({
+    passportInfo: z.object({
+      number: z.string().min(1, "Passport number is required"),
+      nationality: z.string().min(1, "Passport nationality is required"),
+      expiryDate: z.date({ required_error: "Passport expiry date is required" }),
+      placeOfIssue: z.string().min(1, "Place of issue is required"),
+      documentUrl: z.string().optional(),
+    }),
+    visaInfo: z.object({
+      type: z.string().min(1, "Visa type is required"),
+      number: z.string().min(1, "Visa number is required"),
+      expiryDate: z.date({ required_error: "Visa expiry date is required" }),
+      sponsor: z.string().min(1, "Sponsor is required"),
+      documentUrl: z.string().optional(),
+    }),
+    emiratesIdInfo: z.object({
+      idNumber: z.string().min(15, "Emirates ID must be 15 digits").max(15),
+      expiryDate: z.date({ required_error: "Emirates ID expiry date is required" }),
+      documentUrl: z.string().optional(),
+    }),
+    workPermitInfo: z.object({
+      number: z.string().min(1, "Work permit number is required"),
+      expiryDate: z.date({ required_error: "Work permit expiry date is required" }),
+      restrictions: z.string().optional(),
+      documentUrl: z.string().optional(),
+    }),
+    laborCardInfo: z.object({
+      number: z.string().min(1, "Labor card number is required"),
+      expiryDate: z.date({ required_error: "Labor card expiry date is required" }),
+      profession: z.string().min(1, "Profession is required"),
+      documentUrl: z.string().optional(),
+    }),
   }),
   compensation: z.object({
-    basicSalary: z.coerce.number().min(0, "Basic salary must be positive"),
+    basicSalary: z.coerce.number().min(1, "Basic salary must be positive"),
+    housingAllowance: z.coerce.number().min(0, "Housing allowance must be positive"),
+    transportAllowance: z.coerce.number().min(0, "Transport allowance must be positive"),
+    otherAllowance: z.coerce.number().min(0, "Other allowance must be positive"),
+    totalSalary: z.coerce.number().min(0),
+    annualFlightAllowance: z.boolean(),
+    medicalInsurance: z.enum(["basic", "comprehensive", "family"], {
+      required_error: "Medical insurance is required"
+    }),
+    bankDetails: z.object({
+      bankName: z.string().min(1, "Bank name is required"),
+      accountNumber: z.string().min(8, "Account number must be at least 8 digits"),
+      iban: z.string().regex(/^AE[0-9]{21}$/, "IBAN must be in UAE format (AE + 21 digits)"),
+    }),
   }),
 });
 
-type SimplifiedEmployeeFormData = z.infer<typeof simplifiedEmployeeSchema>;
+type EnhancedEmployeeFormData = z.infer<typeof enhancedEmployeeSchema>;
 
 interface EmployeeProfileFormProps {
   employee?: any;
@@ -60,31 +130,118 @@ export default function EmployeeProfileForm({
   const [currentStep, setCurrentStep] = useState(1);
   const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
   const [manualDateInput, setManualDateInput] = useState("");
+  const [employeeId, setEmployeeId] = useState("");
+  const [documentUploads, setDocumentUploads] = useState<{[key: string]: string}>({});
 
   const totalSteps = 5;
 
-  const form = useForm<SimplifiedEmployeeFormData>({
-    resolver: zodResolver(simplifiedEmployeeSchema),
+  // Auto-generate Employee ID on component mount
+  useEffect(() => {
+    const generateEmployeeId = () => {
+      const year = new Date().getFullYear();
+      const randomNum = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+      return `EMP-${year}-${randomNum}`;
+    };
+    setEmployeeId(generateEmployeeId());
+  }, []);
+
+  // Auto-calculate total salary when components change
+  useEffect(() => {
+    const [basicSalary, housingAllowance, transportAllowance, otherAllowance] = watchedSalaryComponents;
+    const total = (basicSalary || 0) + (housingAllowance || 0) + (transportAllowance || 0) + (otherAllowance || 0);
+    form.setValue("compensation.totalSalary", total);
+  }, [watchedSalaryComponents, form]);
+
+  // Auto-calculate probation end date when start date or probation months change
+  useEffect(() => {
+    const [startDate, probationMonths] = watchedEmploymentFields;
+    if (startDate && probationMonths) {
+      const endDate = new Date(startDate);
+      endDate.setMonth(endDate.getMonth() + probationMonths);
+      form.setValue("employmentDetails.probationEndDate", endDate);
+    }
+  }, [watchedEmploymentFields, form]);
+
+  const form = useForm<EnhancedEmployeeFormData>({
+    resolver: zodResolver(enhancedEmployeeSchema),
     mode: "onChange",
     defaultValues: {
       personalInfo: {
         firstName: "",
         lastName: "",
+        fatherName: "",
+        motherName: "",
+        dob: new Date(),
+        nationality: "",
+        religion: "",
+        maritalStatus: "single",
         profilePhotoUrl: "",
+      },
+      contactInfo: {
+        personalEmail: "",
+        companyEmail: "",
+        uaePhone: "",
+        homeCountryPhone: "",
+        uaeAddress: "",
+        homeCountryAddress: "",
       },
       employmentDetails: {
         position: "",
         startDate: new Date(),
         departmentId: "",
+        reportingManagerId: "",
+        employmentStatus: "probation",
+        probationMonths: 6,
+        probationEndDate: new Date(),
+        contractType: "permanent",
+        workLocation: "office",
       },
-      contactInfo: {
-        uaePhone: "",
-      },
-      passportInfo: {
-        number: "",
+      documents: {
+        passportInfo: {
+          number: "",
+          nationality: "",
+          expiryDate: new Date(),
+          placeOfIssue: "",
+          documentUrl: "",
+        },
+        visaInfo: {
+          type: "",
+          number: "",
+          expiryDate: new Date(),
+          sponsor: "",
+          documentUrl: "",
+        },
+        emiratesIdInfo: {
+          idNumber: "",
+          expiryDate: new Date(),
+          documentUrl: "",
+        },
+        workPermitInfo: {
+          number: "",
+          expiryDate: new Date(),
+          restrictions: "",
+          documentUrl: "",
+        },
+        laborCardInfo: {
+          number: "",
+          expiryDate: new Date(),
+          profession: "",
+          documentUrl: "",
+        },
       },
       compensation: {
         basicSalary: 0,
+        housingAllowance: 0,
+        transportAllowance: 0,
+        otherAllowance: 0,
+        totalSalary: 0,
+        annualFlightAllowance: false,
+        medicalInsurance: "basic",
+        bankDetails: {
+          bankName: "",
+          accountNumber: "",
+          iban: "",
+        },
       },
     }
   });
@@ -99,36 +256,63 @@ export default function EmployeeProfileForm({
     },
     {
       id: 2,
-      title: "Personal Information",
-      icon: User,
-      description: "Basic personal details",
-      fields: ["personalInfo.firstName", "personalInfo.lastName"]
+      title: "Personal & Contact",
+      icon: Users,
+      description: "Personal details and contact information",
+      fields: [
+        "personalInfo.firstName", "personalInfo.lastName", "personalInfo.fatherName", 
+        "personalInfo.motherName", "personalInfo.dob", "personalInfo.nationality", 
+        "personalInfo.religion", "personalInfo.maritalStatus",
+        "contactInfo.personalEmail", "contactInfo.uaePhone", "contactInfo.homeCountryPhone",
+        "contactInfo.uaeAddress", "contactInfo.homeCountryAddress"
+      ]
     },
     {
       id: 3,
       title: "Employment Details",
       icon: Briefcase,
-      description: "Job information",
-      fields: ["employmentDetails.position", "employmentDetails.startDate", "employmentDetails.departmentId"]
+      description: "Job information and employment terms",
+      fields: [
+        "employmentDetails.position", "employmentDetails.startDate", "employmentDetails.departmentId",
+        "employmentDetails.employmentStatus", "employmentDetails.probationMonths",
+        "employmentDetails.contractType", "employmentDetails.workLocation"
+      ]
     },
     {
       id: 4,
-      title: "Contact & Documents",
-      icon: User,
-      description: "Contact and passport details",
-      fields: ["contactInfo.uaePhone", "passportInfo.number"]
+      title: "Documents",
+      icon: FileText,
+      description: "Upload UAE compliance documents",
+      fields: [
+        "documents.passportInfo.number", "documents.visaInfo.number", "documents.emiratesIdInfo.idNumber",
+        "documents.workPermitInfo.number", "documents.laborCardInfo.number"
+      ]
     },
     {
       id: 5,
       title: "Compensation",
       icon: CreditCard,
-      description: "Salary information",
-      fields: ["compensation.basicSalary"]
+      description: "Salary and benefits information",
+      fields: [
+        "compensation.basicSalary", "compensation.medicalInsurance", 
+        "compensation.bankDetails.bankName", "compensation.bankDetails.accountNumber", 
+        "compensation.bankDetails.iban"
+      ]
     }
   ];
 
-  // Watch form values for reactive validation
+  // Watch form values for reactive validation and auto-calculations
   const watchedValues = form.watch();
+  const watchedSalaryComponents = form.watch([
+    "compensation.basicSalary",
+    "compensation.housingAllowance", 
+    "compensation.transportAllowance",
+    "compensation.otherAllowance"
+  ]);
+  const watchedEmploymentFields = form.watch([
+    "employmentDetails.startDate",
+    "employmentDetails.probationMonths"
+  ]);
 
   // Check if current step is valid
   const isCurrentStepValid = () => {
@@ -195,6 +379,22 @@ export default function EmployeeProfileForm({
     }
   };
 
+  const handleDocumentUpload = (documentType: string, url: string) => {
+    setDocumentUploads(prev => ({ ...prev, [documentType]: url }));
+    // Update the form field based on document type
+    if (documentType === 'passport') {
+      form.setValue("documents.passportInfo.documentUrl", url);
+    } else if (documentType === 'visa') {
+      form.setValue("documents.visaInfo.documentUrl", url);
+    } else if (documentType === 'emirates-id') {
+      form.setValue("documents.emiratesIdInfo.documentUrl", url);
+    } else if (documentType === 'work-permit') {
+      form.setValue("documents.workPermitInfo.documentUrl", url);
+    } else if (documentType === 'labor-card') {
+      form.setValue("documents.laborCardInfo.documentUrl", url);
+    }
+  };
+
   const handleManualDateChange = (value: string) => {
     setManualDateInput(value);
     
@@ -213,23 +413,23 @@ export default function EmployeeProfileForm({
   };
 
   // Transform form data to backend format
-  const transformFormDataToBackend = (data: SimplifiedEmployeeFormData): InsertEmployee => {
+  const transformFormDataToBackend = (data: EnhancedEmployeeFormData): InsertEmployee => {
     return {
       companyId: "",
-      employeeCode: "",
+      employeeCode: employeeId,
       slug: "",
       personalInfo: {
         name: `${data.personalInfo.firstName} ${data.personalInfo.lastName}`,
         preferredName: "",
-        fatherName: "",
-        motherName: "",
-        dob: new Date().toISOString(), // Default to current date
-        nationality: "",
+        fatherName: data.personalInfo.fatherName || "",
+        motherName: data.personalInfo.motherName || "",
+        dob: data.personalInfo.dob?.toISOString() || new Date().toISOString(),
+        nationality: data.personalInfo.nationality || "",
         languages: ["English"],
-        religion: "",
-        maritalStatus: "single",
+        religion: data.personalInfo.religion || "",
+        maritalStatus: data.personalInfo.maritalStatus || "single",
         profilePhotoUrl: profilePhoto || "",
-        age: 25, // Default age
+        age: data.personalInfo.dob ? new Date().getFullYear() - data.personalInfo.dob.getFullYear() : 0,
         emergencyContact: {
           name: "",
           relation: "",
@@ -238,18 +438,18 @@ export default function EmployeeProfileForm({
         }
       },
       contactInfo: {
-        personalEmail: "",
-        companyEmail: "",
-        uaePhone: data.contactInfo.uaePhone,
-        homeCountryPhone: "",
+        personalEmail: data.contactInfo.personalEmail || "",
+        companyEmail: data.contactInfo.companyEmail || "",
+        uaePhone: data.contactInfo.uaePhone || "",
+        homeCountryPhone: data.contactInfo.homeCountryPhone || "",
         uaeAddress: {
-          street: "",
+          street: data.contactInfo.uaeAddress || "",
           city: "",
           emirate: "",
           poBox: ""
         },
         homeCountryAddress: {
-          street: "",
+          street: data.contactInfo.homeCountryAddress || "",
           city: "",
           state: "",
           country: "",
@@ -257,84 +457,85 @@ export default function EmployeeProfileForm({
         }
       },
       employmentDetails: {
-        position: data.employmentDetails.position,
-        departmentId: data.employmentDetails.departmentId,
-        reportingManagerId: "",
-        startDate: data.employmentDetails.startDate.toISOString(),
-        employmentStatus: "probation",
+        position: data.employmentDetails.position || "",
+        departmentId: data.employmentDetails.departmentId || "",
+        reportingManagerId: data.employmentDetails.reportingManagerId || "",
+        startDate: data.employmentDetails.startDate?.toISOString() || new Date().toISOString(),
+        employmentStatus: data.employmentDetails.employmentStatus || "probation",
         employmentType: "full-time",
-        workLocation: "office",
-        probationMonths: 6,
-        probationEndDate: new Date(data.employmentDetails.startDate.getTime() + (6 * 30 * 24 * 60 * 60 * 1000)).toISOString(),
+        workLocation: data.employmentDetails.workLocation || "office",
+        probationMonths: data.employmentDetails.probationMonths || 6,
+        probationEndDate: data.employmentDetails.probationEndDate?.toISOString() || new Date().toISOString(),
         tenure: 0
       },
       compensation: {
-        basicSalary: data.compensation.basicSalary,
-        housingAllowance: 0,
-        transportAllowance: 0,
-        otherAllowance: 0,
-        totalSalary: data.compensation.basicSalary,
+        basicSalary: data.compensation.basicSalary || 0,
+        housingAllowance: data.compensation.housingAllowance || 0,
+        transportAllowance: data.compensation.transportAllowance || 0,
+        otherAllowance: data.compensation.otherAllowance || 0,
+        totalSalary: data.compensation.totalSalary || 0,
         benefits: {
-          medicalInsurance: false,
-          lifeInsurance: false
+          medicalInsurance: data.compensation.medicalInsurance === "basic" || data.compensation.medicalInsurance === "comprehensive" || data.compensation.medicalInsurance === "family",
+          lifeInsurance: false,
+          annualFlightAllowance: data.compensation.annualFlightAllowance || false
         },
         bankDetails: {
-          bankName: "",
-          accountNumber: "",
-          iban: ""
+          bankName: data.compensation.bankDetails?.bankName || "",
+          accountNumber: data.compensation.bankDetails?.accountNumber || "",
+          iban: data.compensation.bankDetails?.iban || ""
         },
         endOfServiceGratuity: 0
       },
       emiratesIdInfo: {
-        idNumber: "",
-        expiryDate: new Date().toISOString(),
+        idNumber: data.documents.emiratesIdInfo?.idNumber || "",
+        expiryDate: data.documents.emiratesIdInfo?.expiryDate?.toISOString() || new Date().toISOString(),
         status: "pending_renewal",
         documents: {
-          frontUrl: "",
+          frontUrl: data.documents.emiratesIdInfo?.documentUrl || "",
           backUrl: ""
         }
       },
       visaInfo: {
-        type: "",
-        number: "",
-        expiryDate: new Date().toISOString(),
-        sponsor: "",
+        type: data.documents.visaInfo?.type || "",
+        number: data.documents.visaInfo?.number || "",
+        expiryDate: data.documents.visaInfo?.expiryDate?.toISOString() || new Date().toISOString(),
+        sponsor: data.documents.visaInfo?.sponsor || "",
         status: "pending_renewal",
         documents: {
-          visaPageUrl: "",
+          visaPageUrl: data.documents.visaInfo?.documentUrl || "",
           entryStampUrl: ""
         }
       },
       passportInfo: {
-        number: data.passportInfo.number,
-        nationality: "",
-        expiryDate: new Date().toISOString(),
-        placeOfIssue: "",
+        number: data.documents.passportInfo?.number || "",
+        nationality: data.documents.passportInfo?.nationality || "",
+        expiryDate: data.documents.passportInfo?.expiryDate?.toISOString() || new Date().toISOString(),
+        placeOfIssue: data.documents.passportInfo?.placeOfIssue || "",
         documents: {
-          biodataPageUrl: "",
+          biodataPageUrl: data.documents.passportInfo?.documentUrl || "",
           visaPagesUrls: []
         }
       },
       workPermitInfo: {
-        number: "",
-        expiryDate: new Date().toISOString(),
-        restrictions: "",
+        number: data.documents.workPermitInfo?.number || "",
+        expiryDate: data.documents.workPermitInfo?.expiryDate?.toISOString() || new Date().toISOString(),
+        restrictions: data.documents.workPermitInfo?.restrictions || "",
         documents: {
-          workPermitUrl: ""
+          workPermitUrl: data.documents.workPermitInfo?.documentUrl || ""
         }
       },
       laborCardInfo: {
-        number: "",
-        expiryDate: new Date().toISOString(),
-        profession: "",
+        number: data.documents.laborCardInfo?.number || "",
+        expiryDate: data.documents.laborCardInfo?.expiryDate?.toISOString() || new Date().toISOString(),
+        profession: data.documents.laborCardInfo?.profession || "",
         documents: {
-          laborCardUrl: ""
+          laborCardUrl: data.documents.laborCardInfo?.documentUrl || ""
         }
       }
     };
   };
 
-  const handleSubmit = (data: SimplifiedEmployeeFormData) => {
+  const handleSubmit = (data: EnhancedEmployeeFormData) => {
     const backendData = transformFormDataToBackend(data);
     onSubmit(backendData);
   };
@@ -378,35 +579,235 @@ export default function EmployeeProfileForm({
         return (
           <div className="space-y-6">
             <div className="text-center space-y-4">
-              <h2 className="text-2xl font-semibold">Personal Information</h2>
-              <p className="text-muted-foreground">Enter the employee's basic personal details</p>
+              <h2 className="text-2xl font-semibold">Personal & Contact Information</h2>
+              <p className="text-muted-foreground">Complete personal details and contact information</p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <Label htmlFor="firstName">First Name *</Label>
-                <Input
-                  id="firstName"
-                  {...form.register("personalInfo.firstName")}
-                  placeholder="Enter first name"
-                  data-testid="input-first-name"
-                />
-                {form.formState.errors.personalInfo?.firstName && (
-                  <p className="text-sm text-destructive">{form.formState.errors.personalInfo.firstName.message}</p>
-                )}
+            <div className="space-y-6">
+              {/* Personal Information Section */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium border-b pb-2">Personal Details</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="firstName">First Name *</Label>
+                    <Input
+                      id="firstName"
+                      {...form.register("personalInfo.firstName")}
+                      placeholder="Enter first name"
+                      data-testid="input-first-name"
+                    />
+                    {form.formState.errors.personalInfo?.firstName && (
+                      <p className="text-sm text-destructive">{form.formState.errors.personalInfo.firstName.message}</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="lastName">Last Name *</Label>
+                    <Input
+                      id="lastName"
+                      {...form.register("personalInfo.lastName")}
+                      placeholder="Enter last name"
+                      data-testid="input-last-name"
+                    />
+                    {form.formState.errors.personalInfo?.lastName && (
+                      <p className="text-sm text-destructive">{form.formState.errors.personalInfo.lastName.message}</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="fatherName">Father's Name *</Label>
+                    <Input
+                      id="fatherName"
+                      {...form.register("personalInfo.fatherName")}
+                      placeholder="Enter father's name"
+                      data-testid="input-father-name"
+                    />
+                    {form.formState.errors.personalInfo?.fatherName && (
+                      <p className="text-sm text-destructive">{form.formState.errors.personalInfo.fatherName.message}</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="motherName">Mother's Name *</Label>
+                    <Input
+                      id="motherName"
+                      {...form.register("personalInfo.motherName")}
+                      placeholder="Enter mother's name"
+                      data-testid="input-mother-name"
+                    />
+                    {form.formState.errors.personalInfo?.motherName && (
+                      <p className="text-sm text-destructive">{form.formState.errors.personalInfo.motherName.message}</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="dob">Date of Birth *</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className="w-full justify-start text-left font-normal"
+                          data-testid="button-dob"
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {form.watch("personalInfo.dob") ? 
+                            format(form.watch("personalInfo.dob"), "dd/MM/yyyy") : 
+                            "Pick date of birth"
+                          }
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0">
+                        <Calendar
+                          mode="single"
+                          selected={form.watch("personalInfo.dob")}
+                          onSelect={(date) => {
+                            if (date) {
+                              form.setValue("personalInfo.dob", date);
+                            }
+                          }}
+                          fromYear={1950}
+                          toYear={2010}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    {form.formState.errors.personalInfo?.dob && (
+                      <p className="text-sm text-destructive">{form.formState.errors.personalInfo.dob.message}</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="nationality">Nationality *</Label>
+                    <Input
+                      id="nationality"
+                      {...form.register("personalInfo.nationality")}
+                      placeholder="Enter nationality"
+                      data-testid="input-nationality"
+                    />
+                    {form.formState.errors.personalInfo?.nationality && (
+                      <p className="text-sm text-destructive">{form.formState.errors.personalInfo.nationality.message}</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="religion">Religion *</Label>
+                    <Input
+                      id="religion"
+                      {...form.register("personalInfo.religion")}
+                      placeholder="Enter religion"
+                      data-testid="input-religion"
+                    />
+                    {form.formState.errors.personalInfo?.religion && (
+                      <p className="text-sm text-destructive">{form.formState.errors.personalInfo.religion.message}</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="maritalStatus">Marital Status *</Label>
+                    <Select onValueChange={(value) => form.setValue("personalInfo.maritalStatus", value as any)}>
+                      <SelectTrigger data-testid="select-marital-status">
+                        <SelectValue placeholder="Select marital status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="single">Single</SelectItem>
+                        <SelectItem value="married">Married</SelectItem>
+                        <SelectItem value="divorced">Divorced</SelectItem>
+                        <SelectItem value="widowed">Widowed</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {form.formState.errors.personalInfo?.maritalStatus && (
+                      <p className="text-sm text-destructive">{form.formState.errors.personalInfo.maritalStatus.message}</p>
+                    )}
+                  </div>
+                </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="lastName">Last Name *</Label>
-                <Input
-                  id="lastName"
-                  {...form.register("personalInfo.lastName")}
-                  placeholder="Enter last name"
-                  data-testid="input-last-name"
-                />
-                {form.formState.errors.personalInfo?.lastName && (
-                  <p className="text-sm text-destructive">{form.formState.errors.personalInfo.lastName.message}</p>
-                )}
+              {/* Contact Information Section */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium border-b pb-2">Contact Information</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="personalEmail">Personal Email *</Label>
+                    <Input
+                      id="personalEmail"
+                      type="email"
+                      {...form.register("contactInfo.personalEmail")}
+                      placeholder="personal@example.com"
+                      data-testid="input-personal-email"
+                    />
+                    {form.formState.errors.contactInfo?.personalEmail && (
+                      <p className="text-sm text-destructive">{form.formState.errors.contactInfo.personalEmail.message}</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="companyEmail">Company Email</Label>
+                    <Input
+                      id="companyEmail"
+                      type="email"
+                      {...form.register("contactInfo.companyEmail")}
+                      placeholder="employee@company.com (optional)"
+                      data-testid="input-company-email"
+                    />
+                    {form.formState.errors.contactInfo?.companyEmail && (
+                      <p className="text-sm text-destructive">{form.formState.errors.contactInfo.companyEmail.message}</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="uaePhone">UAE Phone Number *</Label>
+                    <Input
+                      id="uaePhone"
+                      {...form.register("contactInfo.uaePhone")}
+                      placeholder="+971501234567"
+                      data-testid="input-uae-phone"
+                    />
+                    {form.formState.errors.contactInfo?.uaePhone && (
+                      <p className="text-sm text-destructive">{form.formState.errors.contactInfo.uaePhone.message}</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="homeCountryPhone">Home Country Phone *</Label>
+                    <Input
+                      id="homeCountryPhone"
+                      {...form.register("contactInfo.homeCountryPhone")}
+                      placeholder="Enter home country phone"
+                      data-testid="input-home-phone"
+                    />
+                    {form.formState.errors.contactInfo?.homeCountryPhone && (
+                      <p className="text-sm text-destructive">{form.formState.errors.contactInfo.homeCountryPhone.message}</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2 md:col-span-2">
+                    <Label htmlFor="uaeAddress">UAE Address *</Label>
+                    <Textarea
+                      id="uaeAddress"
+                      {...form.register("contactInfo.uaeAddress")}
+                      placeholder="Enter complete UAE address"
+                      rows={3}
+                      data-testid="textarea-uae-address"
+                    />
+                    {form.formState.errors.contactInfo?.uaeAddress && (
+                      <p className="text-sm text-destructive">{form.formState.errors.contactInfo.uaeAddress.message}</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2 md:col-span-2">
+                    <Label htmlFor="homeCountryAddress">Home Country Address *</Label>
+                    <Textarea
+                      id="homeCountryAddress"
+                      {...form.register("contactInfo.homeCountryAddress")}
+                      placeholder="Enter complete home country address"
+                      rows={3}
+                      data-testid="textarea-home-address"
+                    />
+                    {form.formState.errors.contactInfo?.homeCountryAddress && (
+                      <p className="text-sm text-destructive">{form.formState.errors.contactInfo.homeCountryAddress.message}</p>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -417,122 +818,203 @@ export default function EmployeeProfileForm({
           <div className="space-y-6">
             <div className="text-center space-y-4">
               <h2 className="text-2xl font-semibold">Employment Details</h2>
-              <p className="text-muted-foreground">Enter job-related information</p>
+              <p className="text-muted-foreground">Complete employment information and terms</p>
             </div>
 
             <div className="space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="position">Position/Job Title *</Label>
-                <Input
-                  id="position"
-                  {...form.register("employmentDetails.position")}
-                  placeholder="e.g., Software Engineer, Marketing Manager"
-                  data-testid="input-position"
-                />
-                {form.formState.errors.employmentDetails?.position && (
-                  <p className="text-sm text-destructive">{form.formState.errors.employmentDetails.position.message}</p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="department">Department *</Label>
-                <Select onValueChange={(value) => form.setValue("employmentDetails.departmentId", value)}>
-                  <SelectTrigger data-testid="select-department">
-                    <SelectValue placeholder="Select department" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {departments.map((dept) => (
-                      <SelectItem key={dept.id} value={dept.id}>{dept.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {form.formState.errors.employmentDetails?.departmentId && (
-                  <p className="text-sm text-destructive">{form.formState.errors.employmentDetails.departmentId.message}</p>
-                )}
-              </div>
-
-
-              <div className="space-y-2">
-                <Label htmlFor="startDate">Start Date *</Label>
+              {/* Employee ID Display */}
+              <div className="bg-muted/50 p-4 rounded-lg">
                 <div className="space-y-2">
+                  <Label htmlFor="employeeId">Employee ID</Label>
                   <Input
-                    id="manualStartDate"
-                    value={manualDateInput}
-                    onChange={(e) => handleManualDateChange(e.target.value)}
-                    placeholder="DD/MM/YYYY"
-                    data-testid="input-start-date-manual"
+                    id="employeeId"
+                    value={employeeId}
+                    disabled
+                    className="font-mono bg-background"
+                    data-testid="input-employee-id"
                   />
-                  <div className="text-center text-sm text-muted-foreground">or</div>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className="w-full justify-start text-left font-normal"
-                        data-testid="button-start-date"
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {form.watch("employmentDetails.startDate") ? 
-                          format(form.watch("employmentDetails.startDate"), "dd/MM/yyyy") : 
-                          "Pick start date"
-                        }
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
-                      <div className="p-3 border-b">
-                        <div className="flex gap-2">
-                          <Select onValueChange={(year) => {
-                            const currentDate = form.watch("employmentDetails.startDate") || new Date();
-                            const newDate = new Date(currentDate);
-                            newDate.setFullYear(parseInt(year));
-                            form.setValue("employmentDetails.startDate", newDate);
-                          }}>
-                            <SelectTrigger className="w-24">
-                              <SelectValue placeholder="Year" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {Array.from({ length: 50 }, (_, i) => new Date().getFullYear() - 25 + i).map(year => (
-                                <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <Select onValueChange={(month) => {
-                            const currentDate = form.watch("employmentDetails.startDate") || new Date();
-                            const newDate = new Date(currentDate);
-                            newDate.setMonth(parseInt(month));
-                            form.setValue("employmentDetails.startDate", newDate);
-                          }}>
-                            <SelectTrigger className="w-32">
-                              <SelectValue placeholder="Month" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {Array.from({ length: 12 }, (_, i) => i).map(month => (
-                                <SelectItem key={month} value={month.toString()}>
-                                  {new Date(2000, month).toLocaleString('default', { month: 'long' })}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-                      <Calendar
-                        mode="single"
-                        selected={form.watch("employmentDetails.startDate")}
-                        onSelect={(date) => {
-                          if (date) {
-                            form.setValue("employmentDetails.startDate", date);
-                            setManualDateInput(format(date, "dd/MM/yyyy"));
-                          }
-                        }}
-                        fromYear={1960}
-                        toYear={2030}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
+                  <p className="text-xs text-muted-foreground">Auto-generated employee identifier</p>
                 </div>
-                {form.formState.errors.employmentDetails?.startDate && (
-                  <p className="text-sm text-destructive">{form.formState.errors.employmentDetails.startDate.message}</p>
-                )}
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="position">Position/Job Title *</Label>
+                  <Input
+                    id="position"
+                    {...form.register("employmentDetails.position")}
+                    placeholder="e.g., Software Engineer, Marketing Manager"
+                    data-testid="input-position"
+                  />
+                  {form.formState.errors.employmentDetails?.position && (
+                    <p className="text-sm text-destructive">{form.formState.errors.employmentDetails.position.message}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="department">Department *</Label>
+                  <Select onValueChange={(value) => form.setValue("employmentDetails.departmentId", value)}>
+                    <SelectTrigger data-testid="select-department">
+                      <SelectValue placeholder="Select department" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {departments.map((dept) => (
+                        <SelectItem key={dept.id} value={dept.id}>{dept.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {form.formState.errors.employmentDetails?.departmentId && (
+                    <p className="text-sm text-destructive">{form.formState.errors.employmentDetails.departmentId.message}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="reportingManager">Reporting Manager</Label>
+                  <Select onValueChange={(value) => form.setValue("employmentDetails.reportingManagerId", value)}>
+                    <SelectTrigger data-testid="select-reporting-manager">
+                      <SelectValue placeholder="Select reporting manager" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {employees.map((emp) => (
+                        <SelectItem key={emp.id} value={emp.id}>
+                          {emp.personalInfo?.name || "Unknown Employee"}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {form.formState.errors.employmentDetails?.reportingManagerId && (
+                    <p className="text-sm text-destructive">{form.formState.errors.employmentDetails.reportingManagerId.message}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="employmentStatus">Employment Status *</Label>
+                  <Select onValueChange={(value) => form.setValue("employmentDetails.employmentStatus", value as any)}>
+                    <SelectTrigger data-testid="select-employment-status">
+                      <SelectValue placeholder="Select employment status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="probation">Probation</SelectItem>
+                      <SelectItem value="confirmed">Confirmed</SelectItem>
+                      <SelectItem value="permanent">Permanent</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {form.formState.errors.employmentDetails?.employmentStatus && (
+                    <p className="text-sm text-destructive">{form.formState.errors.employmentDetails.employmentStatus.message}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="probationMonths">Probation Period (Months) *</Label>
+                  <Input
+                    id="probationMonths"
+                    type="number"
+                    min="1"
+                    max="12"
+                    {...form.register("employmentDetails.probationMonths", { valueAsNumber: true })}
+                    placeholder="6"
+                    data-testid="input-probation-months"
+                  />
+                  {form.formState.errors.employmentDetails?.probationMonths && (
+                    <p className="text-sm text-destructive">{form.formState.errors.employmentDetails.probationMonths.message}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="probationEndDate">Probation End Date</Label>
+                  <Input
+                    id="probationEndDate"
+                    value={form.watch("employmentDetails.probationEndDate") ? 
+                      format(form.watch("employmentDetails.probationEndDate"), "dd/MM/yyyy") : 
+                      "Auto-calculated"
+                    }
+                    disabled
+                    className="bg-muted font-medium"
+                    data-testid="input-probation-end-date"
+                  />
+                  <p className="text-xs text-muted-foreground">Automatically calculated based on start date and probation period</p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="contractType">Contract Type *</Label>
+                  <Select onValueChange={(value) => form.setValue("employmentDetails.contractType", value as any)}>
+                    <SelectTrigger data-testid="select-contract-type">
+                      <SelectValue placeholder="Select contract type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="permanent">Permanent</SelectItem>
+                      <SelectItem value="fixed-term">Fixed-term</SelectItem>
+                      <SelectItem value="temporary">Temporary</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {form.formState.errors.employmentDetails?.contractType && (
+                    <p className="text-sm text-destructive">{form.formState.errors.employmentDetails.contractType.message}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="workLocation">Work Location *</Label>
+                  <Select onValueChange={(value) => form.setValue("employmentDetails.workLocation", value as any)}>
+                    <SelectTrigger data-testid="select-work-location">
+                      <SelectValue placeholder="Select work location" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="office">Office</SelectItem>
+                      <SelectItem value="remote">Remote</SelectItem>
+                      <SelectItem value="hybrid">Hybrid</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {form.formState.errors.employmentDetails?.workLocation && (
+                    <p className="text-sm text-destructive">{form.formState.errors.employmentDetails.workLocation.message}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="startDate">Start Date *</Label>
+                  <div className="space-y-2">
+                    <Input
+                      id="manualStartDate"
+                      value={manualDateInput}
+                      onChange={(e) => handleManualDateChange(e.target.value)}
+                      placeholder="DD/MM/YYYY"
+                      data-testid="input-start-date-manual"
+                    />
+                    <div className="text-center text-sm text-muted-foreground">or</div>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className="w-full justify-start text-left font-normal"
+                          data-testid="button-start-date"
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {form.watch("employmentDetails.startDate") ? 
+                            format(form.watch("employmentDetails.startDate"), "dd/MM/yyyy") : 
+                            "Pick start date"
+                          }
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0">
+                        <Calendar
+                          mode="single"
+                          selected={form.watch("employmentDetails.startDate")}
+                          onSelect={(date) => {
+                            if (date) {
+                              form.setValue("employmentDetails.startDate", date);
+                              setManualDateInput(format(date, "dd/MM/yyyy"));
+                            }
+                          }}
+                          fromYear={1960}
+                          toYear={2030}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                  {form.formState.errors.employmentDetails?.startDate && (
+                    <p className="text-sm text-destructive">{form.formState.errors.employmentDetails.startDate.message}</p>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -542,35 +1024,396 @@ export default function EmployeeProfileForm({
         return (
           <div className="space-y-6">
             <div className="text-center space-y-4">
-              <h2 className="text-2xl font-semibold">Contact & Documents</h2>
-              <p className="text-muted-foreground">Contact details and essential document information</p>
+              <h2 className="text-2xl font-semibold">Documents</h2>
+              <p className="text-muted-foreground">Upload UAE compliance documents and legal information</p>
             </div>
 
             <div className="space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="uaePhone">Phone Number *</Label>
-                <Input
-                  id="uaePhone"
-                  {...form.register("contactInfo.uaePhone")}
-                  placeholder="+971 50 123 4567"
-                  data-testid="input-phone"
+              {/* Passport Information */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium border-b pb-2 flex items-center gap-2">
+                  <FileText className="h-5 w-5" />
+                  Passport Information
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="passportNumber">Passport Number *</Label>
+                    <Input
+                      id="passportNumber"
+                      {...form.register("documents.passportInfo.number")}
+                      placeholder="Enter passport number"
+                      data-testid="input-passport-number"
+                    />
+                    {form.formState.errors.documents?.passportInfo?.number && (
+                      <p className="text-sm text-destructive">{form.formState.errors.documents.passportInfo.number.message}</p>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="passportNationality">Passport Nationality *</Label>
+                    <Input
+                      id="passportNationality"
+                      {...form.register("documents.passportInfo.nationality")}
+                      placeholder="Enter passport nationality"
+                      data-testid="input-passport-nationality"
+                    />
+                    {form.formState.errors.documents?.passportInfo?.nationality && (
+                      <p className="text-sm text-destructive">{form.formState.errors.documents.passportInfo.nationality.message}</p>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="passportExpiry">Passport Expiry Date *</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className="w-full justify-start text-left font-normal"
+                          data-testid="button-passport-expiry"
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {form.watch("documents.passportInfo.expiryDate") ? 
+                            format(form.watch("documents.passportInfo.expiryDate"), "dd/MM/yyyy") : 
+                            "Pick expiry date"
+                          }
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0">
+                        <Calendar
+                          mode="single"
+                          selected={form.watch("documents.passportInfo.expiryDate")}
+                          onSelect={(date) => {
+                            if (date) {
+                              form.setValue("documents.passportInfo.expiryDate", date);
+                            }
+                          }}
+                          fromYear={2024}
+                          toYear={2050}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    {form.formState.errors.documents?.passportInfo?.expiryDate && (
+                      <p className="text-sm text-destructive">{form.formState.errors.documents.passportInfo.expiryDate.message}</p>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="passportPlaceOfIssue">Place of Issue *</Label>
+                    <Input
+                      id="passportPlaceOfIssue"
+                      {...form.register("documents.passportInfo.placeOfIssue")}
+                      placeholder="Enter place of issue"
+                      data-testid="input-passport-place-issue"
+                    />
+                    {form.formState.errors.documents?.passportInfo?.placeOfIssue && (
+                      <p className="text-sm text-destructive">{form.formState.errors.documents.passportInfo.placeOfIssue.message}</p>
+                    )}
+                  </div>
+                </div>
+                <DocumentUpload
+                  label="Passport Copy"
+                  accept=".pdf,.jpg,.jpeg,.png"
+                  onUpload={(url) => handleDocumentUpload('passport', url as string)}
+                  data-testid="upload-passport"
                 />
-                {form.formState.errors.contactInfo?.uaePhone && (
-                  <p className="text-sm text-destructive">{form.formState.errors.contactInfo.uaePhone.message}</p>
-                )}
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="passportNumber">Passport Number *</Label>
-                <Input
-                  id="passportNumber"
-                  {...form.register("passportInfo.number")}
-                  placeholder="Enter passport number"
-                  data-testid="input-passport"
+              {/* Visa Information */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium border-b pb-2 flex items-center gap-2">
+                  <FileText className="h-5 w-5" />
+                  Visa Information
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="visaType">Visa Type *</Label>
+                    <Input
+                      id="visaType"
+                      {...form.register("documents.visaInfo.type")}
+                      placeholder="e.g., Employment Visa"
+                      data-testid="input-visa-type"
+                    />
+                    {form.formState.errors.documents?.visaInfo?.type && (
+                      <p className="text-sm text-destructive">{form.formState.errors.documents.visaInfo.type.message}</p>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="visaNumber">Visa Number *</Label>
+                    <Input
+                      id="visaNumber"
+                      {...form.register("documents.visaInfo.number")}
+                      placeholder="Enter visa number"
+                      data-testid="input-visa-number"
+                    />
+                    {form.formState.errors.documents?.visaInfo?.number && (
+                      <p className="text-sm text-destructive">{form.formState.errors.documents.visaInfo.number.message}</p>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="visaExpiry">Visa Expiry Date *</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className="w-full justify-start text-left font-normal"
+                          data-testid="button-visa-expiry"
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {form.watch("documents.visaInfo.expiryDate") ? 
+                            format(form.watch("documents.visaInfo.expiryDate"), "dd/MM/yyyy") : 
+                            "Pick expiry date"
+                          }
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0">
+                        <Calendar
+                          mode="single"
+                          selected={form.watch("documents.visaInfo.expiryDate")}
+                          onSelect={(date) => {
+                            if (date) {
+                              form.setValue("documents.visaInfo.expiryDate", date);
+                            }
+                          }}
+                          fromYear={2024}
+                          toYear={2050}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    {form.formState.errors.documents?.visaInfo?.expiryDate && (
+                      <p className="text-sm text-destructive">{form.formState.errors.documents.visaInfo.expiryDate.message}</p>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="visaSponsor">Sponsor *</Label>
+                    <Input
+                      id="visaSponsor"
+                      {...form.register("documents.visaInfo.sponsor")}
+                      placeholder="Enter sponsor name"
+                      data-testid="input-visa-sponsor"
+                    />
+                    {form.formState.errors.documents?.visaInfo?.sponsor && (
+                      <p className="text-sm text-destructive">{form.formState.errors.documents.visaInfo.sponsor.message}</p>
+                    )}
+                  </div>
+                </div>
+                <DocumentUpload
+                  label="Visa Copy"
+                  accept=".pdf,.jpg,.jpeg,.png"
+                  onUpload={(url) => handleDocumentUpload('visa', url as string)}
+                  data-testid="upload-visa"
                 />
-                {form.formState.errors.passportInfo?.number && (
-                  <p className="text-sm text-destructive">{form.formState.errors.passportInfo.number.message}</p>
-                )}
+              </div>
+
+              {/* Emirates ID Information */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium border-b pb-2 flex items-center gap-2">
+                  <FileText className="h-5 w-5" />
+                  Emirates ID Information
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="emiratesIdNumber">Emirates ID Number *</Label>
+                    <Input
+                      id="emiratesIdNumber"
+                      {...form.register("documents.emiratesIdInfo.idNumber")}
+                      placeholder="784-XXXX-XXXXXXX-X"
+                      data-testid="input-emirates-id-number"
+                    />
+                    {form.formState.errors.documents?.emiratesIdInfo?.idNumber && (
+                      <p className="text-sm text-destructive">{form.formState.errors.documents.emiratesIdInfo.idNumber.message}</p>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="emiratesIdExpiry">Emirates ID Expiry Date *</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className="w-full justify-start text-left font-normal"
+                          data-testid="button-emirates-id-expiry"
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {form.watch("documents.emiratesIdInfo.expiryDate") ? 
+                            format(form.watch("documents.emiratesIdInfo.expiryDate"), "dd/MM/yyyy") : 
+                            "Pick expiry date"
+                          }
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0">
+                        <Calendar
+                          mode="single"
+                          selected={form.watch("documents.emiratesIdInfo.expiryDate")}
+                          onSelect={(date) => {
+                            if (date) {
+                              form.setValue("documents.emiratesIdInfo.expiryDate", date);
+                            }
+                          }}
+                          fromYear={2024}
+                          toYear={2050}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    {form.formState.errors.documents?.emiratesIdInfo?.expiryDate && (
+                      <p className="text-sm text-destructive">{form.formState.errors.documents.emiratesIdInfo.expiryDate.message}</p>
+                    )}
+                  </div>
+                </div>
+                <DocumentUpload
+                  label="Emirates ID Copy (Front & Back)"
+                  accept=".pdf,.jpg,.jpeg,.png"
+                  onUpload={(url) => handleDocumentUpload('emirates-id', url as string)}
+                  data-testid="upload-emirates-id"
+                />
+              </div>
+
+              {/* Work Permit Information */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium border-b pb-2 flex items-center gap-2">
+                  <FileText className="h-5 w-5" />
+                  Work Permit Information
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="workPermitNumber">Work Permit Number *</Label>
+                    <Input
+                      id="workPermitNumber"
+                      {...form.register("documents.workPermitInfo.number")}
+                      placeholder="Enter work permit number"
+                      data-testid="input-work-permit-number"
+                    />
+                    {form.formState.errors.documents?.workPermitInfo?.number && (
+                      <p className="text-sm text-destructive">{form.formState.errors.documents.workPermitInfo.number.message}</p>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="workPermitExpiry">Work Permit Expiry Date *</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className="w-full justify-start text-left font-normal"
+                          data-testid="button-work-permit-expiry"
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {form.watch("documents.workPermitInfo.expiryDate") ? 
+                            format(form.watch("documents.workPermitInfo.expiryDate"), "dd/MM/yyyy") : 
+                            "Pick expiry date"
+                          }
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0">
+                        <Calendar
+                          mode="single"
+                          selected={form.watch("documents.workPermitInfo.expiryDate")}
+                          onSelect={(date) => {
+                            if (date) {
+                              form.setValue("documents.workPermitInfo.expiryDate", date);
+                            }
+                          }}
+                          fromYear={2024}
+                          toYear={2050}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    {form.formState.errors.documents?.workPermitInfo?.expiryDate && (
+                      <p className="text-sm text-destructive">{form.formState.errors.documents.workPermitInfo.expiryDate.message}</p>
+                    )}
+                  </div>
+                  <div className="space-y-2 md:col-span-2">
+                    <Label htmlFor="workPermitRestrictions">Restrictions</Label>
+                    <Input
+                      id="workPermitRestrictions"
+                      {...form.register("documents.workPermitInfo.restrictions")}
+                      placeholder="Enter any work restrictions (optional)"
+                      data-testid="input-work-permit-restrictions"
+                    />
+                    {form.formState.errors.documents?.workPermitInfo?.restrictions && (
+                      <p className="text-sm text-destructive">{form.formState.errors.documents.workPermitInfo.restrictions.message}</p>
+                    )}
+                  </div>
+                </div>
+                <DocumentUpload
+                  label="Work Permit Copy"
+                  accept=".pdf,.jpg,.jpeg,.png"
+                  onUpload={(url) => handleDocumentUpload('work-permit', url as string)}
+                  data-testid="upload-work-permit"
+                />
+              </div>
+
+              {/* Labor Card Information */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium border-b pb-2 flex items-center gap-2">
+                  <FileText className="h-5 w-5" />
+                  Labor Card Information
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="laborCardNumber">Labor Card Number *</Label>
+                    <Input
+                      id="laborCardNumber"
+                      {...form.register("documents.laborCardInfo.number")}
+                      placeholder="Enter labor card number"
+                      data-testid="input-labor-card-number"
+                    />
+                    {form.formState.errors.documents?.laborCardInfo?.number && (
+                      <p className="text-sm text-destructive">{form.formState.errors.documents.laborCardInfo.number.message}</p>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="laborCardProfession">Profession *</Label>
+                    <Input
+                      id="laborCardProfession"
+                      {...form.register("documents.laborCardInfo.profession")}
+                      placeholder="Enter profession on labor card"
+                      data-testid="input-labor-card-profession"
+                    />
+                    {form.formState.errors.documents?.laborCardInfo?.profession && (
+                      <p className="text-sm text-destructive">{form.formState.errors.documents.laborCardInfo.profession.message}</p>
+                    )}
+                  </div>
+                  <div className="space-y-2 md:col-span-2">
+                    <Label htmlFor="laborCardExpiry">Labor Card Expiry Date *</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className="w-full justify-start text-left font-normal"
+                          data-testid="button-labor-card-expiry"
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {form.watch("documents.laborCardInfo.expiryDate") ? 
+                            format(form.watch("documents.laborCardInfo.expiryDate"), "dd/MM/yyyy") : 
+                            "Pick expiry date"
+                          }
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0">
+                        <Calendar
+                          mode="single"
+                          selected={form.watch("documents.laborCardInfo.expiryDate")}
+                          onSelect={(date) => {
+                            if (date) {
+                              form.setValue("documents.laborCardInfo.expiryDate", date);
+                            }
+                          }}
+                          fromYear={2024}
+                          toYear={2050}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    {form.formState.errors.documents?.laborCardInfo?.expiryDate && (
+                      <p className="text-sm text-destructive">{form.formState.errors.documents.laborCardInfo.expiryDate.message}</p>
+                    )}
+                  </div>
+                </div>
+                <DocumentUpload
+                  label="Labor Card Copy"
+                  accept=".pdf,.jpg,.jpeg,.png"
+                  onUpload={(url) => handleDocumentUpload('labor-card', url as string)}
+                  data-testid="upload-labor-card"
+                />
               </div>
             </div>
           </div>
@@ -581,22 +1424,178 @@ export default function EmployeeProfileForm({
           <div className="space-y-6">
             <div className="text-center space-y-4">
               <h2 className="text-2xl font-semibold">Compensation</h2>
-              <p className="text-muted-foreground">Salary and compensation details</p>
+              <p className="text-muted-foreground">Complete salary structure and benefits information</p>
             </div>
 
             <div className="space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="basicSalary">Basic Salary (AED) *</Label>
-                <Input
-                  id="basicSalary"
-                  type="number"
-                  {...form.register("compensation.basicSalary", { valueAsNumber: true })}
-                  placeholder="Enter basic salary amount"
-                  data-testid="input-salary"
-                />
-                {form.formState.errors.compensation?.basicSalary && (
-                  <p className="text-sm text-destructive">{form.formState.errors.compensation.basicSalary.message}</p>
-                )}
+              {/* Salary Components */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium border-b pb-2">Salary Components</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="basicSalary">Basic Salary (AED) *</Label>
+                    <Input
+                      id="basicSalary"
+                      type="number"
+                      {...form.register("compensation.basicSalary", { valueAsNumber: true })}
+                      placeholder="Enter basic salary amount"
+                      data-testid="input-basic-salary"
+                    />
+                    {form.formState.errors.compensation?.basicSalary && (
+                      <p className="text-sm text-destructive">{form.formState.errors.compensation.basicSalary.message}</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="housingAllowance">Housing Allowance (AED)</Label>
+                    <Input
+                      id="housingAllowance"
+                      type="number"
+                      {...form.register("compensation.housingAllowance", { valueAsNumber: true })}
+                      placeholder="Enter housing allowance"
+                      data-testid="input-housing-allowance"
+                    />
+                    {form.formState.errors.compensation?.housingAllowance && (
+                      <p className="text-sm text-destructive">{form.formState.errors.compensation.housingAllowance.message}</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="transportAllowance">Transport Allowance (AED)</Label>
+                    <Input
+                      id="transportAllowance"
+                      type="number"
+                      {...form.register("compensation.transportAllowance", { valueAsNumber: true })}
+                      placeholder="Enter transport allowance"
+                      data-testid="input-transport-allowance"
+                    />
+                    {form.formState.errors.compensation?.transportAllowance && (
+                      <p className="text-sm text-destructive">{form.formState.errors.compensation.transportAllowance.message}</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="otherAllowance">Other Allowances (AED)</Label>
+                    <Input
+                      id="otherAllowance"
+                      type="number"
+                      {...form.register("compensation.otherAllowance", { valueAsNumber: true })}
+                      placeholder="Enter other allowances"
+                      data-testid="input-other-allowance"
+                    />
+                    {form.formState.errors.compensation?.otherAllowance && (
+                      <p className="text-sm text-destructive">{form.formState.errors.compensation.otherAllowance.message}</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2 md:col-span-2">
+                    <Label htmlFor="totalSalary">Total Monthly Salary (AED)</Label>
+                    <Input
+                      id="totalSalary"
+                      value={form.watch("compensation.totalSalary")?.toLocaleString() || "0"}
+                      disabled
+                      className="bg-primary/10 font-bold text-lg border-primary"
+                      data-testid="input-total-salary"
+                    />
+                    <p className="text-xs text-muted-foreground">Automatically calculated as sum of all salary components</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Additional Benefits */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium border-b pb-2">Additional Benefits</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="annualFlightAllowance">Annual Flight Allowance</Label>
+                    <Select onValueChange={(value) => form.setValue("compensation.annualFlightAllowance", value === "true")}>
+                      <SelectTrigger data-testid="select-flight-allowance">
+                        <SelectValue placeholder="Select eligibility" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="true">Eligible</SelectItem>
+                        <SelectItem value="false">Not Eligible</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {form.formState.errors.compensation?.annualFlightAllowance && (
+                      <p className="text-sm text-destructive">{form.formState.errors.compensation.annualFlightAllowance.message}</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="medicalInsurance">Medical Insurance *</Label>
+                    <Select onValueChange={(value) => form.setValue("compensation.medicalInsurance", value as any)}>
+                      <SelectTrigger data-testid="select-medical-insurance">
+                        <SelectValue placeholder="Select medical insurance" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="basic">Basic</SelectItem>
+                        <SelectItem value="comprehensive">Comprehensive</SelectItem>
+                        <SelectItem value="family">Family</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {form.formState.errors.compensation?.medicalInsurance && (
+                      <p className="text-sm text-destructive">{form.formState.errors.compensation.medicalInsurance.message}</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Bank Details */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium border-b pb-2">Bank Details</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="bankName">Bank Name *</Label>
+                    <Select onValueChange={(value) => form.setValue("compensation.bankDetails.bankName", value)}>
+                      <SelectTrigger data-testid="select-bank-name">
+                        <SelectValue placeholder="Select UAE bank" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="emirates-nbd">Emirates NBD</SelectItem>
+                        <SelectItem value="adcb">ADCB</SelectItem>
+                        <SelectItem value="fab">FAB</SelectItem>
+                        <SelectItem value="cbd">CBD</SelectItem>
+                        <SelectItem value="enbd">ENBD</SelectItem>
+                        <SelectItem value="hsbc">HSBC UAE</SelectItem>
+                        <SelectItem value="citibank">Citibank UAE</SelectItem>
+                        <SelectItem value="mashreq">Mashreq Bank</SelectItem>
+                        <SelectItem value="rakbank">RAKBank</SelectItem>
+                        <SelectItem value="noor-bank">Noor Bank</SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {form.formState.errors.compensation?.bankDetails?.bankName && (
+                      <p className="text-sm text-destructive">{form.formState.errors.compensation.bankDetails.bankName.message}</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="accountNumber">Account Number *</Label>
+                    <Input
+                      id="accountNumber"
+                      {...form.register("compensation.bankDetails.accountNumber")}
+                      placeholder="Enter account number"
+                      data-testid="input-account-number"
+                    />
+                    {form.formState.errors.compensation?.bankDetails?.accountNumber && (
+                      <p className="text-sm text-destructive">{form.formState.errors.compensation.bankDetails.accountNumber.message}</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2 md:col-span-2">
+                    <Label htmlFor="iban">IBAN *</Label>
+                    <Input
+                      id="iban"
+                      {...form.register("compensation.bankDetails.iban")}
+                      placeholder="AE123456789012345678901"
+                      data-testid="input-iban"
+                    />
+                    {form.formState.errors.compensation?.bankDetails?.iban && (
+                      <p className="text-sm text-destructive">{form.formState.errors.compensation.bankDetails.iban.message}</p>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -608,9 +1607,9 @@ export default function EmployeeProfileForm({
   };
 
   return (
-    <div className="w-full max-w-2xl mx-auto">
-      {/* Progress Indicator */}
-      <div className="mb-8">
+    <div className="flex flex-col h-screen w-full max-w-2xl mx-auto">
+      {/* Progress Indicator - Fixed Header */}
+      <div className="flex-shrink-0 p-6 bg-background border-b">
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-3xl font-bold">Add New Employee</h1>
           <div className="text-sm text-muted-foreground">
@@ -639,47 +1638,53 @@ export default function EmployeeProfileForm({
         </div>
       </div>
 
-      {/* Form Content */}
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-        <Card className="border-2">
-          <CardContent className="p-6">
-            {renderCurrentStep()}
-          </CardContent>
-        </Card>
+      {/* Form Content - Scrollable Area */}
+      <div className="flex-1 overflow-hidden">
+        <form onSubmit={form.handleSubmit(handleSubmit)} className="h-full flex flex-col">
+          <Card className="flex-1 border-0 border-t-2 rounded-none">
+            <CardContent className="p-6 h-full overflow-y-auto" style={{ maxHeight: 'calc(100vh - 200px)' }}>
+              <div className="pb-24">
+                {renderCurrentStep()}
+              </div>
+            </CardContent>
+          </Card>
 
-        {/* Navigation Buttons */}
-        <div className="flex justify-between pt-4">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={currentStep === 1 ? onCancel : handlePrevious}
-            data-testid="button-previous"
-          >
-            <ChevronLeft className="w-4 h-4 mr-2" />
-            {currentStep === 1 ? 'Cancel' : 'Previous'}
-          </Button>
+          {/* Navigation Buttons - Sticky Footer */}
+          <div className="flex-shrink-0 sticky bottom-0 bg-background border-t p-6 z-50">
+            <div className="flex justify-between">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={currentStep === 1 ? onCancel : handlePrevious}
+                data-testid="button-previous"
+              >
+                <ChevronLeft className="w-4 h-4 mr-2" />
+                {currentStep === 1 ? 'Cancel' : 'Previous'}
+              </Button>
 
-          {currentStep < totalSteps ? (
-            <Button
-              type="button"
-              onClick={handleNext}
-              disabled={!isCurrentStepValid()}
-              data-testid="button-next"
-            >
-              Next
-              <ChevronRight className="w-4 h-4 ml-2" />
-            </Button>
-          ) : (
-            <Button
-              type="submit"
-              disabled={isLoading || !form.formState.isValid}
-              data-testid="button-submit"
-            >
-              {isLoading ? 'Creating Employee...' : 'Create Employee'}
-            </Button>
-          )}
-        </div>
-      </form>
+              {currentStep < totalSteps ? (
+                <Button
+                  type="button"
+                  onClick={handleNext}
+                  disabled={!isCurrentStepValid()}
+                  data-testid="button-next"
+                >
+                  Next
+                  <ChevronRight className="w-4 h-4 ml-2" />
+                </Button>
+              ) : (
+                <Button
+                  type="submit"
+                  disabled={isLoading || !form.formState.isValid}
+                  data-testid="button-submit"
+                >
+                  {isLoading ? 'Creating Employee...' : 'Create Employee'}
+                </Button>
+              )}
+            </div>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }
