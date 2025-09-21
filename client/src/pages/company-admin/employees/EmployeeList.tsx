@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { useParams } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,14 +19,26 @@ import {
   Mail,
   FileText,
   AlertTriangle,
-  CheckCircle
+  CheckCircle,
+  Trash2
 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { 
   Select, 
   SelectContent, 
@@ -36,7 +48,7 @@ import {
 } from "@/components/ui/select";
 import { Link } from "wouter";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Employee, Department } from "@shared/schema";
 
 export default function EmployeeList() {
@@ -44,12 +56,13 @@ export default function EmployeeList() {
   const params = useParams<{ companySlug: string }>();
   const { companySlug } = params;
   const { toast } = useToast();
-  const queryClient = useQueryClient();
 
   // Local state
   const [searchTerm, setSearchTerm] = useState("");
   const [departmentFilter, setDepartmentFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [employeeToDelete, setEmployeeToDelete] = useState<Employee | null>(null);
 
   // Update query keys to include company context for cache isolation
   const companyContext = companySlug || 'default';
@@ -65,8 +78,55 @@ export default function EmployeeList() {
     enabled: !!user && ['SUPER_ADMIN', 'COMPANY_ADMIN', 'HR_MANAGER'].includes(user?.role || '')
   });
 
+  // Delete employee mutation
+  const deleteEmployeeMutation = useMutation({
+    mutationFn: async (employeeId: string) => {
+      const response = await apiRequest('DELETE', `/api/employees/${employeeId}`);
+      return response;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Employee Deleted",
+        description: "Employee has been successfully removed.",
+      });
+      
+      // Invalidate and refetch employees list
+      queryClient.invalidateQueries({ queryKey: [`/api/employees?companySlug=${companyContext}`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/employees'] });
+      
+      // Close dialog and reset state
+      setDeleteDialogOpen(false);
+      setEmployeeToDelete(null);
+    },
+    onError: (error: any) => {
+      console.error('Failed to delete employee:', error);
+      toast({
+        title: "Error Deleting Employee",
+        description: error.message || "Failed to delete employee. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+
   const handleLogout = () => {
     window.location.href = "/api/logout";
+  };
+
+  // Delete confirmation handlers
+  const handleDeleteClick = (employee: Employee) => {
+    setEmployeeToDelete(employee);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = () => {
+    if (employeeToDelete) {
+      deleteEmployeeMutation.mutate(employeeToDelete.id);
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteDialogOpen(false);
+    setEmployeeToDelete(null);
   };
 
   if (!user || !['SUPER_ADMIN', 'COMPANY_ADMIN', 'HR_MANAGER', 'DEPARTMENT_MANAGER'].includes(user?.role || '')) {
@@ -304,6 +364,15 @@ export default function EmployeeList() {
                               <Link href={`/${companySlug}/employees/${employee.slug}/documents`}>
                                 Manage Documents
                               </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem 
+                              onClick={() => handleDeleteClick(employee)}
+                              className="text-destructive focus:text-destructive"
+                              data-testid={`button-delete-${employee.id}`}
+                            >
+                              <Trash2 className="w-4 h-4 mr-2" />
+                              Delete Employee
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
