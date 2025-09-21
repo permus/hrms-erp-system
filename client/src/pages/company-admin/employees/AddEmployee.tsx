@@ -4,6 +4,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
+import { SidebarTrigger } from "@/components/ui/sidebar";
 import { ArrowLeft } from "lucide-react";
 import EmployeeProfileForm from "@/components/employee/EmployeeProfileForm";
 import type { Department, Employee, InsertEmployee } from "@shared/schema";
@@ -145,6 +146,7 @@ export default function AddEmployee() {
       {/* Header */}
       <div className="border-b bg-background px-6 py-4">
         <div className="flex items-center space-x-4">
+          <SidebarTrigger data-testid="button-sidebar-toggle" />
           <Button
             variant="ghost"
             size="sm"
@@ -155,7 +157,7 @@ export default function AddEmployee() {
             Back to Employees
           </Button>
           <div>
-            <h1 className="text-2xl font-bold" data-testid="text-page-title">Add New Employee</h1>
+            <h1 className="text-2xl font-bold" data-testid="text-page-title">Add New Employee | HR Module</h1>
             <p className="text-muted-foreground">Create a comprehensive employee profile with UAE compliance documentation</p>
           </div>
         </div>
