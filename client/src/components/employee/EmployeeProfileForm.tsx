@@ -544,22 +544,22 @@ export default function EmployeeProfileForm({
     switch (currentStep) {
       case 1:
         return (
-          <div className="space-y-6">
-            <div className="text-center space-y-4">
-              <h2 className="text-2xl font-semibold">Profile Photo</h2>
-              <p className="text-muted-foreground">Upload a professional photo for the employee profile</p>
+          <div className="space-y-4">
+            <div className="text-center space-y-2">
+              <h2 className="text-xl font-semibold">Profile Photo</h2>
+              <p className="text-sm text-muted-foreground">Upload a professional photo for the employee profile</p>
             </div>
 
-            <div className="flex flex-col items-center space-y-4">
-              <div className="w-32 h-32 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center cursor-pointer hover:border-gray-400 relative overflow-hidden">
+            <div className="flex flex-col items-center space-y-3">
+              <div className="w-24 h-24 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center cursor-pointer hover:border-gray-400 relative overflow-hidden">
                 {profilePhoto ? (
                   <img src={profilePhoto} alt="Profile" className="w-full h-full object-cover" />
                 ) : (
                   <div className="text-center">
-                    <svg className="w-8 h-8 text-gray-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-6 h-6 text-gray-400 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                     </svg>
-                    <p className="text-sm text-gray-500">Upload Photo</p>
+                    <p className="text-xs text-gray-500">Upload</p>
                   </div>
                 )}
                 <input
@@ -570,7 +570,7 @@ export default function EmployeeProfileForm({
                   data-testid="input-profile-photo"
                 />
               </div>
-              <p className="text-sm text-muted-foreground">Click to upload a profile photo (optional)</p>
+              <p className="text-xs text-muted-foreground">Click to upload a profile photo (optional)</p>
             </div>
           </div>
         );
@@ -1607,7 +1607,7 @@ export default function EmployeeProfileForm({
   };
 
   return (
-    <div className="flex flex-col h-screen w-full max-w-2xl mx-auto">
+    <div className="flex flex-col w-full max-w-2xl mx-auto">
       {/* Progress Indicator - Fixed Header */}
       <div className="flex-shrink-0 p-6 bg-background border-b">
         <div className="flex items-center justify-between mb-4">
@@ -1639,18 +1639,18 @@ export default function EmployeeProfileForm({
       </div>
 
       {/* Form Content - Scrollable Area */}
-      <div className="flex-1 overflow-hidden">
-        <form onSubmit={form.handleSubmit(handleSubmit)} className="h-full flex flex-col">
-          <Card className="flex-1 border-0 border-t-2 rounded-none">
-            <CardContent className="p-6 h-full overflow-y-auto" style={{ maxHeight: 'calc(100vh - 200px)' }}>
-              <div className="pb-24">
+      <div className="flex-1">
+        <form onSubmit={form.handleSubmit(handleSubmit)} className="flex flex-col">
+          <Card className="border-0 border-t-2 rounded-none">
+            <CardContent className="p-6 max-h-[60vh] overflow-y-auto">
+              <div className="space-y-6">
                 {renderCurrentStep()}
               </div>
             </CardContent>
           </Card>
 
           {/* Navigation Buttons - Sticky Footer */}
-          <div className="flex-shrink-0 sticky bottom-0 bg-background border-t p-6 z-50">
+          <div className="flex-shrink-0 bg-background border-t p-6">
             <div className="flex justify-between">
               <Button
                 type="button"
