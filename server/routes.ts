@@ -157,6 +157,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get all employee documents for centralized document management
+  app.get("/api/employee-documents", requireRole('SUPER_ADMIN', 'COMPANY_ADMIN', 'HR_MANAGER', 'DEPARTMENT_MANAGER'), async (req, res) => {
+    try {
+      const user = req.user as any;
+      const userData = await storage.getUser(user.claims.sub);
+      
+      if (!userData) {
+        return res.status(401).json({ error: "User not authenticated" });
+      }
+
+      if (!userData.companyId) {
+        return res.status(400).json({ error: "User not associated with a company" });
+      }
+
+      const documents = await storage.getAllEmployeeDocuments(userData.companyId);
+      res.json(documents);
+    } catch (error) {
+      console.error("Error fetching employee documents:", error);
+      res.status(500).json({ error: "Failed to fetch employee documents" });
+    }
+  });
+
   // Employee document upload completion endpoint
   app.put("/api/employee-documents", isAuthenticated, async (req, res) => {
     try {

@@ -61,6 +61,40 @@ export default function AddEmployee() {
     enabled: !!companySlug
   });
 
+  // Function to sync documents to centralized system
+  const syncDocumentsToCentralizedSystem = async (employeeId: string, employeeData: InsertEmployee) => {
+    const documentTypes = [
+      { type: 'passport', info: employeeData.passportInfo, urlPath: 'documents.biodataPageUrl' },
+      { type: 'visa', info: employeeData.visaInfo, urlPath: 'documents.visaUrl' },
+      { type: 'emirates-id', info: employeeData.emiratesIdInfo, urlPath: 'documents.emiratesIdUrl' },
+      { type: 'work-permit', info: employeeData.workPermitInfo, urlPath: 'documents.workPermitUrl' },
+      { type: 'labor-card', info: employeeData.laborCardInfo, urlPath: 'documents.laborCardUrl' }
+    ];
+
+    for (const docType of documentTypes) {
+      const docUrl = getNestedValue(docType.info, docType.urlPath);
+      if (docUrl && docUrl.trim()) {
+        try {
+          await apiRequest('PUT', '/api/employee-documents', {
+            documentURL: docUrl,
+            employeeId: employeeId,
+            category: docType.type,
+            fileName: `${docType.type}-${(employeeData.personalInfo as any)?.name || 'employee'}`,
+            fileSize: 0 // We don't have size info from the form
+          });
+        } catch (error) {
+          console.error(`Failed to sync ${docType.type} document:`, error);
+          // Continue with other documents even if one fails
+        }
+      }
+    }
+  };
+
+  // Helper function to get nested values safely
+  const getNestedValue = (obj: any, path: string) => {
+    return path.split('.').reduce((current, key) => current?.[key], obj);
+  };
+
   const createEmployeeMutation = useMutation({
     mutationFn: async (employeeData: InsertEmployee) => {
       const payload = {
@@ -69,17 +103,28 @@ export default function AddEmployee() {
         companySlug: companySlug // For super admin context
       };
       
-      return apiRequest('POST', '/api/employees', payload);
+      const response = await apiRequest('POST', '/api/employees', payload);
+      // Attach employee data to response for use in onSuccess
+      (response as any).originalEmployeeData = employeeData;
+      return response;
     },
     onSuccess: async (response) => {
       const newEmployee = await response.json();
+      
+      // Save uploaded documents to centralized document management system
+      const employeeData = (response as any).originalEmployeeData; // We'll need to pass this
+      if (employeeData) {
+        await syncDocumentsToCentralizedSystem(newEmployee.id, employeeData);
+      }
+      
       toast({
         title: "Employee Created",
-        description: `Employee has been successfully added.`,
+        description: `Employee has been successfully added with documents.`,
       });
       
-      // Invalidate queries to refresh employee list
+      // Invalidate queries to refresh employee list and documents
       queryClient.invalidateQueries({ queryKey: ['/api/employees'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/employee-documents'] });
       
       // Navigate to employee list (context-aware)
       setLocation(employeeListPath);

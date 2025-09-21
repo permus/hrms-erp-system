@@ -616,6 +616,16 @@ export class DatabaseStorage implements IStorage {
       .returning();
     return document;
   }
+
+  // Get all employee documents for a company (for centralized document management)
+  async getAllEmployeeDocuments(companyId: string): Promise<EmployeeDocument[]> {
+    return await db
+      .select()
+      .from(employeeDocuments)
+      .innerJoin(employees, eq(employeeDocuments.employeeId, employees.id))
+      .where(eq(employees.companyId, companyId))
+      .then(results => results.map(result => result.employee_documents));
+  }
 }
 
 export const storage = new DatabaseStorage();

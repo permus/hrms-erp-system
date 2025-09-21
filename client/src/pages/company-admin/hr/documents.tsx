@@ -31,15 +31,10 @@ export default function HRDocuments() {
   // Type-safe employees array
   const typedEmployees = (employees as any[]);
 
-  // Fetch employee documents - placeholder for now
+  // Fetch employee documents from real API
   const { data: documents = [] } = useQuery({
     queryKey: ['/api/employee-documents'],
-    enabled: !!user,
-    queryFn: () => {
-      // This would fetch from a real API endpoint
-      // For now, returning empty array until we implement the backend
-      return Promise.resolve([]);
-    }
+    enabled: !!user
   });
 
   // Calculate document statistics from real data
