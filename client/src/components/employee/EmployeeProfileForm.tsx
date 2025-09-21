@@ -1607,9 +1607,9 @@ export default function EmployeeProfileForm({
   };
 
   return (
-    <div className="flex flex-col w-full max-w-2xl mx-auto">
-      {/* Progress Indicator - Fixed Header */}
-      <div className="flex-shrink-0 p-6 bg-background border-b">
+    <div className="w-full max-w-2xl mx-auto">
+      {/* Progress Indicator */}
+      <div className="p-6 bg-background border-b">
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-3xl font-bold">Add New Employee</h1>
           <div className="text-sm text-muted-foreground">
@@ -1638,52 +1638,54 @@ export default function EmployeeProfileForm({
         </div>
       </div>
 
-      {/* Form Content - Scrollable Area */}
-      <div className="flex-1">
-        <form onSubmit={form.handleSubmit(handleSubmit)} className="flex flex-col">
-          <Card className="border-0 border-t-2 rounded-none">
-            <CardContent className="p-6 max-h-[60vh] overflow-y-auto">
-              <div className="space-y-6">
-                {renderCurrentStep()}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Navigation Buttons - Sticky Footer */}
-          <div className="flex-shrink-0 bg-background border-t p-6">
-            <div className="flex justify-between">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={currentStep === 1 ? onCancel : handlePrevious}
-                data-testid="button-previous"
-              >
-                <ChevronLeft className="w-4 h-4 mr-2" />
-                {currentStep === 1 ? 'Cancel' : 'Previous'}
-              </Button>
-
-              {currentStep < totalSteps ? (
-                <Button
-                  type="button"
-                  onClick={handleNext}
-                  disabled={!isCurrentStepValid()}
-                  data-testid="button-next"
-                >
-                  Next
-                  <ChevronRight className="w-4 h-4 ml-2" />
-                </Button>
-              ) : (
-                <Button
-                  type="submit"
-                  disabled={isLoading || !form.formState.isValid}
-                  data-testid="button-submit"
-                >
-                  {isLoading ? 'Creating Employee...' : 'Create Employee'}
-                </Button>
-              )}
+      {/* Form Content - Naturally Scrollable */}
+      <form onSubmit={form.handleSubmit(handleSubmit)}>
+        <Card className="border-0 border-t-2 rounded-none">
+          <CardContent className="p-6">
+            <div className="space-y-6 pb-32">
+              {renderCurrentStep()}
             </div>
-          </div>
-        </form>
+          </CardContent>
+        </Card>
+      </form>
+
+      {/* Navigation Buttons - Always Visible at Bottom */}
+      <div className="fixed bottom-0 left-0 right-0 bg-background border-t p-6 z-50">
+        <div className="max-w-2xl mx-auto flex justify-between">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={currentStep === 1 ? onCancel : handlePrevious}
+            data-testid="button-previous"
+          >
+            <ChevronLeft className="w-4 h-4 mr-2" />
+            {currentStep === 1 ? 'Cancel' : 'Previous'}
+          </Button>
+
+          {currentStep < totalSteps ? (
+            <Button
+              type="button"
+              onClick={handleNext}
+              disabled={!isCurrentStepValid()}
+              data-testid="button-next"
+            >
+              Next
+              <ChevronRight className="w-4 h-4 ml-2" />
+            </Button>
+          ) : (
+            <Button
+              type="submit"
+              disabled={isLoading || !form.formState.isValid}
+              data-testid="button-submit"
+              onClick={(e) => {
+                e.preventDefault();
+                form.handleSubmit(handleSubmit)();
+              }}
+            >
+              {isLoading ? 'Creating Employee...' : 'Create Employee'}
+            </Button>
+          )}
+        </div>
       </div>
     </div>
   );

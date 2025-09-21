@@ -8,6 +8,11 @@ This is a comprehensive multi-tenant ERP/HRMS system designed for UAE compliance
 
 Preferred communication style: Simple, everyday language.
 
+**CRITICAL FORM LAYOUT PREFERENCE:**
+- **Page-level scrolling**: Forms should NEVER have scrollable areas within them. The entire page should scroll naturally.
+- **Always-visible buttons**: Navigation buttons (Previous/Next/Submit) should always be visible at the bottom of the viewport, not hidden below scrollable content.
+- **No max-height constraints**: Do not use max-height, overflow-hidden, or overflow-y-auto on form content areas. Let the page flow naturally.
+
 ## System Architecture
 
 ### Frontend Architecture
