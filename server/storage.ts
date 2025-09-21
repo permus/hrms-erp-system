@@ -66,6 +66,8 @@ export interface IStorage {
   createEmployee(employee: Omit<Employee, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt'>): Promise<Employee>;
   updateEmployee(id: string, updates: Partial<Omit<Employee, 'id' | 'createdAt' | 'updatedAt'>>): Promise<Employee | undefined>;
   getEmployeeByUserId(userId: string): Promise<Employee | undefined>;
+  generateNextEmployeeId(companyId: string): Promise<string>;
+  isEmployeeCodeAvailable(companyId: string, employeeCode: string): Promise<boolean>;
   // Department operations
   getDepartments(companyId: string): Promise<Department[]>;
   getDepartmentById(id: string): Promise<Department | undefined>;
@@ -317,6 +319,39 @@ export class DatabaseStorage implements IStorage {
   async getEmployeeByUserId(userId: string): Promise<Employee | undefined> {
     const [employee] = await db.select().from(employees).where(eq(employees.userId, userId));
     return employee;
+  }
+
+  async generateNextEmployeeId(companyId: string): Promise<string> {
+    // Get all employee codes for this company
+    const existingEmployees = await db
+      .select({ employeeCode: employees.employeeCode })
+      .from(employees)
+      .where(eq(employees.companyId, companyId));
+
+    // Extract numbers from existing codes (e.g., "EMP-001" -> 1)
+    const existingNumbers = existingEmployees
+      .map(emp => {
+        const match = emp.employeeCode?.match(/^EMP-(\d+)$/);
+        return match ? parseInt(match[1], 10) : 0;
+      })
+      .filter(num => num > 0);
+
+    // Find the next available number
+    const nextNumber = existingNumbers.length > 0 ? Math.max(...existingNumbers) + 1 : 1;
+    
+    // Format as EMP-001, EMP-002, etc.
+    return `EMP-${nextNumber.toString().padStart(3, '0')}`;
+  }
+
+  async isEmployeeCodeAvailable(companyId: string, employeeCode: string): Promise<boolean> {
+    const [existing] = await db
+      .select({ id: employees.id })
+      .from(employees)
+      .where(and(
+        eq(employees.companyId, companyId),
+        eq(employees.employeeCode, employeeCode)
+      ));
+    return !existing;
   }
 
   // Department operations

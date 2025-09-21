@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { CalendarIcon, Upload, User, Briefcase, CreditCard, ChevronLeft, ChevronRight, FileText, Users, Phone, Globe, ChevronsUpDown, Check, CalendarDays } from "lucide-react";
+import { CalendarIcon, Upload, User, Briefcase, CreditCard, ChevronLeft, ChevronRight, FileText, Users, Phone, Globe, ChevronsUpDown, Check, CalendarDays, RefreshCw } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
@@ -273,19 +273,60 @@ export default function EmployeeProfileForm({
   const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
   const [manualDateInput, setManualDateInput] = useState("");
   const [employeeId, setEmployeeId] = useState("");
+  const [isEmployeeIdLoading, setIsEmployeeIdLoading] = useState(false);
+  const [employeeIdError, setEmployeeIdError] = useState("");
   const [documentUploads, setDocumentUploads] = useState<{[key: string]: string}>({});
 
   const totalSteps = 5;
 
-  // Auto-generate Employee ID on component mount
+  // Auto-generate Employee ID on component mount using smart API
   useEffect(() => {
-    const generateEmployeeId = () => {
-      const year = new Date().getFullYear();
-      const randomNum = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
-      return `EMP-${year}-${randomNum}`;
+    const generateSmartEmployeeId = async () => {
+      setIsEmployeeIdLoading(true);
+      try {
+        const response = await fetch('/api/employees/generate-id');
+        if (response.ok) {
+          const data = await response.json();
+          setEmployeeId(data.employeeId);
+        } else {
+          // Fallback to basic generation if API fails
+          const randomNum = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+          setEmployeeId(`EMP-${randomNum}`);
+        }
+      } catch (error) {
+        console.error('Failed to generate employee ID:', error);
+        // Fallback to basic generation
+        const randomNum = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+        setEmployeeId(`EMP-${randomNum}`);
+      } finally {
+        setIsEmployeeIdLoading(false);
+      }
     };
-    setEmployeeId(generateEmployeeId());
+    
+    generateSmartEmployeeId();
   }, []);
+
+  // Validate employee ID availability when changed manually
+  const validateEmployeeId = async (code: string) => {
+    if (!code || code === employeeId) {
+      setEmployeeIdError("");
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/employees/check-code/${encodeURIComponent(code)}`);
+      if (response.ok) {
+        const data = await response.json();
+        if (!data.available) {
+          setEmployeeIdError("This employee ID is already in use");
+        } else {
+          setEmployeeIdError("");
+        }
+      }
+    } catch (error) {
+      console.error('Failed to validate employee ID:', error);
+    }
+  };
 
   const form = useForm<EnhancedEmployeeFormData>({
     resolver: zodResolver(enhancedEmployeeSchema),
@@ -961,18 +1002,62 @@ export default function EmployeeProfileForm({
             </div>
 
             <div className="space-y-6">
-              {/* Employee ID Display */}
+              {/* Employee ID Input */}
               <div className="bg-muted/50 p-4 rounded-lg">
                 <div className="space-y-2">
                   <Label htmlFor="employeeId">Employee ID</Label>
-                  <Input
-                    id="employeeId"
-                    value={employeeId}
-                    disabled
-                    className="font-mono bg-background"
-                    data-testid="input-employee-id"
-                  />
-                  <p className="text-xs text-muted-foreground">Auto-generated employee identifier</p>
+                  <div className="flex gap-2">
+                    <Input
+                      id="employeeId"
+                      value={employeeId}
+                      onChange={(e) => {
+                        setEmployeeId(e.target.value);
+                        // Debounce validation
+                        const timer = setTimeout(() => {
+                          validateEmployeeId(e.target.value);
+                        }, 500);
+                        return () => clearTimeout(timer);
+                      }}
+                      placeholder="EMP-001"
+                      className={`font-mono ${employeeIdError ? 'border-destructive' : ''}`}
+                      data-testid="input-employee-id"
+                      disabled={isEmployeeIdLoading}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={async () => {
+                        setIsEmployeeIdLoading(true);
+                        try {
+                          const response = await fetch('/api/employees/generate-id');
+                          if (response.ok) {
+                            const data = await response.json();
+                            setEmployeeId(data.employeeId);
+                            setEmployeeIdError("");
+                          }
+                        } catch (error) {
+                          console.error('Failed to generate employee ID:', error);
+                        } finally {
+                          setIsEmployeeIdLoading(false);
+                        }
+                      }}
+                      disabled={isEmployeeIdLoading}
+                      data-testid="button-regenerate-employee-id"
+                    >
+                      {isEmployeeIdLoading ? (
+                        <div className="animate-spin w-4 h-4 border-2 border-current border-t-transparent rounded-full" />
+                      ) : (
+                        <RefreshCw className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+                  {employeeIdError && (
+                    <p className="text-xs text-destructive">{employeeIdError}</p>
+                  )}
+                  <p className="text-xs text-muted-foreground">
+                    Auto-generated sequential ID. Can be manually edited if needed.
+                  </p>
                 </div>
               </div>
 

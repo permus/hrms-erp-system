@@ -968,6 +968,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Generate next employee ID for a company
+  app.get("/api/employees/generate-id", requireRole('SUPER_ADMIN', 'COMPANY_ADMIN', 'HR_MANAGER'), requireCompany, async (req, res) => {
+    try {
+      const user = req.user as any;
+      const userData = await storage.getUser(user.claims.sub);
+      
+      let companyId = userData?.companyId;
+      
+      // For super admins, try to get company from headers or query
+      if (userData?.role === 'SUPER_ADMIN' && !companyId) {
+        const companySlug = req.headers['x-company-slug'] as string || req.query.companySlug as string;
+        if (companySlug) {
+          const company = await storage.getCompanyBySlug(companySlug);
+          companyId = company?.id;
+        }
+      }
+      
+      if (!companyId) {
+        return res.status(400).json({ error: "Company context required" });
+      }
+      
+      const nextEmployeeId = await storage.generateNextEmployeeId(companyId);
+      res.json({ employeeId: nextEmployeeId });
+    } catch (error) {
+      console.error("Failed to generate employee ID:", error);
+      res.status(500).json({ error: "Failed to generate employee ID" });
+    }
+  });
+
+  // Check if employee code is available
+  app.get("/api/employees/check-code/:code", requireRole('SUPER_ADMIN', 'COMPANY_ADMIN', 'HR_MANAGER'), requireCompany, async (req, res) => {
+    try {
+      const user = req.user as any;
+      const userData = await storage.getUser(user.claims.sub);
+      const { code } = req.params;
+      
+      let companyId = userData?.companyId;
+      
+      // For super admins, try to get company from headers or query
+      if (userData?.role === 'SUPER_ADMIN' && !companyId) {
+        const companySlug = req.headers['x-company-slug'] as string || req.query.companySlug as string;
+        if (companySlug) {
+          const company = await storage.getCompanyBySlug(companySlug);
+          companyId = company?.id;
+        }
+      }
+      
+      if (!companyId) {
+        return res.status(400).json({ error: "Company context required" });
+      }
+      
+      const isAvailable = await storage.isEmployeeCodeAvailable(companyId, code);
+      res.json({ available: isAvailable });
+    } catch (error) {
+      console.error("Failed to check employee code:", error);
+      res.status(500).json({ error: "Failed to check employee code" });
+    }
+  });
+
   app.post("/api/employees", requireRole('SUPER_ADMIN', 'COMPANY_ADMIN', 'HR_MANAGER'), requireCompany, async (req, res) => {
     try {
       const user = req.user as any;
