@@ -1,4 +1,4 @@
-import { Users, Building2, UserPlus, Settings, BarChart3, Calendar, FileText, LogOut, User } from "lucide-react";
+import { Users, Building2, UserPlus, Settings, BarChart3, Calendar, FileText, LogOut, User, ArrowLeft } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
@@ -69,6 +69,7 @@ export function AppSidebar() {
   // Determine the base path for navigation
   const companySlug = userSlugs?.companySlugs?.[0];
   const basePath = companySlug ? `/${companySlug}` : '/company-admin';
+  const mainDashboardPath = companySlug ? `/${companySlug}/dashboard` : '/company-admin/dashboard';
   
   const handleLogout = () => {
     // Clear sidebar preference from localStorage on logout
@@ -98,6 +99,14 @@ export function AppSidebar() {
       
       <SidebarContent>
         <SidebarGroup>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild data-testid="button-back-to-main">
+              <Link href={mainDashboardPath}>
+                <ArrowLeft className="w-4 h-4" />
+                <span>Back to Main Dashboard</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
           <SidebarGroupLabel>HR Modules</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
