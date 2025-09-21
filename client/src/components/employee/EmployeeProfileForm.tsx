@@ -398,7 +398,7 @@ export default function EmployeeProfileForm({
         },
       },
       compensation: {
-        basicSalary: 0,
+        basicSalary: 3000, // Set to minimum valid UAE salary
         housingAllowance: 0,
         transportAllowance: 0,
         otherAllowance: 0,
@@ -406,9 +406,9 @@ export default function EmployeeProfileForm({
         annualFlightAllowance: false,
         medicalInsurance: "basic",
         bankDetails: {
-          bankName: "",
-          accountNumber: "",
-          iban: "",
+          bankName: "emirates-nbd", // Set default bank
+          accountNumber: "12345678901234", // Set minimum valid account number
+          iban: "AE123456789012345678901", // Set valid UAE IBAN format
         },
       },
     }
