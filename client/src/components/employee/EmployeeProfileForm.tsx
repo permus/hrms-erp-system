@@ -176,7 +176,7 @@ const enhancedEmployeeSchema = z.object({
   contactInfo: z.object({
     personalEmail: z.string().email("Invalid email format").optional(),
     companyEmail: z.string().email("Invalid email format").optional(),
-    uaePhone: z.string().regex(/^(\+971|971)[0-9]{8,9}$/, "UAE phone must be in format +971XXXXXXXX or 971XXXXXXXX"),
+    uaePhone: z.string().regex(/^(\+971|971|05|04)[0-9]{7,9}$/, "UAE phone must be in format +971XXXXXXXX, 971XXXXXXXX, 05XXXXXXXX, or 04XXXXXXXX"),
     homeCountryPhone: z.string().optional(),
     uaeAddress: z.string().optional(),
     homeCountryAddress: z.string().optional(),
@@ -902,7 +902,7 @@ export default function EmployeeProfileForm({
                     <Input
                       id="uaePhone"
                       {...form.register("contactInfo.uaePhone")}
-                      placeholder="+971501234567"
+                      placeholder="+971501234567, 971501234567, 0501234567, or 0421234567"
                       data-testid="input-uae-phone"
                     />
                     {form.formState.errors.contactInfo?.uaePhone && (
