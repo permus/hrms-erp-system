@@ -1607,9 +1607,9 @@ export default function EmployeeProfileForm({
   };
 
   return (
-    <div className="flex flex-col h-screen w-full max-w-2xl mx-auto">
+    <div className="w-full max-w-2xl mx-auto bg-background rounded-lg border shadow">
       {/* Progress Indicator - Fixed Header */}
-      <div className="flex-shrink-0 p-6 bg-background border-b">
+      <div className="p-6 bg-background border-b rounded-t-lg">
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-3xl font-bold">Add New Employee</h1>
           <div className="text-sm text-muted-foreground">
@@ -1639,52 +1639,48 @@ export default function EmployeeProfileForm({
       </div>
 
       {/* Form Content - Scrollable Area */}
-      <div className="flex-1 overflow-hidden">
-        <form onSubmit={form.handleSubmit(handleSubmit)} className="h-full flex flex-col">
-          <Card className="flex-1 border-0 border-t-2 rounded-none">
-            <CardContent className="p-6 h-full overflow-y-auto" style={{ maxHeight: 'calc(100vh - 200px)' }}>
-              <div className="pb-24">
-                {renderCurrentStep()}
-              </div>
-            </CardContent>
-          </Card>
+      <form onSubmit={form.handleSubmit(handleSubmit)}>
+        <div className="max-h-[60vh] overflow-y-auto">
+          <div className="p-6">
+            {renderCurrentStep()}
+          </div>
+        </div>
 
-          {/* Navigation Buttons - Sticky Footer */}
-          <div className="flex-shrink-0 sticky bottom-0 bg-background border-t p-6 z-50">
-            <div className="flex justify-between">
+        {/* Navigation Buttons - Always Visible Footer */}
+        <div className="border-t bg-background p-6 rounded-b-lg">
+          <div className="flex justify-between">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={currentStep === 1 ? onCancel : handlePrevious}
+              data-testid="button-previous"
+            >
+              <ChevronLeft className="w-4 h-4 mr-2" />
+              {currentStep === 1 ? 'Cancel' : 'Previous'}
+            </Button>
+
+            {currentStep < totalSteps ? (
               <Button
                 type="button"
-                variant="outline"
-                onClick={currentStep === 1 ? onCancel : handlePrevious}
-                data-testid="button-previous"
+                onClick={handleNext}
+                disabled={!isCurrentStepValid()}
+                data-testid="button-next"
               >
-                <ChevronLeft className="w-4 h-4 mr-2" />
-                {currentStep === 1 ? 'Cancel' : 'Previous'}
+                Next
+                <ChevronRight className="w-4 h-4 ml-2" />
               </Button>
-
-              {currentStep < totalSteps ? (
-                <Button
-                  type="button"
-                  onClick={handleNext}
-                  disabled={!isCurrentStepValid()}
-                  data-testid="button-next"
-                >
-                  Next
-                  <ChevronRight className="w-4 h-4 ml-2" />
-                </Button>
-              ) : (
-                <Button
-                  type="submit"
-                  disabled={isLoading || !form.formState.isValid}
-                  data-testid="button-submit"
-                >
-                  {isLoading ? 'Creating Employee...' : 'Create Employee'}
-                </Button>
-              )}
-            </div>
+            ) : (
+              <Button
+                type="submit"
+                disabled={isLoading || !form.formState.isValid}
+                data-testid="button-submit"
+              >
+                {isLoading ? 'Creating Employee...' : 'Create Employee'}
+              </Button>
+            )}
           </div>
-        </form>
-      </div>
+        </div>
+      </form>
     </div>
   );
 }
