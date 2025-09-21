@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CalendarIcon, Upload, User, Briefcase, CreditCard, ChevronLeft, ChevronRight, FileText, Users, Phone, Globe } from "lucide-react";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { CalendarIcon, Upload, User, Briefcase, CreditCard, ChevronLeft, ChevronRight, FileText, Users, Phone, Globe, ChevronsUpDown, Check } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
@@ -16,28 +17,42 @@ import { Textarea } from "@/components/ui/textarea";
 import DocumentUpload from "./DocumentUpload";
 import { insertEmployeeSchema, type InsertEmployee } from "@shared/schema";
 
-// Enhanced form schema with comprehensive validation
+// List of countries for nationality dropdown
+const countries = [
+  "Afghanistan", "Albania", "Algeria", "Argentina", "Armenia", "Australia", "Austria", "Azerbaijan",
+  "Bahrain", "Bangladesh", "Belarus", "Belgium", "Brazil", "Bulgaria", "Cambodia", "Canada",
+  "Chile", "China", "Colombia", "Croatia", "Czech Republic", "Denmark", "Egypt", "Estonia",
+  "Ethiopia", "Finland", "France", "Georgia", "Germany", "Ghana", "Greece", "Hungary",
+  "Iceland", "India", "Indonesia", "Iran", "Iraq", "Ireland", "Israel", "Italy", "Japan",
+  "Jordan", "Kazakhstan", "Kenya", "Kuwait", "Latvia", "Lebanon", "Libya", "Lithuania",
+  "Luxembourg", "Malaysia", "Maldives", "Mexico", "Morocco", "Nepal", "Netherlands",
+  "New Zealand", "Nigeria", "Norway", "Oman", "Pakistan", "Palestine", "Philippines",
+  "Poland", "Portugal", "Qatar", "Romania", "Russia", "Saudi Arabia", "Singapore",
+  "Slovakia", "Slovenia", "South Africa", "South Korea", "Spain", "Sri Lanka", "Sudan",
+  "Sweden", "Switzerland", "Syria", "Thailand", "Tunisia", "Turkey", "Ukraine",
+  "United Arab Emirates", "United Kingdom", "United States", "Vietnam", "Yemen"
+].sort();
+
+// Enhanced form schema with only required fields: firstName, lastName, uaePhone
 const enhancedEmployeeSchema = z.object({
   personalInfo: z.object({
     firstName: z.string().min(1, "First name is required"),
     lastName: z.string().min(1, "Last name is required"),
-    fatherName: z.string().min(1, "Father's name is required"),
-    motherName: z.string().min(1, "Mother's name is required"),
-    dob: z.date({ required_error: "Date of birth is required" }),
-    nationality: z.string().min(1, "Nationality is required"),
-    religion: z.string().min(1, "Religion is required"),
-    maritalStatus: z.enum(["single", "married", "divorced", "widowed"], {
-      required_error: "Marital status is required"
-    }),
+    fatherName: z.string().optional(),
+    motherName: z.string().optional(),
+    dob: z.string().optional(), // Changed to string for manual input
+    nationality: z.string().optional(),
+    religion: z.string().optional(),
+    maritalStatus: z.enum(["single", "married", "divorced", "widowed"]).optional(),
     profilePhotoUrl: z.string().optional(),
   }),
   contactInfo: z.object({
-    personalEmail: z.string().email("Invalid email format").min(1, "Personal email is required"),
+    personalEmail: z.string().email("Invalid email format").optional(),
     companyEmail: z.string().email("Invalid email format").optional(),
-    uaePhone: z.string().regex(/^\+971[0-9]{8,9}$/, "UAE phone must be in format +971XXXXXXXX"),
-    homeCountryPhone: z.string().min(1, "Home country phone is required"),
-    uaeAddress: z.string().min(10, "UAE address must be at least 10 characters"),
-    homeCountryAddress: z.string().min(10, "Home country address must be at least 10 characters"),
+    uaePhone: z.string().regex(/^(\+971|971)[0-9]{8,9}$/, "UAE phone must be in format +971XXXXXXXX or 971XXXXXXXX"),
+    homeCountryPhone: z.string().optional(),
+    uaeAddress: z.string().optional(),
+    homeCountryAddress: z.string().optional(),
   }),
   employmentDetails: z.object({
     position: z.string().min(1, "Position/Job Title is required"),
@@ -154,7 +169,7 @@ export default function EmployeeProfileForm({
         lastName: "",
         fatherName: "",
         motherName: "",
-        dob: new Date(),
+        dob: "",
         nationality: "",
         religion: "",
         maritalStatus: "single",
@@ -615,11 +630,11 @@ export default function EmployeeProfileForm({
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="fatherName">Father's Name *</Label>
+                    <Label htmlFor="fatherName">Father's Name</Label>
                     <Input
                       id="fatherName"
                       {...form.register("personalInfo.fatherName")}
-                      placeholder="Enter father's name"
+                      placeholder="Enter father's name (optional)"
                       data-testid="input-father-name"
                     />
                     {form.formState.errors.personalInfo?.fatherName && (
@@ -628,11 +643,11 @@ export default function EmployeeProfileForm({
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="motherName">Mother's Name *</Label>
+                    <Label htmlFor="motherName">Mother's Name</Label>
                     <Input
                       id="motherName"
                       {...form.register("personalInfo.motherName")}
-                      placeholder="Enter mother's name"
+                      placeholder="Enter mother's name (optional)"
                       data-testid="input-mother-name"
                     />
                     {form.formState.errors.personalInfo?.motherName && (
@@ -641,60 +656,65 @@ export default function EmployeeProfileForm({
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="dob">Date of Birth *</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className="w-full justify-start text-left font-normal"
-                          data-testid="button-dob"
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {form.watch("personalInfo.dob") ? 
-                            format(form.watch("personalInfo.dob"), "dd/MM/yyyy") : 
-                            "Pick date of birth"
-                          }
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0">
-                        <Calendar
-                          mode="single"
-                          selected={form.watch("personalInfo.dob")}
-                          onSelect={(date) => {
-                            if (date) {
-                              form.setValue("personalInfo.dob", date);
-                            }
-                          }}
-                          fromYear={1950}
-                          toYear={2010}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
+                    <Label htmlFor="dob">Date of Birth</Label>
+                    <Input
+                      id="dob"
+                      {...form.register("personalInfo.dob")}
+                      placeholder="DD/MM/YYYY (optional)"
+                      data-testid="input-dob"
+                    />
                     {form.formState.errors.personalInfo?.dob && (
                       <p className="text-sm text-destructive">{form.formState.errors.personalInfo.dob.message}</p>
                     )}
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="nationality">Nationality *</Label>
-                    <Input
-                      id="nationality"
-                      {...form.register("personalInfo.nationality")}
-                      placeholder="Enter nationality"
-                      data-testid="input-nationality"
-                    />
+                    <Label htmlFor="nationality">Nationality</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          className="w-full justify-between"
+                          data-testid="select-nationality"
+                        >
+                          {form.watch("personalInfo.nationality") || "Select nationality (optional)"}
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-full p-0">
+                        <Command>
+                          <CommandInput placeholder="Search nationality..." />
+                          <CommandList>
+                            <CommandEmpty>No nationality found.</CommandEmpty>
+                            <CommandGroup>
+                              {countries.map((country) => (
+                                <CommandItem
+                                  key={country}
+                                  value={country}
+                                  onSelect={() => {
+                                    form.setValue("personalInfo.nationality", country);
+                                  }}
+                                >
+                                  {country}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
                     {form.formState.errors.personalInfo?.nationality && (
                       <p className="text-sm text-destructive">{form.formState.errors.personalInfo.nationality.message}</p>
                     )}
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="religion">Religion *</Label>
+                    <Label htmlFor="religion">Religion</Label>
                     <Input
                       id="religion"
                       {...form.register("personalInfo.religion")}
-                      placeholder="Enter religion"
+                      placeholder="Enter religion (optional)"
                       data-testid="input-religion"
                     />
                     {form.formState.errors.personalInfo?.religion && (
@@ -703,10 +723,10 @@ export default function EmployeeProfileForm({
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="maritalStatus">Marital Status *</Label>
+                    <Label htmlFor="maritalStatus">Marital Status</Label>
                     <Select onValueChange={(value) => form.setValue("personalInfo.maritalStatus", value as any)}>
                       <SelectTrigger data-testid="select-marital-status">
-                        <SelectValue placeholder="Select marital status" />
+                        <SelectValue placeholder="Select marital status (optional)" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="single">Single</SelectItem>
@@ -727,12 +747,12 @@ export default function EmployeeProfileForm({
                 <h3 className="text-lg font-medium border-b pb-2">Contact Information</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <Label htmlFor="personalEmail">Personal Email *</Label>
+                    <Label htmlFor="personalEmail">Personal Email</Label>
                     <Input
                       id="personalEmail"
                       type="email"
                       {...form.register("contactInfo.personalEmail")}
-                      placeholder="personal@example.com"
+                      placeholder="personal@example.com (optional)"
                       data-testid="input-personal-email"
                     />
                     {form.formState.errors.contactInfo?.personalEmail && (
@@ -768,11 +788,11 @@ export default function EmployeeProfileForm({
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="homeCountryPhone">Home Country Phone *</Label>
+                    <Label htmlFor="homeCountryPhone">Home Country Phone</Label>
                     <Input
                       id="homeCountryPhone"
                       {...form.register("contactInfo.homeCountryPhone")}
-                      placeholder="Enter home country phone"
+                      placeholder="Enter home country phone (optional)"
                       data-testid="input-home-phone"
                     />
                     {form.formState.errors.contactInfo?.homeCountryPhone && (
@@ -781,11 +801,11 @@ export default function EmployeeProfileForm({
                   </div>
 
                   <div className="space-y-2 md:col-span-2">
-                    <Label htmlFor="uaeAddress">UAE Address *</Label>
+                    <Label htmlFor="uaeAddress">UAE Address</Label>
                     <Textarea
                       id="uaeAddress"
                       {...form.register("contactInfo.uaeAddress")}
-                      placeholder="Enter complete UAE address"
+                      placeholder="Enter complete UAE address (optional)"
                       rows={3}
                       data-testid="textarea-uae-address"
                     />
@@ -795,11 +815,11 @@ export default function EmployeeProfileForm({
                   </div>
 
                   <div className="space-y-2 md:col-span-2">
-                    <Label htmlFor="homeCountryAddress">Home Country Address *</Label>
+                    <Label htmlFor="homeCountryAddress">Home Country Address</Label>
                     <Textarea
                       id="homeCountryAddress"
                       {...form.register("contactInfo.homeCountryAddress")}
-                      placeholder="Enter complete home country address"
+                      placeholder="Enter complete home country address (optional)"
                       rows={3}
                       data-testid="textarea-home-address"
                     />
